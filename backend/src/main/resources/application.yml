@@ -1,0 +1,8 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: trailmap-backend
+
+# 第一阶段不连接数据库。后续接入 MySQL 时，再补充 datasource 和 MyBatis-Plus 配置。

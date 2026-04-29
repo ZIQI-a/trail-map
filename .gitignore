@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+
+# Frontend build output
+frontend/dist/
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/*.tsbuildinfo
+
+# Backend build output
+backend/target/
+
+# Local environment files
+.env
+.env.local
+frontend/.env.local
+backend/.env.local
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
