@@ -1,0 +1,1 @@
+export { SpotDetailPanel } from './SpotDetailPanel';

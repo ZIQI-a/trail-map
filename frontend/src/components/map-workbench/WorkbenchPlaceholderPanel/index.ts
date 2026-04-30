@@ -1,1 +1,0 @@
-export { WorkbenchPlaceholderPanel } from './WorkbenchPlaceholderPanel';

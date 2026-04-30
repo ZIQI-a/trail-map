@@ -1,0 +1,1 @@
+export { TripPlannerDock } from './TripPlannerDock';

@@ -1,0 +1,277 @@
+.panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+}
+
+.coverBlock {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 8px;
+  color: #ffffff;
+  background:
+    linear-gradient(160deg, rgb(19 39 72 / 18%), rgb(19 39 72 / 78%)),
+    linear-gradient(135deg, #2266e8, #22a06b 58%, #f0a43a);
+}
+
+.coverBlock strong {
+  font-size: 22px;
+}
+
+.coverBlock span:last-child {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.coverType {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #17304f;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgb(255 255 255 / 86%);
+}
+
+.panelLabel,
+.titleBlock h2,
+.titleBlock p,
+.reasonBlock p,
+.infoList,
+.infoList dd {
+  margin: 0;
+}
+
+.panelLabel {
+  color: #2266e8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.titleBlock h2 {
+  margin-top: 4px;
+  color: #132748;
+  font-size: 22px;
+}
+
+.titleBlock p,
+.reasonBlock p {
+  margin-top: 8px;
+  color: #5f6f86;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.scoreRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scoreRow div {
+  padding: 12px;
+  border: 1px solid #dce6f3;
+  border-radius: 8px;
+  background: #f7fbff;
+}
+
+.scoreRow strong,
+.scoreRow span {
+  display: block;
+}
+
+.scoreRow strong {
+  color: #132748;
+  font-size: 20px;
+}
+
+.scoreRow span {
+  margin-top: 4px;
+  color: #65748a;
+  font-size: 12px;
+}
+
+.tagLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tagPill {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #31506f;
+  font-size: 12px;
+  background: #eef5fb;
+}
+
+.infoList {
+  display: grid;
+  gap: 8px;
+}
+
+.infoList div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e8eef6;
+}
+
+.infoList dt {
+  color: #748399;
+  font-size: 13px;
+}
+
+.infoList dd {
+  min-width: 0;
+  color: #243b58;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.reasonBlock {
+  padding: 12px;
+  border-radius: 8px;
+  background: #f7fbff;
+}
+
+.reasonBlock span,
+.nearbyTitle span {
+  color: #132748;
+  font-weight: 900;
+}
+
+.actionRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 42px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.primaryButton {
+  border: 0;
+  color: #ffffff;
+  background: #2266e8;
+  box-shadow: 0 12px 24px rgb(34 102 232 / 22%);
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  color: #718097;
+  background: #e5edf7;
+  box-shadow: none;
+}
+
+.secondaryButton {
+  border: 1px solid #d7e2ef;
+  color: #24415f;
+  background: #ffffff;
+}
+
+.nearbyBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nearbyTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nearbyTitle small {
+  color: #748399;
+}
+
+.nearbyList {
+  display: grid;
+  gap: 8px;
+}
+
+.nearbyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #dce6f3;
+  border-radius: 8px;
+  color: #243b58;
+  cursor: pointer;
+  background: #ffffff;
+}
+
+.nearbyItem:hover {
+  border-color: #2266e8;
+  background: #f4f8ff;
+}
+
+.nearbyItem strong,
+.nearbyItem span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nearbyItem span {
+  flex: 0 0 auto;
+  color: #748399;
+}
+
+.emptyState {
+  padding: 26px 12px;
+  border: 1px dashed #c8d8eb;
+  border-radius: 8px;
+  color: #65748a;
+  text-align: center;
+  background: #f8fbff;
+}
+
+@media (max-width: 920px) {
+  .panel {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1fr);
+  }
+
+  .coverBlock {
+    min-height: 100%;
+  }
+
+  .nearbyBlock,
+  .actionRow,
+  .reasonBlock,
+  .infoList,
+  .tagLine,
+  .scoreRow {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    display: flex;
+    padding: 14px;
+  }
+}

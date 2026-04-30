@@ -1,0 +1,201 @@
+.tripDock {
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(260px, 1fr) minmax(360px, 0.9fr);
+  align-items: stretch;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+}
+
+.tripHeader {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelLabel,
+.tripHeader h2 {
+  margin: 0;
+}
+
+.panelLabel {
+  color: #2266e8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tripHeader h2 {
+  margin-top: 4px;
+  color: #132748;
+  font-size: 20px;
+}
+
+.clearButton {
+  width: fit-content;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d7e2ef;
+  border-radius: 8px;
+  color: #24415f;
+  cursor: pointer;
+  background: #ffffff;
+}
+
+.clearButton:disabled {
+  cursor: not-allowed;
+  color: #9aa8b8;
+  background: #f3f6fa;
+}
+
+.tripSpots {
+  min-width: 0;
+  display: flex;
+  align-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed #c8d8eb;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.emptyTrip {
+  color: #65748a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tripSpot {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 7px;
+  border: 1px solid #dce6f3;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.tripIndex {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  background: #2266e8;
+}
+
+.tripSpot strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #243b58;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tripSpot button {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  color: #65748a;
+  cursor: pointer;
+  background: #eef3f8;
+}
+
+.plannerForm {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.startField {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.startField span {
+  color: #65748a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.startField input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d7e2ef;
+  border-radius: 8px;
+  outline: 0;
+  color: #243b58;
+  background: #ffffff;
+}
+
+.startField input:focus {
+  border-color: #2266e8;
+  box-shadow: 0 0 0 3px rgb(34 102 232 / 12%);
+}
+
+.optionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.optionButton,
+.optionButtonActive {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.optionButton {
+  border: 1px solid #d7e2ef;
+  color: #40536d;
+  background: #ffffff;
+}
+
+.optionButtonActive {
+  border: 1px solid #2266e8;
+  color: #ffffff;
+  background: #2266e8;
+}
+
+@media (max-width: 1180px) {
+  .tripDock {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+
+  .plannerForm {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .tripDock {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .plannerForm {
+    grid-column: auto;
+  }
+}

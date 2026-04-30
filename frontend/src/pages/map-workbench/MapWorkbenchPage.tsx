@@ -1,16 +1,41 @@
 import { useState } from 'react';
 import { MockMapStage } from '../../components/map-workbench/MockMapStage';
+import { SpotDetailPanel } from '../../components/map-workbench/SpotDetailPanel';
+import { SpotRecommendList, type RecommendTab } from '../../components/map-workbench/SpotRecommendList';
+import { TripPlannerDock } from '../../components/map-workbench/TripPlannerDock';
 import { WorkbenchHeader, type ActiveSpotFilter } from '../../components/map-workbench/WorkbenchHeader';
-import { WorkbenchPlaceholderPanel } from '../../components/map-workbench/WorkbenchPlaceholderPanel';
 import { chengduWorkbenchData } from '../../mocks/map-workbench';
+import type { PlanMode, TransportType, TravelSpot } from '../../types/mapWorkbench';
+import { getVisibleSpots } from '../../utils/map-workbench/spotFilters';
 import styles from './MapWorkbenchPage.module.css';
 
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>('all');
+  const [activeRecommendTab, setActiveRecommendTab] = useState<RecommendTab>('recommend');
   const [selectedSpotId, setSelectedSpotId] = useState(chengduWorkbenchData.spots[0]?.id);
-  const { city, tags, spots, areas } = chengduWorkbenchData;
+  const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
+  const [startPoint, setStartPoint] = useState('');
+  const [selectedTransport, setSelectedTransport] = useState<TransportType>('transit');
+  const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>('free');
+  const { city, tags, spots, areas, transportTypes, planModes } = chengduWorkbenchData;
+  const visibleSpots = getVisibleSpots(spots, activeFilter, searchKeyword, activeRecommendTab);
+  const selectedSpot = spots.find((spot) => spot.id === selectedSpotId);
+  const nearbySpots = spots.filter((spot) => spot.id !== selectedSpotId).slice(0, 3);
+  const tripSpots = tripSpotIds
+    .map((spotId) => spots.find((spot) => spot.id === spotId))
+    .filter((spot): spot is TravelSpot => Boolean(spot));
+
+  // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
+  function handleAddToTrip(spotId: number) {
+    setTripSpotIds((currentIds) => (currentIds.includes(spotId) ? currentIds : [...currentIds, spotId]));
+  }
+
+  // 删除行程池中的单个景点，其他景点顺序保持不变。
+  function handleRemoveTripSpot(spotId: number) {
+    setTripSpotIds((currentIds) => currentIds.filter((currentId) => currentId !== spotId));
+  }
 
   return (
     <main className={styles.workbenchShell}>
@@ -24,34 +49,46 @@ export function MapWorkbenchPage() {
       />
 
       <section className={styles.contentGrid} aria-label="地图工作台主体">
-        <WorkbenchPlaceholderPanel
-          label="左侧区域"
-          title="景点推荐列表占位"
-          description="后续 2.5 会在这里展示城市必玩景点列表。"
+        <SpotRecommendList
+          spots={visibleSpots}
+          tags={tags}
+          activeTab={activeRecommendTab}
+          selectedSpotId={selectedSpotId}
+          onActiveTabChange={setActiveRecommendTab}
+          onSelectSpot={setSelectedSpotId}
         />
 
         <MockMapStage
           cityName={city.name}
-          spots={spots}
+          spots={visibleSpots}
           areaNames={areas.map((area) => area.name)}
           selectedSpotId={selectedSpotId}
           onSelectSpot={setSelectedSpotId}
         />
 
-        <WorkbenchPlaceholderPanel
-          label="右侧区域"
-          title="景点详情卡片占位"
-          description="后续 2.6 会在这里展示选中景点的详情信息。"
+        <SpotDetailPanel
+          spot={selectedSpot}
+          tags={tags}
+          nearbySpots={nearbySpots}
+          isInTrip={selectedSpotId !== undefined && tripSpotIds.includes(selectedSpotId)}
+          onAddToTrip={handleAddToTrip}
+          onSelectSpot={setSelectedSpotId}
         />
       </section>
 
-      <section className={styles.tripDock} aria-label="行程规划区域">
-        <div>
-          <p className={styles.panelLabel}>底部区域</p>
-          <h2>我的行程占位</h2>
-        </div>
-        <p>后续 2.7 会在这里实现行程池、起点、交通方式和规划模式。</p>
-      </section>
+      <TripPlannerDock
+        tripSpots={tripSpots}
+        transportTypes={transportTypes}
+        planModes={planModes}
+        startPoint={startPoint}
+        selectedTransport={selectedTransport}
+        selectedPlanMode={selectedPlanMode}
+        onStartPointChange={setStartPoint}
+        onTransportChange={setSelectedTransport}
+        onPlanModeChange={setSelectedPlanMode}
+        onRemoveSpot={handleRemoveTripSpot}
+        onClearTrip={() => setTripSpotIds([])}
+      />
     </main>
   );
 }
