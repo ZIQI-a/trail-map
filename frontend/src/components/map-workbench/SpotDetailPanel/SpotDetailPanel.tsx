@@ -1,3 +1,4 @@
+import { Button, Descriptions, Empty, Tag } from 'antd';
 import type { SpotTag, TravelSpot } from '../../../types/mapWorkbench';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './SpotDetailPanel.module.css';
@@ -24,7 +25,7 @@ export function SpotDetailPanel({
     return (
       <aside className={styles.panel}>
         <p className={styles.panelLabel}>景点详情</p>
-        <div className={styles.emptyState}>请选择一个景点查看详情。</div>
+        <Empty className={styles.emptyState} image={Empty.PRESENTED_IMAGE_SIMPLE} description="请选择一个景点查看详情" />
       </aside>
     );
   }
@@ -56,26 +57,23 @@ export function SpotDetailPanel({
 
       <div className={styles.tagLine}>
         {spot.tags.map((tagCode) => (
-          <span className={styles.tagPill} key={tagCode}>
+          <Tag className={styles.tagPill} bordered={false} key={tagCode}>
             {getSpotTagName(tagCode, tags)}
-          </span>
+          </Tag>
         ))}
       </div>
 
-      <dl className={styles.infoList}>
-        <div>
-          <dt>开放时间</dt>
-          <dd>{spot.openingHours}</dd>
-        </div>
-        <div>
-          <dt>门票信息</dt>
-          <dd>{spot.ticketInfo}</dd>
-        </div>
-        <div>
-          <dt>推荐时段</dt>
-          <dd>{spot.bestTime}</dd>
-        </div>
-      </dl>
+      <Descriptions
+        className={styles.infoList}
+        column={1}
+        size="small"
+        bordered
+        items={[
+          { key: 'openingHours', label: '开放时间', children: spot.openingHours },
+          { key: 'ticketInfo', label: '门票信息', children: spot.ticketInfo },
+          { key: 'bestTime', label: '推荐时段', children: spot.bestTime },
+        ]}
+      />
 
       <div className={styles.reasonBlock}>
         <span>推荐理由</span>
@@ -83,12 +81,10 @@ export function SpotDetailPanel({
       </div>
 
       <div className={styles.actionRow}>
-        <button className={styles.primaryButton} type="button" disabled={isInTrip} onClick={() => onAddToTrip(spot.id)}>
+        <Button className={styles.primaryButton} type="primary" disabled={isInTrip} onClick={() => onAddToTrip(spot.id)}>
           {isInTrip ? '已加入行程' : '加入行程'}
-        </button>
-        <button className={styles.secondaryButton} type="button">
-          导航到这里
-        </button>
+        </Button>
+        <Button className={styles.secondaryButton}>导航到这里</Button>
       </div>
 
       <section className={styles.nearbyBlock} aria-label="附近景点">
@@ -98,10 +94,10 @@ export function SpotDetailPanel({
         </div>
         <div className={styles.nearbyList}>
           {nearbySpots.map((nearbySpot) => (
-            <button className={styles.nearbyItem} type="button" key={nearbySpot.id} onClick={() => onSelectSpot(nearbySpot.id)}>
+            <Button className={styles.nearbyItem} type="text" block key={nearbySpot.id} onClick={() => onSelectSpot(nearbySpot.id)}>
               <strong>{nearbySpot.name}</strong>
               <span>{nearbySpot.distanceText}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </section>

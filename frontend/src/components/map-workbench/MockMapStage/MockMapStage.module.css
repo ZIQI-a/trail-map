@@ -1,29 +1,46 @@
 .mapStage {
   position: relative;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  height: 100%;
   overflow: hidden;
-  padding: 20px;
-  border: 1px solid rgb(203 216 235 / 86%);
-  border-radius: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background:
     linear-gradient(90deg, rgb(31 102 232 / 7%) 1px, transparent 1px),
     linear-gradient(rgb(31 102 232 / 7%) 1px, transparent 1px),
     #f8fbff;
   background-size: 48px 48px;
-  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+  box-shadow: none;
 }
 
 .mockMapToolbar,
 .mockMapStatus {
-  position: relative;
+  position: absolute;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  border: 1px solid rgb(203 216 235 / 76%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 10px 24px rgb(41 78 118 / 8%);
+  backdrop-filter: blur(10px);
+}
+
+.mockMapToolbar {
+  top: 14px;
+  left: 330px;
+  right: 14px;
+  padding: 10px 12px;
+}
+
+.mockMapStatus {
+  right: 14px;
+  bottom: 128px;
+  left: 330px;
+  padding: 8px 12px;
 }
 
 .panelLabel,
@@ -41,7 +58,7 @@
 .mapStage h1 {
   margin: 4px 0 0;
   color: #132748;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .mapStage p {
@@ -60,12 +77,12 @@
 }
 
 .mockMapCanvas {
-  position: relative;
-  flex: 1;
-  min-height: 420px;
+  position: absolute;
+  inset: 0;
+  min-height: 100%;
   overflow: hidden;
-  border: 1px solid #d6e3f2;
-  border-radius: 8px;
+  border: 0;
+  border-radius: 0;
   background:
     radial-gradient(circle at 22% 28%, rgb(52 168 83 / 14%), transparent 18%),
     radial-gradient(circle at 78% 18%, rgb(34 102 232 / 12%), transparent 22%),
@@ -204,14 +221,6 @@
 }
 
 @media (max-width: 720px) {
-  .mapStage {
-    padding: 14px;
-  }
-
-  .mockMapCanvas {
-    min-height: 440px;
-  }
-
   .spotMarker,
   .spotMarkerActive {
     max-width: min(170px, 58%);
@@ -221,5 +230,12 @@
   .mockMapStatus {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .mockMapToolbar,
+  .mockMapStatus {
+    position: relative;
+    inset: auto;
+    margin: 12px;
   }
 }

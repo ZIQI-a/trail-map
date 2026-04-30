@@ -1,3 +1,4 @@
+import { Button, Input, Segmented } from 'antd';
 import type { SpotTag, SpotTagCode } from '../../../types/mapWorkbench';
 import styles from './WorkbenchHeader.module.css';
 
@@ -23,6 +24,8 @@ export function WorkbenchHeader({
   onSearchKeywordChange,
   onActiveFilterChange,
 }: WorkbenchHeaderProps) {
+  const filterOptions = [{ label: '全部', value: 'all' }, ...tags.map((tag) => ({ label: tag.name, value: tag.code }))];
+
   return (
     <header className={styles.topBar}>
       <div className={styles.topBarMain}>
@@ -36,52 +39,37 @@ export function WorkbenchHeader({
           </div>
         </div>
 
-        <label className={styles.searchBox}>
-          <span className={styles.searchIcon} aria-hidden="true">
-            ⌕
-          </span>
-          <input
-            aria-label="搜索城市、景点或美食"
-            value={searchKeyword}
-            placeholder="搜索城市 / 景点 / 美食"
-            onChange={(event) => onSearchKeywordChange(event.target.value)}
-          />
-        </label>
+        <Input
+          className={styles.searchBox}
+          aria-label="搜索城市、景点或美食"
+          value={searchKeyword}
+          prefix="⌕"
+          placeholder="搜索城市 / 景点 / 美食"
+          allowClear
+          onChange={(event) => onSearchKeywordChange(event.target.value)}
+        />
 
-        <button className={styles.cityButton} type="button" aria-label="当前城市">
+        <Button className={styles.cityButton} aria-label="当前城市">
           {cityName}
           <span aria-hidden="true">⌄</span>
-        </button>
+        </Button>
 
         <div className={styles.actionGroup} aria-label="快捷操作">
           {quickActions.map((action) => (
-            <button className={styles.actionButton} type="button" key={action}>
+            <Button className={styles.actionButton} key={action}>
               {action}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       <nav className={styles.filterRail} aria-label="景点分类筛选">
-        <button
-          className={activeFilter === 'all' ? styles.filterButtonActive : styles.filterButton}
-          type="button"
-          aria-pressed={activeFilter === 'all'}
-          onClick={() => onActiveFilterChange('all')}
-        >
-          全部
-        </button>
-        {tags.map((tag) => (
-          <button
-            className={activeFilter === tag.code ? styles.filterButtonActive : styles.filterButton}
-            type="button"
-            aria-pressed={activeFilter === tag.code}
-            key={tag.code}
-            onClick={() => onActiveFilterChange(tag.code)}
-          >
-            {tag.name}
-          </button>
-        ))}
+        <Segmented
+          className={styles.filterSegmented}
+          value={activeFilter}
+          options={filterOptions}
+          onChange={(value) => onActiveFilterChange(value as ActiveSpotFilter)}
+        />
       </nav>
     </header>
   );

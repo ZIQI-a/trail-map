@@ -1,42 +1,101 @@
 .workbenchShell {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 16px;
-  padding: 18px;
-  overflow-x: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
   background:
     linear-gradient(120deg, rgb(255 255 255 / 82%), rgb(238 246 255 / 84%)),
     #edf4fb;
 }
 
-.contentGrid {
-  min-height: 520px;
-  display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(240px, 340px);
-  gap: 16px;
+.mapWorkspace {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: #dfeaf6;
 }
 
-@media (max-width: 1180px) {
-  .contentGrid {
-    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+.leftFloatPanel,
+.detailFloatPanel,
+.tripFloatPanel {
+  position: absolute;
+  z-index: 5;
+}
+
+.leftFloatPanel {
+  top: 14px;
+  left: 14px;
+  width: min(300px, calc(100vw - 28px));
+  max-height: calc(100% - 146px);
+  overflow: auto;
+}
+
+.detailFloatPanel {
+  top: 14px;
+  right: 14px;
+  width: min(330px, calc(100vw - 28px));
+  max-height: calc(100% - 146px);
+  overflow: auto;
+  animation: slideIn 180ms ease-out;
+}
+
+.tripFloatPanel {
+  right: 14px;
+  bottom: 14px;
+  left: 330px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
   }
 
-  .contentGrid > :nth-child(3) {
-    grid-column: 1 / -1;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
 @media (max-width: 920px) {
-  .workbenchShell {
-    padding: 12px;
+  .leftFloatPanel {
+    width: min(290px, calc(100vw - 24px));
+    max-height: 34%;
   }
 
-  .contentGrid {
-    grid-template-columns: 1fr;
+  .detailFloatPanel {
+    top: 12px;
+    right: 12px;
+    width: min(320px, calc(100vw - 24px));
+    max-height: 40%;
   }
 
-  .contentGrid > :nth-child(3) {
-    grid-column: auto;
+  .tripFloatPanel {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
+}
+
+@media (max-height: 760px) {
+  .leftFloatPanel,
+  .detailFloatPanel {
+    max-height: calc(100% - 126px);
+  }
+}
+
+@media (max-width: 640px) {
+  .mapWorkspace {
+    overflow: auto;
+  }
+
+  .leftFloatPanel,
+  .detailFloatPanel,
+  .tripFloatPanel {
+    position: relative;
+    inset: auto;
+    width: auto;
+    max-height: none;
+    margin: 12px;
   }
 }

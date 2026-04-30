@@ -1,10 +1,10 @@
 .tripDock {
-  min-height: 132px;
+  min-height: 96px;
   display: grid;
-  grid-template-columns: minmax(170px, 220px) minmax(260px, 1fr) minmax(360px, 0.9fr);
+  grid-template-columns: minmax(130px, 170px) minmax(240px, 1fr) minmax(330px, 0.85fr);
   align-items: stretch;
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid rgb(203 216 235 / 86%);
   border-radius: 8px;
   background: rgb(255 255 255 / 94%);
@@ -15,7 +15,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .panelLabel,
@@ -32,18 +32,14 @@
 .tripHeader h2 {
   margin-top: 4px;
   color: #132748;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .clearButton {
   width: fit-content;
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid #d7e2ef;
+  min-height: 30px;
   border-radius: 8px;
   color: #24415f;
-  cursor: pointer;
-  background: #ffffff;
 }
 
 .clearButton:disabled {
@@ -58,17 +54,29 @@
   align-content: flex-start;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
+  gap: 6px;
+  padding: 8px;
   border: 1px dashed #c8d8eb;
   border-radius: 8px;
   background: #f8fbff;
 }
 
 .emptyTrip {
+  width: 100%;
+  margin: 0;
   color: #65748a;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.emptyTrip :global(.ant-empty-image) {
+  height: 32px;
+  margin-bottom: 4px;
+}
+
+.emptyTrip :global(.ant-empty-description) {
+  color: #65748a;
+  font-size: 12px;
 }
 
 .tripSpot {
@@ -80,6 +88,7 @@
   border: 1px solid #dce6f3;
   border-radius: 999px;
   background: #ffffff;
+  margin-inline-end: 0;
 }
 
 .tripIndex {
@@ -104,21 +113,14 @@
   white-space: nowrap;
 }
 
-.tripSpot button {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 999px;
+.tripSpot :global(.ant-tag-close-icon) {
   color: #65748a;
-  cursor: pointer;
-  background: #eef3f8;
 }
 
 .plannerForm {
   min-width: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .startField {
@@ -135,53 +137,27 @@
   font-weight: 800;
 }
 
-.startField input {
+.startField :global(.ant-input) {
   min-width: 0;
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid #d7e2ef;
+  height: 34px;
   border-radius: 8px;
-  outline: 0;
   color: #243b58;
-  background: #ffffff;
-}
-
-.startField input:focus {
-  border-color: #2266e8;
-  box-shadow: 0 0 0 3px rgb(34 102 232 / 12%);
 }
 
 .optionGroup {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
 }
 
-.optionButton,
-.optionButtonActive {
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  cursor: pointer;
+.optionSegmented {
+  max-width: 100%;
+  overflow-x: auto;
   font-size: 13px;
-  font-weight: 800;
-}
-
-.optionButton {
-  border: 1px solid #d7e2ef;
-  color: #40536d;
-  background: #ffffff;
-}
-
-.optionButtonActive {
-  border: 1px solid #2266e8;
-  color: #ffffff;
-  background: #2266e8;
 }
 
 @media (max-width: 1180px) {
   .tripDock {
-    grid-template-columns: 180px minmax(0, 1fr);
+    grid-template-columns: 150px minmax(0, 1fr);
   }
 
   .plannerForm {

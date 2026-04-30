@@ -14,14 +14,14 @@ export function MapWorkbenchPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>('all');
   const [activeRecommendTab, setActiveRecommendTab] = useState<RecommendTab>('recommend');
-  const [selectedSpotId, setSelectedSpotId] = useState(chengduWorkbenchData.spots[0]?.id);
+  const [selectedSpotId, setSelectedSpotId] = useState<number>();
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState('');
   const [selectedTransport, setSelectedTransport] = useState<TransportType>('transit');
   const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>('free');
   const { city, tags, spots, areas, transportTypes, planModes } = chengduWorkbenchData;
   const visibleSpots = getVisibleSpots(spots, activeFilter, searchKeyword, activeRecommendTab);
-  const selectedSpot = spots.find((spot) => spot.id === selectedSpotId);
+  const selectedSpot = visibleSpots.find((spot) => spot.id === selectedSpotId);
   const nearbySpots = spots.filter((spot) => spot.id !== selectedSpotId).slice(0, 3);
   const tripSpots = tripSpotIds
     .map((spotId) => spots.find((spot) => spot.id === spotId))
@@ -48,16 +48,7 @@ export function MapWorkbenchPage() {
         onActiveFilterChange={setActiveFilter}
       />
 
-      <section className={styles.contentGrid} aria-label="地图工作台主体">
-        <SpotRecommendList
-          spots={visibleSpots}
-          tags={tags}
-          activeTab={activeRecommendTab}
-          selectedSpotId={selectedSpotId}
-          onActiveTabChange={setActiveRecommendTab}
-          onSelectSpot={setSelectedSpotId}
-        />
-
+      <section className={styles.mapWorkspace} aria-label="地图工作台主体">
         <MockMapStage
           cityName={city.name}
           spots={visibleSpots}
@@ -66,29 +57,46 @@ export function MapWorkbenchPage() {
           onSelectSpot={setSelectedSpotId}
         />
 
-        <SpotDetailPanel
-          spot={selectedSpot}
-          tags={tags}
-          nearbySpots={nearbySpots}
-          isInTrip={selectedSpotId !== undefined && tripSpotIds.includes(selectedSpotId)}
-          onAddToTrip={handleAddToTrip}
-          onSelectSpot={setSelectedSpotId}
-        />
-      </section>
+        <div className={styles.leftFloatPanel}>
+          <SpotRecommendList
+            spots={visibleSpots}
+            tags={tags}
+            activeTab={activeRecommendTab}
+            selectedSpotId={selectedSpotId}
+            onActiveTabChange={setActiveRecommendTab}
+            onSelectSpot={setSelectedSpotId}
+          />
+        </div>
 
-      <TripPlannerDock
-        tripSpots={tripSpots}
-        transportTypes={transportTypes}
-        planModes={planModes}
-        startPoint={startPoint}
-        selectedTransport={selectedTransport}
-        selectedPlanMode={selectedPlanMode}
-        onStartPointChange={setStartPoint}
-        onTransportChange={setSelectedTransport}
-        onPlanModeChange={setSelectedPlanMode}
-        onRemoveSpot={handleRemoveTripSpot}
-        onClearTrip={() => setTripSpotIds([])}
-      />
+        {selectedSpot ? (
+          <div className={styles.detailFloatPanel}>
+            <SpotDetailPanel
+              spot={selectedSpot}
+              tags={tags}
+              nearbySpots={nearbySpots}
+              isInTrip={tripSpotIds.includes(selectedSpot.id)}
+              onAddToTrip={handleAddToTrip}
+              onSelectSpot={setSelectedSpotId}
+            />
+          </div>
+        ) : null}
+
+        <div className={styles.tripFloatPanel}>
+          <TripPlannerDock
+            tripSpots={tripSpots}
+            transportTypes={transportTypes}
+            planModes={planModes}
+            startPoint={startPoint}
+            selectedTransport={selectedTransport}
+            selectedPlanMode={selectedPlanMode}
+            onStartPointChange={setStartPoint}
+            onTransportChange={setSelectedTransport}
+            onPlanModeChange={setSelectedPlanMode}
+            onRemoveSpot={handleRemoveTripSpot}
+            onClearTrip={() => setTripSpotIds([])}
+          />
+        </div>
+      </section>
     </main>
   );
 }

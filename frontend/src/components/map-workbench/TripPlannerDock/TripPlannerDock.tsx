@@ -1,3 +1,4 @@
+import { Button, Empty, Input, Segmented, Tag } from 'antd';
 import type { PlanMode, TransportType, TravelSpot } from '../../../types/mapWorkbench';
 import styles from './TripPlannerDock.module.css';
 
@@ -41,23 +42,33 @@ export function TripPlannerDock({
           <p className={styles.panelLabel}>我的行程</p>
           <h2>路线规划池</h2>
         </div>
-        <button className={styles.clearButton} type="button" disabled={tripSpots.length === 0} onClick={onClearTrip}>
+        <Button className={styles.clearButton} size="small" disabled={tripSpots.length === 0} onClick={onClearTrip}>
           清空
-        </button>
+        </Button>
       </div>
 
       <div className={styles.tripSpots} aria-label="已加入行程的景点">
         {tripSpots.length === 0 ? (
-          <span className={styles.emptyTrip}>从右侧详情点击“加入行程”，先收集想去的景点。</span>
+          <Empty
+            className={styles.emptyTrip}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="从右侧详情点击“加入行程”"
+          />
         ) : (
           tripSpots.map((spot, index) => (
-            <div className={styles.tripSpot} key={spot.id}>
+            <Tag
+              className={styles.tripSpot}
+              bordered={false}
+              closable
+              key={spot.id}
+              onClose={(event) => {
+                event.preventDefault();
+                onRemoveSpot(spot.id);
+              }}
+            >
               <span className={styles.tripIndex}>{index + 1}</span>
               <strong>{spot.name}</strong>
-              <button type="button" aria-label={`移除${spot.name}`} onClick={() => onRemoveSpot(spot.id)}>
-                ×
-              </button>
-            </div>
+            </Tag>
           ))
         )}
       </div>
@@ -65,7 +76,7 @@ export function TripPlannerDock({
       <div className={styles.plannerForm}>
         <label className={styles.startField}>
           <span>起点</span>
-          <input
+          <Input
             value={startPoint}
             placeholder="例如：酒店 / 当前位置"
             onChange={(event) => onStartPointChange(event.target.value)}
@@ -73,31 +84,21 @@ export function TripPlannerDock({
         </label>
 
         <div className={styles.optionGroup} aria-label="交通方式">
-          {transportTypes.map((item) => (
-            <button
-              className={selectedTransport === item.value ? styles.optionButtonActive : styles.optionButton}
-              type="button"
-              key={item.value}
-              aria-pressed={selectedTransport === item.value}
-              onClick={() => onTransportChange(item.value)}
-            >
-              {item.label}
-            </button>
-          ))}
+          <Segmented
+            className={styles.optionSegmented}
+            value={selectedTransport}
+            options={transportTypes}
+            onChange={(value) => onTransportChange(value as TransportType)}
+          />
         </div>
 
         <div className={styles.optionGroup} aria-label="规划模式">
-          {planModes.map((item) => (
-            <button
-              className={selectedPlanMode === item.value ? styles.optionButtonActive : styles.optionButton}
-              type="button"
-              key={item.value}
-              aria-pressed={selectedPlanMode === item.value}
-              onClick={() => onPlanModeChange(item.value)}
-            >
-              {item.label}
-            </button>
-          ))}
+          <Segmented
+            className={styles.optionSegmented}
+            value={selectedPlanMode}
+            options={planModes}
+            onChange={(value) => onPlanModeChange(value as PlanMode)}
+          />
         </div>
       </div>
     </section>

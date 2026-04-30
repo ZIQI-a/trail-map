@@ -1,3 +1,4 @@
+import { Button, Empty, Segmented, Tag } from 'antd';
 import type { SpotTag, TravelSpot } from '../../../types/mapWorkbench';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './SpotRecommendList.module.css';
@@ -36,37 +37,33 @@ export function SpotRecommendList({
           <p className={styles.panelLabel}>成都必玩推荐</p>
           <h2>精选景点</h2>
         </div>
-        <span className={styles.countBadge}>{spots.length} 个</span>
+        <Tag className={styles.countBadge} bordered={false}>
+          {spots.length} 个
+        </Tag>
       </div>
 
       <div className={styles.tabGroup} aria-label="推荐列表排序">
-        {recommendTabs.map((tab) => (
-          <button
-            className={activeTab === tab.value ? styles.tabButtonActive : styles.tabButton}
-            type="button"
-            key={tab.value}
-            aria-pressed={activeTab === tab.value}
-            onClick={() => onActiveTabChange(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <Segmented
+          block
+          className={styles.tabSegmented}
+          value={activeTab}
+          options={recommendTabs}
+          onChange={(value) => onActiveTabChange(value as RecommendTab)}
+        />
       </div>
 
       <div className={styles.spotList}>
         {spots.length === 0 ? (
-          <div className={styles.emptyState}>
-            <strong>暂无匹配景点</strong>
-            <span>换个关键词或分类试试。</span>
-          </div>
+          <Empty className={styles.emptyState} image={Empty.PRESENTED_IMAGE_SIMPLE} description="换个关键词或分类试试" />
         ) : (
           spots.map((spot, index) => {
             const isSelected = spot.id === selectedSpotId;
 
             return (
-              <button
+              <Button
                 className={isSelected ? styles.spotCardActive : styles.spotCard}
-                type="button"
+                type="text"
+                block
                 key={spot.id}
                 aria-pressed={isSelected}
                 onClick={() => onSelectSpot(spot.id)}
@@ -84,13 +81,13 @@ export function SpotRecommendList({
                   </span>
                   <span className={styles.tagLine}>
                     {spot.tags.slice(0, 3).map((tagCode) => (
-                      <span className={styles.tagPill} key={tagCode}>
+                      <Tag className={styles.tagPill} bordered={false} key={tagCode}>
                         {getSpotTagName(tagCode, tags)}
-                      </span>
+                      </Tag>
                     ))}
                   </span>
                 </span>
-              </button>
+              </Button>
             );
           })
         )}

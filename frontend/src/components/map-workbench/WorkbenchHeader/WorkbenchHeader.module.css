@@ -1,21 +1,22 @@
 .topBar {
-  min-height: 128px;
+  min-height: 104px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
-  padding: 16px 20px;
-  border: 1px solid rgb(203 216 235 / 86%);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 0;
   background: rgb(255 255 255 / 92%);
-  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+  box-shadow: 0 8px 22px rgb(41 78 118 / 8%);
 }
 
 .topBarMain {
   display: grid;
   grid-template-columns: minmax(230px, auto) minmax(260px, 460px) auto minmax(260px, auto);
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .brandArea {
@@ -26,8 +27,8 @@
 }
 
 .logoMark {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: 8px;
@@ -43,7 +44,7 @@
 
 .brandName {
   color: #122342;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -55,7 +56,7 @@
 
 .searchBox {
   min-width: 0;
-  height: 46px;
+  height: 38px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -88,13 +89,9 @@
 }
 
 .cityButton,
-.actionButton,
-.filterButton,
-.filterButtonActive {
-  min-height: 40px;
-  border: 0;
+.actionButton {
+  min-height: 34px;
   border-radius: 8px;
-  cursor: pointer;
   white-space: nowrap;
 }
 
@@ -134,28 +131,14 @@
 
 .filterRail {
   display: flex;
-  gap: 10px;
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: thin;
 }
 
-.filterButton,
-.filterButtonActive {
-  padding: 0 14px;
-  font-size: 14px;
-}
-
-.filterButton {
-  color: #40536d;
-  background: #f4f8fd;
-  border: 1px solid transparent;
-}
-
-.filterButtonActive {
-  color: #ffffff;
-  background: #2266e8;
-  box-shadow: 0 8px 20px rgb(34 102 232 / 22%);
+.filterSegmented {
+  min-width: max-content;
+  font-size: 13px;
 }
 
 @media (max-width: 1180px) {
@@ -170,7 +153,8 @@
 
 @media (max-width: 720px) {
   .topBar {
-    padding: 14px;
+    min-height: auto;
+    padding: 10px 12px;
   }
 
   .topBarMain {

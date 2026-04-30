@@ -113,28 +113,20 @@
   color: #31506f;
   font-size: 12px;
   background: #eef5fb;
+  margin-inline-end: 0;
 }
 
 .infoList {
-  display: grid;
-  gap: 8px;
+  margin: 0;
 }
 
-.infoList div {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #e8eef6;
-}
-
-.infoList dt {
+.infoList :global(.ant-descriptions-item-label) {
   color: #748399;
   font-size: 13px;
+  background: #f7fbff;
 }
 
-.infoList dd {
-  min-width: 0;
+.infoList :global(.ant-descriptions-item-content) {
   color: #243b58;
   font-size: 13px;
   font-weight: 700;
@@ -162,7 +154,6 @@
 .secondaryButton {
   min-height: 42px;
   border-radius: 8px;
-  cursor: pointer;
   font-weight: 900;
 }
 
@@ -213,11 +204,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  height: auto;
   padding: 10px 12px;
   border: 1px solid #dce6f3;
   border-radius: 8px;
   color: #243b58;
-  cursor: pointer;
   background: #ffffff;
 }
 
@@ -247,6 +238,11 @@
   color: #65748a;
   text-align: center;
   background: #f8fbff;
+}
+
+.emptyState :global(.ant-empty-description) {
+  color: #65748a;
+  font-size: 13px;
 }
 
 @media (max-width: 920px) {

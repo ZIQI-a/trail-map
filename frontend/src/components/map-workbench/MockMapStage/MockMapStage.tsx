@@ -1,3 +1,4 @@
+import { Button } from 'antd';
 import type { TravelSpot } from '../../../types/mapWorkbench';
 import { getMockMarkerStyle } from '../../../utils/map-workbench/mockMapProjection';
 import styles from './MockMapStage.module.css';
@@ -52,9 +53,9 @@ export function MockMapStage({ cityName, spots, areaNames, selectedSpotId, onSel
           const isSelected = spot.id === selectedSpotId;
 
           return (
-            <button
+            <Button
               className={isSelected ? styles.spotMarkerActive : styles.spotMarker}
-              type="button"
+              type="text"
               key={spot.id}
               style={getMockMarkerStyle(spot.position, spots)}
               aria-pressed={isSelected}
@@ -62,7 +63,7 @@ export function MockMapStage({ cityName, spots, areaNames, selectedSpotId, onSel
             >
               <span className={styles.markerDot}>{spotTypeLabelMap[spot.type]}</span>
               <span className={styles.markerName}>{spot.name}</span>
-            </button>
+            </Button>
           );
         })}
       </div>
