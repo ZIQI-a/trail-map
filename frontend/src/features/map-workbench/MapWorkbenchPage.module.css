@@ -1,0 +1,207 @@
+.workbenchShell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  padding: 18px;
+  overflow-x: hidden;
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 82%), rgb(238 246 255 / 84%)),
+    #edf4fb;
+}
+
+.topBar,
+.sidePanel,
+.mapStage,
+.tripDock {
+  border: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+}
+
+.topBar {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+}
+
+.brandArea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 230px;
+}
+
+.logoMark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 800;
+  background: #2266e8;
+}
+
+.brandName,
+.brandMeta,
+.panelLabel,
+.sidePanel h2,
+.mapStage h1,
+.tripDock h2,
+.topPlaceholder,
+.sidePanel p,
+.mapStage p,
+.tripDock p {
+  margin: 0;
+}
+
+.brandName {
+  color: #122342;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.brandMeta {
+  margin-top: 4px;
+  color: #66748a;
+  font-size: 13px;
+}
+
+.topPlaceholder {
+  flex: 1;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #b8c8df;
+  border-radius: 8px;
+  color: #66748a;
+  background: #f7faff;
+}
+
+.contentGrid {
+  min-height: 520px;
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(240px, 340px);
+  gap: 16px;
+}
+
+.sidePanel,
+.mapStage,
+.tripDock {
+  padding: 20px;
+}
+
+.sidePanel,
+.mapStage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapStage {
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  background:
+    linear-gradient(90deg, rgb(31 102 232 / 7%) 1px, transparent 1px),
+    linear-gradient(rgb(31 102 232 / 7%) 1px, transparent 1px),
+    #f8fbff;
+  background-size: 48px 48px;
+}
+
+.mapStage::before,
+.mapStage::after {
+  content: '';
+  position: absolute;
+  width: 58%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgb(34 102 232 / 22%);
+  transform: rotate(-18deg);
+}
+
+.mapStage::after {
+  width: 42%;
+  transform: rotate(24deg);
+}
+
+.mapStage h1 {
+  position: relative;
+  z-index: 1;
+  color: #132748;
+  font-size: 30px;
+}
+
+.mapStage p,
+.sidePanel p,
+.tripDock p {
+  color: #63738c;
+  line-height: 1.7;
+}
+
+.panelLabel {
+  color: #2266e8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sidePanel h2,
+.tripDock h2 {
+  color: #132748;
+  font-size: 20px;
+}
+
+.tripDock {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+@media (max-width: 1080px) {
+  .contentGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mapStage {
+    min-height: 360px;
+    order: -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .workbenchShell {
+    padding: 12px;
+  }
+
+  .topBar,
+  .tripDock {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topPlaceholder {
+    width: 100%;
+  }
+
+  .brandName {
+    font-size: 18px;
+  }
+
+  .contentGrid {
+    min-height: auto;
+  }
+
+  .mapStage {
+    min-height: 300px;
+  }
+}
