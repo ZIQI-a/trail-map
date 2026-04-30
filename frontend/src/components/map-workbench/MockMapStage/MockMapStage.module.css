@@ -1,0 +1,225 @@
+.mapStage {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgb(31 102 232 / 7%) 1px, transparent 1px),
+    linear-gradient(rgb(31 102 232 / 7%) 1px, transparent 1px),
+    #f8fbff;
+  background-size: 48px 48px;
+  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+}
+
+.mockMapToolbar,
+.mockMapStatus {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.panelLabel,
+.mapStage h1,
+.mapStage p {
+  margin: 0;
+}
+
+.panelLabel {
+  color: #2266e8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mapStage h1 {
+  margin: 4px 0 0;
+  color: #132748;
+  font-size: 24px;
+}
+
+.mapStage p {
+  color: #63738c;
+  line-height: 1.7;
+}
+
+.mockBadge {
+  padding: 6px 10px;
+  border: 1px solid #c7d8ef;
+  border-radius: 8px;
+  color: #2266e8;
+  font-size: 12px;
+  font-weight: 800;
+  background: #ffffff;
+}
+
+.mockMapCanvas {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid #d6e3f2;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 22% 28%, rgb(52 168 83 / 14%), transparent 18%),
+    radial-gradient(circle at 78% 18%, rgb(34 102 232 / 12%), transparent 22%),
+    radial-gradient(circle at 64% 78%, rgb(255 153 31 / 13%), transparent 24%),
+    linear-gradient(90deg, rgb(115 137 164 / 12%) 1px, transparent 1px),
+    linear-gradient(rgb(115 137 164 / 12%) 1px, transparent 1px),
+    #f7fbff;
+  background-size:
+    auto,
+    auto,
+    auto,
+    54px 54px,
+    54px 54px,
+    auto;
+}
+
+.mockRoadPrimary,
+.mockRoadSecondary,
+.mockRiver {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.mockRoadPrimary {
+  top: 48%;
+  height: 10px;
+  background: rgb(246 180 75 / 58%);
+  transform: rotate(-12deg);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 72%);
+}
+
+.mockRoadSecondary {
+  top: 34%;
+  height: 6px;
+  background: rgb(97 171 119 / 48%);
+  transform: rotate(24deg);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 70%);
+}
+
+.mockRiver {
+  top: 62%;
+  height: 8px;
+  background: rgb(56 145 230 / 26%);
+  transform: rotate(9deg);
+}
+
+.areaLayer {
+  position: absolute;
+  inset: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: space-between;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.areaPill {
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  overflow: hidden;
+  border: 1px solid rgb(63 94 139 / 16%);
+  border-radius: 8px;
+  color: #5a6c83;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 8px 20px rgb(41 78 118 / 8%);
+}
+
+.spotMarker,
+.spotMarkerActive {
+  position: absolute;
+  left: var(--marker-x);
+  top: var(--marker-y);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(190px, 44%);
+  min-height: 38px;
+  padding: 5px 10px 5px 5px;
+  border: 1px solid rgb(36 65 95 / 16%);
+  border-radius: 999px;
+  color: #203550;
+  cursor: pointer;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 10px 28px rgb(26 56 96 / 16%);
+  transform: translate(-50%, -50%);
+}
+
+.spotMarker:hover,
+.spotMarkerActive {
+  z-index: 3;
+  border-color: #2266e8;
+  color: #ffffff;
+  background: #2266e8;
+  box-shadow: 0 16px 32px rgb(34 102 232 / 24%);
+}
+
+.markerDot {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  background: #233b5d;
+}
+
+.spotMarkerActive .markerDot,
+.spotMarker:hover .markerDot {
+  color: #2266e8;
+  background: #ffffff;
+}
+
+.markerName {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mockMapStatus {
+  color: #66748a;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .mapStage {
+    padding: 14px;
+  }
+
+  .mockMapCanvas {
+    min-height: 440px;
+  }
+
+  .spotMarker,
+  .spotMarkerActive {
+    max-width: min(170px, 58%);
+  }
+
+  .mockMapToolbar,
+  .mockMapStatus {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

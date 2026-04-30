@@ -1,0 +1,80 @@
+.workbenchShell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  padding: 18px;
+  overflow-x: hidden;
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 82%), rgb(238 246 255 / 84%)),
+    #edf4fb;
+}
+
+.contentGrid {
+  min-height: 520px;
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(240px, 340px);
+  gap: 16px;
+}
+
+.tripDock {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+}
+
+.panelLabel,
+.tripDock h2,
+.tripDock p {
+  margin: 0;
+}
+
+.panelLabel {
+  color: #2266e8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tripDock h2 {
+  color: #132748;
+  font-size: 20px;
+}
+
+.tripDock p {
+  color: #63738c;
+  line-height: 1.7;
+}
+
+@media (max-width: 1180px) {
+  .contentGrid {
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 920px) {
+  .workbenchShell {
+    padding: 12px;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tripDock {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 720px) {
+  .tripDock {
+    padding: 16px;
+  }
+}

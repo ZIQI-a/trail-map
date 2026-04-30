@@ -1,0 +1,192 @@
+.topBar {
+  min-height: 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 1px solid rgb(203 216 235 / 86%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+}
+
+.topBarMain {
+  display: grid;
+  grid-template-columns: minmax(230px, auto) minmax(260px, 460px) auto minmax(260px, auto);
+  align-items: center;
+  gap: 14px;
+}
+
+.brandArea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 230px;
+}
+
+.logoMark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 800;
+  background: #2266e8;
+}
+
+.brandName,
+.brandMeta {
+  margin: 0;
+}
+
+.brandName {
+  color: #122342;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.brandMeta {
+  margin-top: 4px;
+  color: #66748a;
+  font-size: 13px;
+}
+
+.searchBox {
+  min-width: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border: 1px solid #d5e0f0;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.searchIcon {
+  color: #2266e8;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.searchBox input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #66748a;
+  background: transparent;
+  font-size: 15px;
+}
+
+.searchBox:focus-within {
+  border-color: #2266e8;
+  box-shadow: 0 0 0 3px rgb(34 102 232 / 12%);
+}
+
+.cityButton,
+.actionButton,
+.filterButton,
+.filterButtonActive {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cityButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: #122342;
+  font-weight: 800;
+  background: #eef4ff;
+}
+
+.actionGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.actionButton {
+  padding: 0 14px;
+  color: #24415f;
+  background: #ffffff;
+  border: 1px solid #d7e2ef;
+  box-shadow: 0 8px 18px rgb(31 73 125 / 8%);
+}
+
+.actionButton:hover,
+.cityButton:hover,
+.filterButton:hover {
+  color: #155bd4;
+  border-color: #b9ccef;
+  background: #f2f7ff;
+}
+
+.filterRail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.filterButton,
+.filterButtonActive {
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.filterButton {
+  color: #40536d;
+  background: #f4f8fd;
+  border: 1px solid transparent;
+}
+
+.filterButtonActive {
+  color: #ffffff;
+  background: #2266e8;
+  box-shadow: 0 8px 20px rgb(34 102 232 / 22%);
+}
+
+@media (max-width: 1180px) {
+  .topBarMain {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actionGroup {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .topBar {
+    padding: 14px;
+  }
+
+  .topBarMain {
+    grid-template-columns: 1fr;
+  }
+
+  .brandArea {
+    min-width: 0;
+  }
+
+  .brandName {
+    font-size: 18px;
+  }
+
+  .actionGroup {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+}
