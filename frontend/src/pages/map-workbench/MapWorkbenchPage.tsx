@@ -1,6 +1,6 @@
 import { Alert, Empty, Spin } from 'antd';
 import { useMemo, useState } from 'react';
-import { MockMapStage } from '../../components/map-workbench/MockMapStage';
+import { BaiduMapStage } from '../../components/map-workbench/BaiduMapStage';
 import { SpotDetailPanel } from '../../components/map-workbench/SpotDetailPanel';
 import { SpotRecommendList, type RecommendTab } from '../../components/map-workbench/SpotRecommendList';
 import { TripPlannerDock } from '../../components/map-workbench/TripPlannerDock';
@@ -12,7 +12,6 @@ import type {
   SpotTagDto,
   SpotTagCode,
   TransportType,
-  TravelArea,
   TravelCity,
   TravelCityDto,
   TravelSpot,
@@ -56,7 +55,6 @@ export function MapWorkbenchPage() {
   const city = useMemo(() => mapCity(cityDetailQuery.data ?? cities.find((item) => item.id === activeCityId)), [activeCityId, cities, cityDetailQuery.data]);
   const tags = useMemo(() => (tagsQuery.data ?? []).map(mapTag), [tagsQuery.data]);
   const spots = useMemo(() => (spotsQuery.data?.list ?? []).map((spot) => mapSpot(spot, city)), [city, spotsQuery.data?.list]);
-  const areas = useMemo<TravelArea[]>(() => [], []);
   const visibleSpots = getVisibleSpots(spots, activeFilter, searchKeyword, activeRecommendTab);
   // 如果用户还未主动选择景点，或者当前选中项已被筛掉，则回退到列表首项。
   const effectiveSelectedSpotId = visibleSpots.some((spot) => spot.id === selectedSpotId) ? selectedSpotId : visibleSpots[0]?.id;
@@ -126,10 +124,9 @@ export function MapWorkbenchPage() {
       />
 
       <section className={styles.mapWorkspace} aria-label="地图工作台主体">
-        <MockMapStage
-          cityName={city.name}
+        <BaiduMapStage
+          city={city}
           spots={visibleSpots}
-          areaNames={areas.map((area) => area.name)}
           selectedSpotId={effectiveSelectedSpotId}
           onSelectSpot={setSelectedSpotId}
         />

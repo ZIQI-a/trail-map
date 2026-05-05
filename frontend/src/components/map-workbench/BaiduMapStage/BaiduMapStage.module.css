@@ -1,0 +1,108 @@
+.mapStage {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #dfeaf6;
+}
+
+.mapContainer {
+  position: absolute;
+  inset: 0;
+}
+
+.mapToolbar,
+.mapStatus,
+.loadingMask,
+.overlayShell {
+  position: absolute;
+  z-index: 5;
+}
+
+.mapToolbar,
+.mapStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgb(203 216 235 / 76%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 86%);
+  box-shadow: 0 10px 24px rgb(41 78 118 / 8%);
+  backdrop-filter: blur(10px);
+}
+
+.mapToolbar {
+  top: 14px;
+  left: 330px;
+  right: 14px;
+  padding: 10px 12px;
+}
+
+.mapStatus {
+  right: 14px;
+  bottom: 128px;
+  left: 330px;
+  padding: 8px 12px;
+  color: #66748a;
+  font-size: 13px;
+}
+
+.panelLabel,
+.mapStage h1,
+.mapStage p {
+  margin: 0;
+}
+
+.panelLabel {
+  color: #2266e8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mapStage h1 {
+  margin: 4px 0 0;
+  color: #132748;
+  font-size: 20px;
+}
+
+.mapStage p {
+  color: #63738c;
+  line-height: 1.7;
+}
+
+.providerBadge {
+  padding: 6px 10px;
+  border: 1px solid #c7d8ef;
+  border-radius: 8px;
+  color: #2266e8;
+  font-size: 12px;
+  font-weight: 800;
+  background: #ffffff;
+}
+
+.loadingMask,
+.overlayShell {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(248 251 255 / 70%);
+}
+
+.loadingMask {
+  gap: 12px;
+  color: #355070;
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 720px) {
+  .mapToolbar,
+  .mapStatus {
+    align-items: flex-start;
+    flex-direction: column;
+    position: relative;
+    inset: auto;
+    margin: 12px;
+  }
+}
