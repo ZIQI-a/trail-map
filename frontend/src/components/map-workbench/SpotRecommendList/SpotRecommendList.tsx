@@ -6,6 +6,7 @@ import styles from './SpotRecommendList.module.css';
 type RecommendTab = 'recommend' | 'distance' | 'score' | 'latest';
 
 interface SpotRecommendListProps {
+  cityName: string;
   spots: TravelSpot[];
   tags: SpotTag[];
   activeTab: RecommendTab;
@@ -23,6 +24,7 @@ const recommendTabs: Array<{ label: string; value: RecommendTab }> = [
 
 // SpotRecommendList 负责左侧景点列表展示和景点选择，不直接读取 Mock 数据。
 export function SpotRecommendList({
+  cityName,
   spots,
   tags,
   activeTab,
@@ -34,7 +36,7 @@ export function SpotRecommendList({
     <aside className={styles.panel} aria-label="景点推荐列表">
       <div className={styles.panelHeader}>
         <div>
-          <p className={styles.panelLabel}>成都必玩推荐</p>
+          <p className={styles.panelLabel}>{cityName}必玩推荐</p>
           <h2>精选景点</h2>
         </div>
         <Tag className={styles.countBadge} bordered={false}>

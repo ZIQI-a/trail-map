@@ -1,3 +1,5 @@
+// ts用于定义子接口和相关数据类型，保证数据类型规范
+
 // 地理坐标类型：前端地图、景点和城市中心点共用。
 export interface GeoPoint {
   lng: number;
@@ -72,6 +74,8 @@ export interface TravelSpot {
   recommendScore: number;
   distanceText: string;
   tags: SpotTagCode[];
+  description?: string;
+  travelGuide?: string;
 }
 
 // 城市热门区域：后续用于低缩放层级展示区域聚合。
@@ -99,4 +103,79 @@ export interface MapWorkbenchMockData {
     label: string;
     value: PlanMode;
   }>;
+}
+
+// 后端统一响应结构，前端请求层按这个格式解包真实业务数据。
+export interface ApiResponse<T> {
+  success: boolean;
+  code: string;
+  message: string;
+  data: T;
+}
+
+// 列表接口分页响应，兼容“分页”和“不分页”两种后端返回模式。
+export interface PageResponse<T> {
+  list: T[];
+  total: number;
+  pageNum: number;
+  pageSize: number;
+  totalPages: number;
+  paged: boolean;
+}
+
+// 城市接口响应对象，对齐后端阶段 3 契约。
+export interface TravelCityDto {
+  id: number;
+  name: string;
+  provinceName: string;
+  cityCode: string;
+  center: GeoPoint;
+  mapZoom: number;
+  coverUrl: string;
+  description: string;
+  recommendDays: number;
+  hotScore: number;
+}
+
+// 标签接口响应对象，对齐后端标签结构。
+export interface SpotTagDto {
+  id: number;
+  name: string;
+  code: SpotTagCode;
+  type: string;
+  sortOrder: number;
+}
+
+// 景点列表接口响应对象。
+export interface TravelSpotSummaryDto {
+  id: number;
+  cityId: number;
+  name: string;
+  type: SpotType;
+  position: GeoPoint;
+  address: string;
+  coverUrl: string;
+  summary: string;
+  recommendReason: string;
+  openingHours: string;
+  ticketInfo: string;
+  suggestedDurationMinutes: number;
+  bestTime: string;
+  recommendScore: number;
+  hotScore: number;
+  free: boolean;
+  indoor: boolean;
+  night: boolean;
+  rainyDay: boolean;
+  subwayFriendly: boolean;
+  firstVisit: boolean;
+  tags: SpotTagDto[];
+}
+
+// 景点详情接口响应对象，在列表字段基础上补充详情内容。
+export interface TravelSpotDetailDto extends TravelSpotSummaryDto {
+  amapPoiId: string;
+  description: string;
+  travelGuide: string;
+  suitableCrowd: string;
 }
