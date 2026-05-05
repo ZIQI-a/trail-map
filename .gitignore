@@ -20,7 +20,3 @@ backend/.env.local
 .DS_Store
 .idea/
 .vscode/
-
-docs/
-docs/开发规划.md
-docs/backend/后端工程规范.md
