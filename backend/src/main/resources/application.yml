@@ -4,5 +4,24 @@ server:
 spring:
   application:
     name: trailmap-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${TRAILMAP_DB_HOST:localhost}:${TRAILMAP_DB_PORT:3306}/${TRAILMAP_DB_NAME:trailmap}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${TRAILMAP_DB_USERNAME:root}
+    password: ${TRAILMAP_DB_PASSWORD:ziqi0522@}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
 
-# 第一阶段不连接数据库。后续接入 MySQL 时，再补充 datasource 和 MyBatis-Plus 配置。
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
