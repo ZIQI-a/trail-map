@@ -22,7 +22,7 @@ const recommendTabs: Array<{ label: string; value: RecommendTab }> = [
   { label: '最新', value: 'latest' },
 ];
 
-// SpotRecommendList 负责左侧景点列表展示和景点选择，不直接读取 Mock 数据。
+// SpotRecommendList 负责左侧景点列表展示和景点选择，不直接依赖具体数据来源。
 export function SpotRecommendList({
   cityName,
   spots,

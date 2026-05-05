@@ -89,22 +89,6 @@ export interface TravelArea {
   spotIds: number[];
 }
 
-// 地图工作台 Mock 数据集合，方便页面一次性导入。
-export interface MapWorkbenchMockData {
-  city: TravelCity;
-  tags: SpotTag[];
-  spots: TravelSpot[];
-  areas: TravelArea[];
-  transportTypes: Array<{
-    label: string;
-    value: TransportType;
-  }>;
-  planModes: Array<{
-    label: string;
-    value: PlanMode;
-  }>;
-}
-
 // 后端统一响应结构，前端请求层按这个格式解包真实业务数据。
 export interface ApiResponse<T> {
   success: boolean;

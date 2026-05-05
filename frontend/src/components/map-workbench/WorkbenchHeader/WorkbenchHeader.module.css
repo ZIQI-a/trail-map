@@ -88,22 +88,32 @@
   box-shadow: 0 0 0 3px rgb(34 102 232 / 12%);
 }
 
-.cityButton,
+.citySelect,
 .actionButton {
   min-height: 34px;
-  border-radius: 8px;
   white-space: nowrap;
 }
 
-.cityButton {
-  display: inline-flex;
+.citySelect {
+  min-width: 180px;
+}
+
+.citySelect :global(.ant-select-selector) {
+  min-height: 38px !important;
+  border-color: #d7e2ef !important;
+  border-radius: 8px !important;
+  background: #eef4ff !important;
+  box-shadow: none !important;
+}
+
+.citySelect :global(.ant-select-selection-wrap) {
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
+}
+
+.citySelect :global(.ant-select-selection-item),
+.citySelect :global(.ant-select-selection-placeholder) {
   color: #122342;
   font-weight: 800;
-  background: #eef4ff;
 }
 
 .actionGroup {
@@ -122,7 +132,6 @@
 }
 
 .actionButton:hover,
-.cityButton:hover,
 .filterButton:hover {
   color: #155bd4;
   border-color: #b9ccef;

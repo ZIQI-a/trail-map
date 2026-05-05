@@ -40,18 +40,20 @@ export function MapWorkbenchPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>('all');
   const [activeRecommendTab, setActiveRecommendTab] = useState<RecommendTab>('recommend');
+  const [selectedCityId, setSelectedCityId] = useState<number>();
   const [selectedSpotId, setSelectedSpotId] = useState<number>();
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState('');
   const [selectedTransport, setSelectedTransport] = useState<TransportType>('transit');
   const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>('free');
   const citiesQuery = useCitiesQuery();
-  // 当前阶段页头还没有城市切换交互，因此默认取后端返回的第一个城市作为工作台城市。
-  const activeCityId = citiesQuery.data?.list[0]?.id;
+  const cities = useMemo(() => (citiesQuery.data?.list ?? []).map(mapCity).filter((city): city is TravelCity => Boolean(city)), [citiesQuery.data?.list]);
+  // 用户未主动切换时默认使用第一个城市；如果当前选择不在列表中，也回退到第一个城市。
+  const activeCityId = cities.some((city) => city.id === selectedCityId) ? selectedCityId : cities[0]?.id;
   const cityDetailQuery = useCityDetailQuery(activeCityId);
   const tagsQuery = useCityTagsQuery(activeCityId);
   const spotsQuery = useCitySpotsQuery(activeCityId, activeFilter, searchKeyword);
-  const city = useMemo(() => mapCity(cityDetailQuery.data ?? citiesQuery.data?.list[0]), [cityDetailQuery.data, citiesQuery.data]);
+  const city = useMemo(() => mapCity(cityDetailQuery.data ?? cities.find((item) => item.id === activeCityId)), [activeCityId, cities, cityDetailQuery.data]);
   const tags = useMemo(() => (tagsQuery.data ?? []).map(mapTag), [tagsQuery.data]);
   const spots = useMemo(() => (spotsQuery.data?.list ?? []).map((spot) => mapSpot(spot, city)), [city, spotsQuery.data?.list]);
   const areas = useMemo<TravelArea[]>(() => [], []);
@@ -80,6 +82,13 @@ export function MapWorkbenchPage() {
     setTripSpotIds((currentIds) => currentIds.filter((currentId) => currentId !== spotId));
   }
 
+  // 切换城市时同步清空景点选中和行程池，避免旧城市状态残留到新城市。
+  function handleCityChange(cityId: number) {
+    setSelectedCityId(cityId);
+    setSelectedSpotId(undefined);
+    setTripSpotIds([]);
+  }
+
   if (isInitialLoading) {
     return (
       <main className={styles.workbenchStateShell}>
@@ -105,10 +114,13 @@ export function MapWorkbenchPage() {
   return (
     <main className={styles.workbenchShell}>
       <WorkbenchHeader
+        cities={cities}
+        selectedCityId={activeCityId}
         cityName={city.name}
         tags={tags}
         searchKeyword={searchKeyword}
         activeFilter={activeFilter}
+        onCityChange={handleCityChange}
         onSearchKeywordChange={setSearchKeyword}
         onActiveFilterChange={setActiveFilter}
       />
