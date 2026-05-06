@@ -14,6 +14,7 @@ public record SpotDetailResponse(
         CoordinateResponse position,
         String address,
         String amapPoiId,
+        List<CoordinateResponse> boundary,
         String coverUrl,
         String summary,
         String description,

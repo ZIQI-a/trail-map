@@ -21,6 +21,7 @@ public class Spot {
     private BigDecimal lat;
     private String address;
     private String amapPoiId;
+    private String boundaryGeojson;
     private String coverUrl;
     private String summary;
     private String description;
@@ -106,6 +107,14 @@ public class Spot {
 
     public void setAmapPoiId(String amapPoiId) {
         this.amapPoiId = amapPoiId;
+    }
+
+    public String getBoundaryGeojson() {
+        return boundaryGeojson;
+    }
+
+    public void setBoundaryGeojson(String boundaryGeojson) {
+        this.boundaryGeojson = boundaryGeojson;
     }
 
     public String getCoverUrl() {

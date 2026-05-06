@@ -20,6 +20,10 @@ mybatis-plus:
   global-config:
     banner: false
 
+baidu:
+  map:
+    server-ak: ${BAIDU_MAP_SERVER_AK:}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

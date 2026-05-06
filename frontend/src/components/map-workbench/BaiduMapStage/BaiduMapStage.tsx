@@ -7,17 +7,18 @@ import styles from './BaiduMapStage.module.css';
 interface BaiduMapStageProps {
   city: TravelCity;
   spots: TravelSpot[];
+  selectedSpot?: TravelSpot;
   selectedSpotId?: number;
   onSelectSpot: (spotId: number) => void;
 }
 
 // BaiduMapStage 负责真实地图底图、城市定位和景点 Marker 展示。
-export function BaiduMapStage({ city, spots, selectedSpotId, onSelectSpot }: BaiduMapStageProps) {
+export function BaiduMapStage({ city, spots, selectedSpot, selectedSpotId, onSelectSpot }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, '-');
   const mapRef = useRef<BMapGLMap | null>(null);
   const [sdkError, setSdkError] = useState<string>();
   const [sdkReady, setSdkReady] = useState(false);
-  const selectedSpot = useMemo(() => spots.find((spot) => spot.id === selectedSpotId), [selectedSpotId, spots]);
+  const selectedSpotSummary = useMemo(() => spots.find((spot) => spot.id === selectedSpotId), [selectedSpotId, spots]);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,15 +74,27 @@ export function BaiduMapStage({ city, spots, selectedSpotId, onSelectSpot }: Bai
       marker.addEventListener('click', () => onSelectSpot(spot.id));
       map.addOverlay(marker);
     });
-  }, [onSelectSpot, sdkReady, selectedSpotId, spots]);
 
-  useEffect(() => {
-    if (!mapRef.current || !selectedSpot) {
+    // 选中景点如果带有轮廓，则优先画面并缩放到该区域；否则退回主点位。
+    if (selectedSpot?.boundary && selectedSpot.boundary.length >= 3) {
+      const boundaryPoints = selectedSpot.boundary.map(createBaiduPoint);
+      const polygon = new window.BMapGL!.Polygon(boundaryPoints, {
+        strokeColor: '#1f6aff',
+        strokeWeight: 3,
+        strokeOpacity: 0.95,
+        fillColor: '#1f6aff',
+        fillOpacity: 0.18,
+      });
+      polygon.addEventListener('click', () => onSelectSpot(selectedSpot.id));
+      map.addOverlay(polygon);
+      map.setViewport(boundaryPoints);
       return;
     }
 
-    mapRef.current.panTo(createBaiduPoint(selectedSpot.position));
-  }, [selectedSpot]);
+    if (selectedSpotSummary) {
+      map.panTo(createBaiduPoint(selectedSpotSummary.position));
+    }
+  }, [onSelectSpot, sdkReady, selectedSpot, selectedSpotId, selectedSpotSummary, spots]);
 
   if (sdkError) {
     return (
@@ -108,7 +121,7 @@ export function BaiduMapStage({ city, spots, selectedSpotId, onSelectSpot }: Bai
 
       <footer className={styles.mapStatus}>
         <span>已加载 {spots.length} 个景点点位</span>
-        <span>当前选中：{selectedSpot?.name ?? '暂无'}</span>
+        <span>当前选中：{selectedSpot?.name ?? selectedSpotSummary?.name ?? '暂无'}</span>
       </footer>
 
       {!sdkReady ? (

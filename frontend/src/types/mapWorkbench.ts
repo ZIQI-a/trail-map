@@ -74,6 +74,7 @@ export interface TravelSpot {
   recommendScore: number;
   distanceText: string;
   tags: SpotTagCode[];
+  boundary?: GeoPoint[];
   description?: string;
   travelGuide?: string;
 }
@@ -159,6 +160,7 @@ export interface TravelSpotSummaryDto {
 // 景点详情接口响应对象，在列表字段基础上补充详情内容。
 export interface TravelSpotDetailDto extends TravelSpotSummaryDto {
   amapPoiId: string;
+  boundary: GeoPoint[];
   description: string;
   travelGuide: string;
   suitableCrowd: string;

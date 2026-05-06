@@ -127,6 +127,7 @@ export function MapWorkbenchPage() {
         <BaiduMapStage
           city={city}
           spots={visibleSpots}
+          selectedSpot={selectedSpot}
           selectedSpotId={effectiveSelectedSpotId}
           onSelectSpot={setSelectedSpotId}
         />
@@ -255,6 +256,7 @@ function mergeSpotDetail(spot: TravelSpot | undefined, detail: TravelSpotDetailD
     recommendScore: detail.recommendScore,
     distanceText: spot?.distanceText ?? formatDistanceText(city, detail.position),
     tags: detail.tags.map((tag) => tag.code as SpotTagCode),
+    boundary: detail.boundary,
     description: detail.description,
     travelGuide: detail.travelGuide,
   };

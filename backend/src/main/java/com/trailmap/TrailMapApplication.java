@@ -1,5 +1,6 @@
 package com.trailmap;
 
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.mybatis.spring.annotation.MapperScan;
@@ -9,6 +10,7 @@ import org.mybatis.spring.annotation.MapperScan;
  */
 @MapperScan("com.trailmap.mapper")
 @SpringBootApplication
+@ConfigurationPropertiesScan("com.trailmap.config")
 public class TrailMapApplication {
 
     public static void main(String[] args) {

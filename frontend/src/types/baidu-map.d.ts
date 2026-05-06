@@ -13,9 +13,14 @@ interface BMapGLMap {
   addOverlay(overlay: unknown): void;
   clearOverlays(): void;
   panTo(point: BMapGLPointLike): void;
+  setViewport(points: BMapGLPointLike[]): void;
 }
 
 interface BMapGLMarker {
+  addEventListener(eventName: 'click', handler: BMapGLEventHandler): void;
+}
+
+interface BMapGLPolygon {
   addEventListener(eventName: 'click', handler: BMapGLEventHandler): void;
 }
 
@@ -30,6 +35,16 @@ interface BMapGLNamespace {
   Size: new (width: number, height: number) => BMapGLSizeLike;
   Icon: new (url: string, size: BMapGLSizeLike, options?: { anchor?: BMapGLSizeLike }) => unknown;
   Marker: new (point: BMapGLPointLike, options?: { icon?: unknown }) => BMapGLMarker;
+  Polygon: new (
+    points: BMapGLPointLike[],
+    options?: {
+      strokeColor?: string;
+      strokeWeight?: number;
+      strokeOpacity?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+    }
+  ) => BMapGLPolygon;
   ScaleControl: new () => unknown;
   NavigationControl: new () => unknown;
 }

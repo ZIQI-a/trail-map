@@ -1,3 +1,6 @@
+import type { GeoPoint } from '../types/mapWorkbench';
+import { gcj02ToBd09 } from '../utils/map-workbench/coordinate';
+
 const BAIDU_MAP_SCRIPT_ID = 'trailmap-baidu-map-sdk';
 const BAIDU_MAP_AK = import.meta.env.VITE_BAIDU_MAP_AK;
 
@@ -53,11 +56,12 @@ export function loadBaiduMapGL() {
   return baiduMapPromise;
 }
 
-// 统一创建百度地图点对象，减少组件中重复拼装经纬度逻辑。
-export function createBaiduPoint(point: { lng: number; lat: number }) {
+// 统一创建百度地图点对象，先把项目内部 GCJ-02 坐标转换为百度底图使用的 BD-09。
+export function createBaiduPoint(point: GeoPoint) {
   if (!window.BMapGL) {
     throw new Error('百度地图 SDK 尚未完成加载');
   }
 
-  return new window.BMapGL.Point(point.lng, point.lat);
+  const bd09Point = gcj02ToBd09(point);
+  return new window.BMapGL.Point(bd09Point.lng, bd09Point.lat);
 }

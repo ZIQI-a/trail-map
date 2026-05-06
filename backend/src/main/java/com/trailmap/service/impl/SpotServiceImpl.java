@@ -2,6 +2,8 @@ package com.trailmap.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trailmap.common.ErrorCode;
 import com.trailmap.entity.City;
 import com.trailmap.entity.Spot;
@@ -35,6 +37,8 @@ import org.springframework.util.StringUtils;
  */
 @Service
 public class SpotServiceImpl implements SpotService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final CityMapper cityMapper;
     private final SpotMapper spotMapper;
@@ -153,6 +157,7 @@ public class SpotServiceImpl implements SpotService {
                 new CoordinateResponse(spot.getLng(), spot.getLat()),
                 spot.getAddress(),
                 spot.getAmapPoiId(),
+                parseBoundary(spot.getBoundaryGeojson()),
                 spot.getCoverUrl(),
                 spot.getSummary(),
                 spot.getDescription(),
@@ -222,5 +227,36 @@ public class SpotServiceImpl implements SpotService {
 
     private boolean toBoolean(Integer value) {
         return value != null && value == 1;
+    }
+
+    // 解析景点边界 GeoJSON，当前只消费 Polygon 的第一条外环，方便前端直接绘制轮廓。
+    private List<CoordinateResponse> parseBoundary(String boundaryGeojson) {
+        if (!StringUtils.hasText(boundaryGeojson)) {
+            return List.of();
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(boundaryGeojson);
+            JsonNode coordinates = root.path("coordinates");
+            if (!"Polygon".equals(root.path("type").asText()) || !coordinates.isArray() || coordinates.isEmpty()) {
+                return List.of();
+            }
+
+            JsonNode outerRing = coordinates.get(0);
+            if (!outerRing.isArray()) {
+                return List.of();
+            }
+
+            return java.util.stream.StreamSupport.stream(outerRing.spliterator(), false)
+                    .filter(JsonNode::isArray)
+                    .filter(point -> point.size() >= 2)
+                    .map(point -> new CoordinateResponse(
+                            new java.math.BigDecimal(point.get(0).asText()),
+                            new java.math.BigDecimal(point.get(1).asText())
+                    ))
+                    .toList();
+        } catch (Exception exception) {
+            return List.of();
+        }
     }
 }
