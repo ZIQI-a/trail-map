@@ -1,8 +1,8 @@
-import { Alert, Spin } from 'antd';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { createBaiduPoint, loadBaiduMapGL } from '../../../lib/baiduMap';
-import type { TravelCity, TravelSpot } from '../../../types/mapWorkbench';
-import styles from './BaiduMapStage.module.css';
+import { Alert, Spin } from "antd";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createBaiduPoint, loadBaiduMapGL } from "../../../lib/baiduMap";
+import type { TravelCity, TravelSpot } from "../../../types/mapWorkbench";
+import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
   city: TravelCity;
@@ -13,13 +13,26 @@ interface BaiduMapStageProps {
 }
 
 // BaiduMapStage 负责真实地图底图、城市定位和景点 Marker 展示。
-export function BaiduMapStage({ city, spots, selectedSpot, selectedSpotId, onSelectSpot }: BaiduMapStageProps) {
-  const containerId = useId().replace(/:/g, '-');
+export function BaiduMapStage({
+  city,
+  spots,
+  selectedSpot,
+  selectedSpotId,
+  onSelectSpot,
+}: BaiduMapStageProps) {
+  const containerId = useId().replace(/:/g, "-");
   const mapRef = useRef<BMapGLMap | null>(null);
   const [sdkError, setSdkError] = useState<string>();
   const [sdkReady, setSdkReady] = useState(false);
-  const selectedSpotSummary = useMemo(() => spots.find((spot) => spot.id === selectedSpotId), [selectedSpotId, spots]);
-
+  const selectedSpotSummary = useMemo(
+    () => spots.find((spot) => spot.id === selectedSpotId),
+    [selectedSpotId, spots],
+  );
+  // 计算选中景点时的缩放级别, 保持在 15-16 之间，兼顾城市默认视角和景点位置细节。
+  const selectedSpotZoom = useMemo(
+    () => Math.min(Math.max(city.mapZoom + 4, 15), 16),
+    [city.mapZoom],
+  );
   useEffect(() => {
     let cancelled = false;
 
@@ -40,7 +53,9 @@ export function BaiduMapStage({ city, spots, selectedSpot, selectedSpotId, onSel
       })
       .catch((error) => {
         if (!cancelled) {
-          setSdkError(error instanceof Error ? error.message : '百度地图加载失败');
+          setSdkError(
+            error instanceof Error ? error.message : "百度地图加载失败",
+          );
         }
       });
 
@@ -68,39 +83,62 @@ export function BaiduMapStage({ city, spots, selectedSpot, selectedSpotId, onSel
 
     // 当前阶段景点数量有限，直接重绘 Marker 可以保证选中态与列表联动简单可靠。
     spots.forEach((spot) => {
-      const marker = new window.BMapGL!.Marker(createBaiduPoint(spot.position), {
-        icon: createMarkerIcon(spot.id === selectedSpotId),
-      });
-      marker.addEventListener('click', () => onSelectSpot(spot.id));
+      const marker = new window.BMapGL!.Marker(
+        createBaiduPoint(spot.position),
+        {
+          icon: createMarkerIcon(spot.id === selectedSpotId),
+        },
+      );
+      marker.addEventListener("click", () => onSelectSpot(spot.id));
       map.addOverlay(marker);
     });
 
-    // 选中景点如果带有轮廓，则优先画面并缩放到该区域；否则退回主点位。
+    // 选中景点如果带有轮廓，则优先画面并缩放到该区域；否则使用中等缩放聚焦主点位。
     if (selectedSpot?.boundary && selectedSpot.boundary.length >= 3) {
       const boundaryPoints = selectedSpot.boundary.map(createBaiduPoint);
       const polygon = new window.BMapGL!.Polygon(boundaryPoints, {
-        strokeColor: '#1f6aff',
+        strokeColor: "#1f6aff",
         strokeWeight: 3,
         strokeOpacity: 0.95,
-        fillColor: '#1f6aff',
+        fillColor: "#1f6aff",
         fillOpacity: 0.18,
       });
-      polygon.addEventListener('click', () => onSelectSpot(selectedSpot.id));
+      polygon.addEventListener("click", () => onSelectSpot(selectedSpot.id));
       map.addOverlay(polygon);
       map.setViewport(boundaryPoints);
       return;
     }
 
     if (selectedSpotSummary) {
-      map.panTo(createBaiduPoint(selectedSpotSummary.position));
+      // 城市默认保持全景视角，选中景点后适当放大，方便查看具体位置。
+      map.centerAndZoom(
+        createBaiduPoint(selectedSpotSummary.position),
+        selectedSpotZoom,
+      );
     }
-  }, [onSelectSpot, sdkReady, selectedSpot, selectedSpotId, selectedSpotSummary, spots]);
+  }, [
+    onSelectSpot,
+    sdkReady,
+    selectedSpot,
+    selectedSpotId,
+    selectedSpotSummary,
+    selectedSpotZoom,
+    spots,
+  ]);
 
   if (sdkError) {
     return (
-      <section className={styles.mapStage} aria-label={`${city.name} 百度地图加载失败`}>
+      <section
+        className={styles.mapStage}
+        aria-label={`${city.name} 百度地图加载失败`}
+      >
         <div className={styles.overlayShell}>
-          <Alert type="error" showIcon message="百度地图加载失败" description={sdkError} />
+          <Alert
+            type="error"
+            showIcon
+            message="百度地图加载失败"
+            description={sdkError}
+          />
         </div>
       </section>
     );
@@ -121,7 +159,9 @@ export function BaiduMapStage({ city, spots, selectedSpot, selectedSpotId, onSel
 
       <footer className={styles.mapStatus}>
         <span>已加载 {spots.length} 个景点点位</span>
-        <span>当前选中：{selectedSpot?.name ?? selectedSpotSummary?.name ?? '暂无'}</span>
+        <span>
+          当前选中：{selectedSpot?.name ?? selectedSpotSummary?.name ?? "暂无"}
+        </span>
       </footer>
 
       {!sdkReady ? (
@@ -136,8 +176,8 @@ export function BaiduMapStage({ city, spots, selectedSpot, selectedSpotId, onSel
 
 // 用内联 SVG 生成两套 Marker 图标，避免额外引入静态图片资源。
 function createMarkerIcon(selected: boolean) {
-  const primaryColor = selected ? '#1f6aff' : '#203550';
-  const ringColor = selected ? '#dbe8ff' : '#ffffff';
+  const primaryColor = selected ? "#1f6aff" : "#203550";
+  const ringColor = selected ? "#dbe8ff" : "#ffffff";
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
       <path d="M15 1C8.37 1 3 6.37 3 13c0 9.48 12 23 12 23s12-13.52 12-23C27 6.37 21.63 1 15 1z" fill="${primaryColor}"/>
@@ -145,7 +185,11 @@ function createMarkerIcon(selected: boolean) {
     </svg>
   `;
 
-  return new window.BMapGL!.Icon(`data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`, new window.BMapGL!.Size(30, 38), {
-    anchor: new window.BMapGL!.Size(15, 38),
-  });
+  return new window.BMapGL!.Icon(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    new window.BMapGL!.Size(30, 38),
+    {
+      anchor: new window.BMapGL!.Size(15, 38),
+    },
+  );
 }
