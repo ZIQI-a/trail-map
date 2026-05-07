@@ -36,6 +36,9 @@ export type TransportType = 'transit' | 'driving' | 'walking' | 'bicycling' | 't
 // 规划模式：自由路线为默认，完整行程后续再扩展。
 export type PlanMode = 'free' | 'schedule';
 
+// 行程强度：完整行程模式用于控制每天安排的松紧程度。
+export type ItineraryIntensity = 'relaxed' | 'standard' | 'compact';
+
 // 城市信息：字段贴近 city 表，但只保留前端静态展示阶段需要的内容。
 export interface TravelCity {
   id: number;
@@ -164,4 +167,82 @@ export interface TravelSpotDetailDto extends TravelSpotSummaryDto {
   description: string;
   travelGuide: string;
   suitableCrowd: string;
+}
+
+// 路线规划起终点：既可表示酒店，也可表示用户手动输入的出发地。
+export interface RouteLocation {
+  name: string;
+  position: GeoPoint;
+  address?: string;
+}
+
+// 行程规划请求：自由路线和完整行程共用一套结构，完整模式再补时间偏好。
+export interface RoutePlanRequestDto {
+  cityId: number;
+  startPoint: RouteLocation;
+  endPoint?: RouteLocation;
+  spotIds: number[];
+  transportType: TransportType;
+  planMode: PlanMode;
+  orderMode?: 'smart' | 'manual';
+  travelDate?: string;
+  tripDays?: number;
+  dailyStartTime?: string;
+  dailyEndTime?: string;
+  includeLunchBreak?: boolean;
+  includeNightTour?: boolean;
+  intensity?: ItineraryIntensity;
+}
+
+// 停留安排：既给自由路线展示建议游玩时间，也为完整模式的时间编排提供基础。
+export interface RouteSpotStayPlanDto {
+  spotId: number;
+  spotName: string;
+  suggestedDurationMinutes: number;
+  suggestedStartTime?: string;
+  suggestedEndTime?: string;
+  dayIndex?: number;
+}
+
+// 单段路线：承接百度路线规划结果，保留每一段的距离、耗时和说明。
+export interface RouteSegmentDto {
+  segmentIndex: number;
+  fromName: string;
+  fromPosition: GeoPoint;
+  toName: string;
+  toPosition: GeoPoint;
+  transportType: TransportType;
+  distanceMeters: number;
+  durationSeconds: number;
+  instruction: string;
+  polyline: GeoPoint[];
+  stepTexts: string[];
+}
+
+// 每日行程：完整行程模式用于展示 Day 1 / Day 2，MVP 自由路线可先返回空数组。
+export interface ItineraryDayDto {
+  dayIndex: number;
+  title: string;
+  totalDistanceMeters: number;
+  totalTravelDurationSeconds: number;
+  totalStayDurationMinutes: number;
+  totalTripDurationMinutes: number;
+  spots: RouteSpotStayPlanDto[];
+}
+
+// 行程规划响应：既包含路线分段，也包含景点停留时间和总时间汇总。
+export interface RoutePlanResponseDto {
+  routeRecordId?: number;
+  cityId: number;
+  transportType: TransportType;
+  planMode: PlanMode;
+  routeSummary: string;
+  orderedSpotIds: number[];
+  totalDistanceMeters: number;
+  totalTravelDurationSeconds: number;
+  totalStayDurationMinutes: number;
+  totalTripDurationMinutes: number;
+  spotStayPlans: RouteSpotStayPlanDto[];
+  segments: RouteSegmentDto[];
+  itineraryDays: ItineraryDayDto[];
 }

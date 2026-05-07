@@ -42,7 +42,40 @@ BAIDU_MAP_SERVER_AK=你的百度地图服务端AK
 POST /api/routes/plan
 ```
 
-请求内容包含城市、起点、景点列表、交通方式和规划模式。返回内容包含路线总览和每一段路线。
+请求内容包含城市、起点、景点列表、交通方式和规划模式。返回内容不是单纯路线，而是“景点顺序 + 路线分段 + 停留时间 + 总时间”的行程结果。
+
+当前先约定一版行程规划契约，后续允许迭代：
+
+- 请求核心字段：
+  - `cityId`
+  - `startPoint`
+  - `endPoint`
+  - `spotIds`
+  - `transportType`
+  - `planMode`
+- 完整行程模式预留字段：
+  - `travelDate`
+  - `tripDays`
+  - `dailyStartTime`
+  - `dailyEndTime`
+  - `includeLunchBreak`
+  - `includeNightTour`
+  - `intensity`
+- 响应核心字段：
+  - `orderedSpotIds`
+  - `segments`
+  - `spotStayPlans`
+  - `totalTravelDurationSeconds`
+  - `totalStayDurationMinutes`
+  - `totalTripDurationMinutes`
+  - `itineraryDays`
+
+时间口径约定：
+
+- `totalTravelDurationSeconds`：纯交通耗时总和
+- `totalStayDurationMinutes`：景点建议停留时长总和
+- `totalTripDurationMinutes`：交通耗时 + 停留时长，按分钟汇总后的总行程时间
+- `spotStayPlans`：自由路线模式先返回每个景点建议游玩时长；完整行程模式再补建议到达/离开时间
 
 ## 当前接入范围
 
