@@ -67,7 +67,10 @@ export function MapWorkbenchPage() {
   const tripSpots = tripSpotIds
     .map((spotId) => spots.find((spot) => spot.id === spotId))
     .filter((spot): spot is TravelSpot => Boolean(spot));
-  const isInitialLoading = citiesQuery.isLoading || (activeCityId != null && (cityDetailQuery.isLoading || tagsQuery.isLoading || spotsQuery.isLoading));
+  const isInitialLoading =
+    citiesQuery.isLoading ||
+    (activeCityId != null &&
+      (cityDetailQuery.isLoading || tagsQuery.isLoading || (!spotsQuery.data && spotsQuery.isLoading)));
   const pageError = citiesQuery.error ?? cityDetailQuery.error ?? tagsQuery.error ?? spotsQuery.error;
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
