@@ -11,32 +11,10 @@
   inset: 0;
 }
 
-.mapStatus,
 .loadingMask,
 .overlayShell {
   position: absolute;
   z-index: 5;
-}
-
-.mapStatus {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  border: 1px solid rgb(203 216 235 / 76%);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 86%);
-  box-shadow: 0 10px 24px rgb(41 78 118 / 8%);
-  backdrop-filter: blur(10px);
-}
-
-.mapStatus {
-  right: 14px;
-  bottom: 128px;
-  left: 330px;
-  padding: 8px 12px;
-  color: #66748a;
-  font-size: 13px;
 }
 
 .panelLabel,
@@ -75,14 +53,4 @@
   gap: 12px;
   color: #355070;
   backdrop-filter: blur(2px);
-}
-
-@media (max-width: 720px) {
-  .mapStatus {
-    align-items: flex-start;
-    flex-direction: column;
-    position: relative;
-    inset: auto;
-    margin: 12px;
-  }
 }

@@ -29,6 +29,7 @@
 
 .leftFloatPanel,
 .detailFloatPanel,
+.routeDrawerPanel,
 .tripFloatPanel {
   position: absolute;
   z-index: 5;
@@ -58,10 +59,19 @@
   animation: slideIn 180ms ease-out;
 }
 
+.routeDrawerPanel {
+  top: 14px;
+  right: 14px;
+  width: min(460px, calc(100vw - 28px));
+  max-height: calc(100% - 178px);
+  overflow: auto;
+  animation: slideIn 180ms ease-out;
+}
+
 .tripFloatPanel {
   right: 14px;
   bottom: 14px;
-  left: 330px;
+  left: 14px;
 }
 
 @keyframes slideIn {
@@ -89,6 +99,13 @@
     max-height: 40%;
   }
 
+  .routeDrawerPanel {
+    top: 12px;
+    right: 12px;
+    width: min(400px, calc(100vw - 24px));
+    max-height: 48%;
+  }
+
   .tripFloatPanel {
     right: 12px;
     bottom: 12px;
@@ -101,6 +118,10 @@
   .detailFloatPanel {
     max-height: calc(100% - 126px);
   }
+
+  .routeDrawerPanel {
+    max-height: calc(100% - 158px);
+  }
 }
 
 @media (max-width: 640px) {
@@ -110,6 +131,7 @@
 
   .leftFloatPanel,
   .detailFloatPanel,
+  .routeDrawerPanel,
   .tripFloatPanel {
     position: relative;
     inset: auto;

@@ -1,6 +1,7 @@
 import { Alert, Empty, Spin } from 'antd';
 import { useMemo, useState } from 'react';
 import { BaiduMapStage } from '../../components/map-workbench/BaiduMapStage';
+import { RoutePlanDrawer } from '../../components/map-workbench/RoutePlanDrawer';
 import { SpotDetailPanel } from '../../components/map-workbench/SpotDetailPanel';
 import { SpotRecommendList, type RecommendTab } from '../../components/map-workbench/SpotRecommendList';
 import { TripPlannerDock } from '../../components/map-workbench/TripPlannerDock';
@@ -180,7 +181,7 @@ export function MapWorkbenchPage() {
           )}
         </div>
 
-        {selectedSpot ? (
+        {selectedSpot && !routePlanResult ? (
           <div className={styles.detailFloatPanel}>
             <SpotDetailPanel
               spot={selectedSpot}
@@ -190,6 +191,12 @@ export function MapWorkbenchPage() {
               onAddToTrip={handleAddToTrip}
               onSelectSpot={setSelectedSpotId}
             />
+          </div>
+        ) : null}
+
+        {routePlanResult ? (
+          <div className={styles.routeDrawerPanel}>
+            <RoutePlanDrawer cityName={city.name} routePlan={routePlanResult} tripSpots={tripSpots} tags={tags} startPoint={startPoint.trim() || `${city.name}市中心`} onClose={() => setRoutePlanResult(undefined)} />
           </div>
         ) : null}
 

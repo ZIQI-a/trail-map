@@ -1,7 +1,11 @@
 import { Alert, Spin } from "antd";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createBaiduPoint, loadBaiduMapGL } from "../../../lib/baiduMap";
-import type { RouteSegmentDto, TravelCity, TravelSpot } from "../../../types/mapWorkbench";
+import type {
+  RouteSegmentDto,
+  TravelCity,
+  TravelSpot,
+} from "../../../types/mapWorkbench";
 import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
@@ -111,18 +115,31 @@ export function BaiduMapStage({
       return;
     }
 
+    const routeViewportPoints =
+      routeSegments
+        ?.flatMap((segment) => segment.polyline)
+        .map(createBaiduPoint) ?? [];
+
     // 路线规划成功后把每一段路线线条画到地图上，便于用户直观看到串联顺序。
     routeSegments?.forEach((segment) => {
       if (segment.polyline.length < 2) {
         return;
       }
-      const routeLine = new window.BMapGL!.Polyline(segment.polyline.map(createBaiduPoint), {
-        strokeColor: "#ff6b3d",
-        strokeWeight: 5,
-        strokeOpacity: 0.88,
-      });
+      const routeLine = new window.BMapGL!.Polyline(
+        segment.polyline.map(createBaiduPoint),
+        {
+          strokeColor: "#ff6b3d",
+          strokeWeight: 5,
+          strokeOpacity: 0.88,
+        },
+      );
       map.addOverlay(routeLine);
     });
+
+    if (routeViewportPoints.length >= 2) {
+      map.setViewport(routeViewportPoints);
+      return;
+    }
 
     if (selectedSpotSummary) {
       // 城市默认保持全景视角，选中景点后适当放大，方便查看具体位置。
@@ -163,13 +180,6 @@ export function BaiduMapStage({
   return (
     <section className={styles.mapStage} aria-label={`${city.name} 百度地图`}>
       <div className={styles.mapContainer} id={containerId} />
-
-      <footer className={styles.mapStatus}>
-        <span>已加载 {spots.length} 个景点点位</span>
-        <span>
-          当前选中：{selectedSpot?.name ?? selectedSpotSummary?.name ?? "暂无"}
-        </span>
-      </footer>
 
       {!sdkReady ? (
         <div className={styles.loadingMask}>
