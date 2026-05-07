@@ -57,6 +57,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
 
     @Override
     public RoutePlanResponse plan(RoutePlanRequest request) {
+        // 入口先做基础校验，避免后续第三方调用时才暴露出“城市不存在 / 参数无效”这类问题。
         validateCity(request.cityId());
         validatePlanMode(request.planMode());
         validateTransportType(request.transportType());
@@ -102,6 +103,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         );
     }
 
+    /**
+     * 把“起点 + 景点池 + 可选终点”整理成一条完整停靠链。
+     * 当前自由路线模式按用户传入的景点顺序生成，不做智能重排。
+     */
     private List<RouteStop> buildRouteStops(RouteLocationRequest startPoint, List<Spot> orderedSpots, RouteLocationRequest endPoint) {
         List<RouteStop> stops = new ArrayList<>();
         stops.add(new RouteStop(null, startPoint.name(), toCoordinate(startPoint.position()), 0));
@@ -117,6 +122,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return stops;
     }
 
+    /**
+     * 依次为相邻两个停靠点生成路线分段。
+     * 这样前端既可以展示“总路线”，也可以逐段展示换乘和行进说明。
+     */
     private List<RouteSegmentResponse> buildSegments(List<RouteStop> stops, String transportType) {
         List<RouteSegmentResponse> segments = new ArrayList<>();
         for (int index = 0; index < stops.size() - 1; index++) {
@@ -127,6 +136,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return segments;
     }
 
+    /**
+     * 优先走百度真实路线规划；如果当前环境没配 AK 或第三方失败，则退回本地估算结果。
+     * 这样测试环境和未配置外部能力的开发环境也能保持主流程可用。
+     */
     private RouteSegmentResponse buildSingleSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop, String transportType) {
         String normalizedTransportType = normalizeTransportType(transportType);
         if (!StringUtils.hasText(baiduMapProperties.getServerAk())) {
@@ -142,6 +155,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         }
     }
 
+    /**
+     * 调百度轻量级路线规划接口。
+     * 当前统一传 GCJ-02 坐标，保持和数据库内部坐标体系一致。
+     */
     private String requestRoute(CoordinateResponse origin, CoordinateResponse destination, String transportType) {
         String responseText = restClient.get()
                 .uri(UriComponentsBuilder.fromHttpUrl(resolveRouteUrl(transportType))
@@ -161,6 +178,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return responseText;
     }
 
+    /**
+     * 解析百度路线规划响应，抽取当前阶段前端真正会消费的字段。
+     * 完整原始响应未来如果要落库，可再补 raw_response 持久化。
+     */
     private RouteSegmentResponse parseSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop, String transportType, String responseText) {
         try {
             JsonNode root = OBJECT_MAPPER.readTree(responseText);
@@ -195,6 +216,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         }
     }
 
+    /**
+     * 公交返回的 steps 是二维数组，其他交通方式是一维数组，这里做统一抹平。
+     */
     private List<String> extractStepTexts(JsonNode stepsNode, String transportType) {
         if ("transit".equals(transportType)) {
             return StreamSupport.stream(stepsNode.spliterator(), false)
@@ -211,6 +235,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 .toList();
     }
 
+    /**
+     * 把分步路径拼成一条连续 polyline，供前端地图直接渲染路线线条。
+     */
     private List<CoordinateResponse> extractPolyline(JsonNode stepsNode, String transportType) {
         Map<String, CoordinateResponse> orderedPoints = new LinkedHashMap<>();
         if ("transit".equals(transportType)) {
@@ -225,6 +252,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return List.copyOf(orderedPoints.values());
     }
 
+    /**
+     * 路径字符串是“lng,lat;lng,lat...”格式，这里顺序去重后转成坐标对象。
+     */
     private void appendPathCoordinates(Map<String, CoordinateResponse> orderedPoints, String pathText) {
         if (!StringUtils.hasText(pathText)) {
             return;
@@ -239,6 +269,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         }
     }
 
+    /**
+     * 估算路线只作为兜底，不追求逐步导航精度，只保证距离、耗时和线段可展示。
+     */
     private RouteSegmentResponse buildEstimatedSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop, String transportType, String reason) {
         int distanceMeters = estimateDistanceMeters(fromStop.position(), toStop.position());
         int durationSeconds = estimateDurationSeconds(distanceMeters, transportType);
@@ -258,6 +291,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         );
     }
 
+    /**
+     * 景点停留计划当前先直接复用景点建议游玩时长。
+     * 完整行程模式再在这里补充具体开始/结束时间和 Day 拆分。
+     */
     private RouteSpotStayPlanResponse toStayPlan(Spot spot) {
         return new RouteSpotStayPlanResponse(
                 spot.getId(),
@@ -269,6 +306,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         );
     }
 
+    /**
+     * 先生成一段可读摘要，方便前端底部行程池和后续 route_record 总览直接复用。
+     */
     private String buildRouteSummary(String startName, List<Spot> orderedSpots, int totalTravelDurationSeconds, int totalStayDurationMinutes) {
         String spotSummary = orderedSpots.stream().map(Spot::getSpotName).collect(Collectors.joining(" → "));
         return String.format(
@@ -282,6 +322,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         );
     }
 
+    /**
+     * 按请求顺序回填景点实体，并校验是否存在跨城市或无效景点。
+     */
     private List<Spot> loadOrderedSpots(Long cityId, List<Long> requestedSpotIds) {
         List<Long> distinctSpotIds = requestedSpotIds.stream().distinct().toList();
         List<Spot> spots = spotMapper.selectList(new LambdaQueryWrapper<Spot>()
@@ -322,6 +365,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         }
     }
 
+    /**
+     * taxi 在当前阶段直接复用 driving，避免前后端 transport 枚举不一致导致算路失败。
+     */
     private String normalizeTransportType(String transportType) {
         String normalizedTransportType = transportType.toLowerCase(Locale.ROOT);
         return "taxi".equals(normalizedTransportType) ? "driving" : normalizedTransportType;
@@ -352,6 +398,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return instruction.replaceAll("<[^>]+>", "").trim();
     }
 
+    /**
+     * 估算距离使用大圆距离，精度不如真实道路，但足够作为失败兜底结果。
+     */
     private int estimateDistanceMeters(CoordinateResponse origin, CoordinateResponse destination) {
         double earthRadius = 6371000D;
         double lat1 = Math.toRadians(origin.lat().doubleValue());
@@ -365,6 +414,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return (int) Math.round(earthRadius * c);
     }
 
+    /**
+     * 不同交通方式用一组保守速度估算耗时，避免兜底结果过于夸张。
+     */
     private int estimateDurationSeconds(int distanceMeters, String transportType) {
         double speedMetersPerSecond = switch (transportType) {
             case "walking" -> 1.3D;

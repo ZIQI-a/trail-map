@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: trailmap-backend
+  config:
+    import: optional:file:.env.local[.properties]
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${TRAILMAP_DB_HOST:localhost}:${TRAILMAP_DB_PORT:3306}/${TRAILMAP_DB_NAME:trailmap}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true

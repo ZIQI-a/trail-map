@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchSpotDetail } from '../api/mapWorkbench';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchRoutePlan, fetchSpotDetail } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
+import type { RoutePlanRequestDto } from '../types/mapWorkbench';
 
 // 地图工作台查询集合，集中管理城市、标签、列表和详情请求。
 export function useCitiesQuery() {
@@ -48,5 +49,12 @@ export function useSpotDetailQuery(spotId?: number) {
     queryKey: ['spot-detail', spotId],
     queryFn: () => fetchSpotDetail(spotId!),
     enabled: spotId != null,
+  });
+}
+
+// 行程规划使用 mutation，避免筛选类 query 行为和“主动提交规划”混在一起。
+export function useRoutePlanMutation() {
+  return useMutation({
+    mutationFn: (payload: RoutePlanRequestDto) => fetchRoutePlan(payload),
   });
 }

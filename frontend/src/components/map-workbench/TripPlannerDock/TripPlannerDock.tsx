@@ -1,5 +1,5 @@
-import { Button, Empty, Input, Segmented, Tag } from 'antd';
-import type { PlanMode, TransportType, TravelSpot } from '../../../types/mapWorkbench';
+import { Alert, Button, Empty, Input, Segmented, Spin, Tag } from 'antd';
+import type { PlanMode, RoutePlanResponseDto, TransportType, TravelSpot } from '../../../types/mapWorkbench';
 import styles from './TripPlannerDock.module.css';
 
 interface PlannerOption<T extends string> {
@@ -14,14 +14,18 @@ interface TripPlannerDockProps {
   startPoint: string;
   selectedTransport: TransportType;
   selectedPlanMode: PlanMode;
+  planning: boolean;
+  planResult?: RoutePlanResponseDto;
+  planError?: string;
   onStartPointChange: (value: string) => void;
   onTransportChange: (value: TransportType) => void;
   onPlanModeChange: (value: PlanMode) => void;
+  onPlanRoute: () => void;
   onRemoveSpot: (spotId: number) => void;
   onClearTrip: () => void;
 }
 
-// TripPlannerDock 负责底部行程池和路线规划静态表单，不调用真实路线接口。
+// TripPlannerDock 负责底部行程池、规划参数录入和路线结果摘要展示。
 export function TripPlannerDock({
   tripSpots,
   transportTypes,
@@ -29,9 +33,13 @@ export function TripPlannerDock({
   startPoint,
   selectedTransport,
   selectedPlanMode,
+  planning,
+  planResult,
+  planError,
   onStartPointChange,
   onTransportChange,
   onPlanModeChange,
+  onPlanRoute,
   onRemoveSpot,
   onClearTrip,
 }: TripPlannerDockProps) {
@@ -100,6 +108,47 @@ export function TripPlannerDock({
             onChange={(value) => onPlanModeChange(value as PlanMode)}
           />
         </div>
+
+        <div className={styles.planActionRow}>
+          <Button type="primary" disabled={tripSpots.length === 0} loading={planning} onClick={onPlanRoute}>
+            生成行程
+          </Button>
+          <span className={styles.planHint}>当前优先生成自由路线，完整行程后续继续扩展</span>
+        </div>
+
+        {planError ? <Alert type="error" showIcon message="行程规划失败" description={planError} /> : null}
+
+        {planning ? (
+          <div className={styles.planLoading}>
+            <Spin size="small" />
+            <span>正在生成路线...</span>
+          </div>
+        ) : null}
+
+        {planResult ? (
+          <div className={styles.planResult}>
+            <p className={styles.planSummary}>{planResult.routeSummary}</p>
+            <div className={styles.planMetrics}>
+              <span>交通 {Math.ceil(planResult.totalTravelDurationSeconds / 60)} 分钟</span>
+              <span>游玩 {planResult.totalStayDurationMinutes} 分钟</span>
+              <span>总计 {planResult.totalTripDurationMinutes} 分钟</span>
+            </div>
+
+            <div className={styles.segmentList}>
+              {planResult.segments.map((segment) => (
+                <div className={styles.segmentCard} key={`${segment.segmentIndex}-${segment.fromName}-${segment.toName}`}>
+                  <strong>
+                    第 {segment.segmentIndex} 段 · {segment.fromName} → {segment.toName}
+                  </strong>
+                  <span>
+                    {Math.ceil(segment.durationSeconds / 60)} 分钟 · {(segment.distanceMeters / 1000).toFixed(1)} 公里
+                  </span>
+                  <p>{segment.instruction}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

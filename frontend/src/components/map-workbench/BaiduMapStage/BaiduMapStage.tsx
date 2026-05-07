@@ -1,7 +1,7 @@
 import { Alert, Spin } from "antd";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createBaiduPoint, loadBaiduMapGL } from "../../../lib/baiduMap";
-import type { TravelCity, TravelSpot } from "../../../types/mapWorkbench";
+import type { RouteSegmentDto, TravelCity, TravelSpot } from "../../../types/mapWorkbench";
 import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
@@ -9,6 +9,7 @@ interface BaiduMapStageProps {
   spots: TravelSpot[];
   selectedSpot?: TravelSpot;
   selectedSpotId?: number;
+  routeSegments?: RouteSegmentDto[];
   onSelectSpot: (spotId: number) => void;
 }
 
@@ -18,6 +19,7 @@ export function BaiduMapStage({
   spots,
   selectedSpot,
   selectedSpotId,
+  routeSegments,
   onSelectSpot,
 }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, "-");
@@ -81,7 +83,7 @@ export function BaiduMapStage({
     const map = mapRef.current;
     map.clearOverlays();
 
-    // 当前阶段景点数量有限，直接重绘 Marker 可以保证选中态与列表联动简单可靠。
+    // 当前阶段景点数量有限，直接重绘 Marker、轮廓和路线线条可以保证联动逻辑简单可靠。
     spots.forEach((spot) => {
       const marker = new window.BMapGL!.Marker(
         createBaiduPoint(spot.position),
@@ -109,6 +111,19 @@ export function BaiduMapStage({
       return;
     }
 
+    // 路线规划成功后把每一段路线线条画到地图上，便于用户直观看到串联顺序。
+    routeSegments?.forEach((segment) => {
+      if (segment.polyline.length < 2) {
+        return;
+      }
+      const routeLine = new window.BMapGL!.Polyline(segment.polyline.map(createBaiduPoint), {
+        strokeColor: "#ff6b3d",
+        strokeWeight: 5,
+        strokeOpacity: 0.88,
+      });
+      map.addOverlay(routeLine);
+    });
+
     if (selectedSpotSummary) {
       // 城市默认保持全景视角，选中景点后适当放大，方便查看具体位置。
       map.centerAndZoom(
@@ -123,6 +138,7 @@ export function BaiduMapStage({
     selectedSpotId,
     selectedSpotSummary,
     selectedSpotZoom,
+    routeSegments,
     spots,
   ]);
 

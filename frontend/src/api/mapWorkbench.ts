@@ -1,6 +1,8 @@
 import { request } from '../lib/http';
 import type {
   PageResponse,
+  RoutePlanRequestDto,
+  RoutePlanResponseDto,
   SpotTagDto,
   TravelCityDto,
   TravelSpotDetailDto,
@@ -42,4 +44,12 @@ export function fetchCitySpots(cityId: number, params?: { keyword?: string; type
 // 获取景点详情，在右侧详情面板选中景点时请求。
 export function fetchSpotDetail(spotId: number) {
   return request<TravelSpotDetailDto>(`/api/spots/${spotId}`);
+}
+
+// 提交行程规划参数，返回统一的行程结果结构。
+export function fetchRoutePlan(payload: RoutePlanRequestDto) {
+  return request<RoutePlanResponseDto>('/api/routes/plan', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }

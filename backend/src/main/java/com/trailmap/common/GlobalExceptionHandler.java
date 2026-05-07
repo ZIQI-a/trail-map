@@ -2,6 +2,8 @@ package com.trailmap.common;
 
 import com.trailmap.exception.BusinessException;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,12 +16,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     /**
      * 处理主动抛出的业务异常，保留明确的业务提示。
      */
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleBusinessException(BusinessException exception) {
+        log.warn("业务异常: code={}, message={}", exception.getCode(), exception.getMessage());
         return ApiResponse.failure(exception.getCode(), exception.getMessage());
     }
 
@@ -29,6 +34,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleConstraintViolationException(ConstraintViolationException exception) {
+        log.warn("参数约束校验失败: {}", exception.getMessage());
         return ApiResponse.failure(ErrorCode.BAD_REQUEST, exception.getMessage());
     }
 
@@ -42,6 +48,7 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("请求参数校验失败");
+        log.warn("请求体校验失败: {}", message);
         return ApiResponse.failure(ErrorCode.BAD_REQUEST, message);
     }
 
@@ -51,6 +58,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleException(Exception exception) {
+        log.error("未处理异常", exception);
         return ApiResponse.failure(ErrorCode.INTERNAL_ERROR, "服务开小差了，请稍后重试");
     }
 }

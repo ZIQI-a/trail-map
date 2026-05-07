@@ -24,6 +24,10 @@ interface BMapGLPolygon {
   addEventListener(eventName: 'click', handler: BMapGLEventHandler): void;
 }
 
+interface BMapGLPolyline {
+  addEventListener(eventName: 'click', handler: BMapGLEventHandler): void;
+}
+
 interface BMapGLSizeLike {
   width: number;
   height: number;
@@ -45,6 +49,14 @@ interface BMapGLNamespace {
       fillOpacity?: number;
     }
   ) => BMapGLPolygon;
+  Polyline: new (
+    points: BMapGLPointLike[],
+    options?: {
+      strokeColor?: string;
+      strokeWeight?: number;
+      strokeOpacity?: number;
+    }
+  ) => BMapGLPolyline;
   ScaleControl: new () => unknown;
   NavigationControl: new () => unknown;
 }

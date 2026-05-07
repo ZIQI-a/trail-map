@@ -5,9 +5,10 @@ import { SpotDetailPanel } from '../../components/map-workbench/SpotDetailPanel'
 import { SpotRecommendList, type RecommendTab } from '../../components/map-workbench/SpotRecommendList';
 import { TripPlannerDock } from '../../components/map-workbench/TripPlannerDock';
 import { WorkbenchHeader, type ActiveSpotFilter } from '../../components/map-workbench/WorkbenchHeader';
-import { useCitiesQuery, useCityDetailQuery, useCitySpotsQuery, useCityTagsQuery, useSpotDetailQuery } from '../../hooks/useMapWorkbenchData';
+import { useCitiesQuery, useCityDetailQuery, useCitySpotsQuery, useCityTagsQuery, useRoutePlanMutation, useSpotDetailQuery } from '../../hooks/useMapWorkbenchData';
 import type {
   PlanMode,
+  RoutePlanResponseDto,
   SpotTag,
   SpotTagDto,
   SpotTagCode,
@@ -45,7 +46,9 @@ export function MapWorkbenchPage() {
   const [startPoint, setStartPoint] = useState('');
   const [selectedTransport, setSelectedTransport] = useState<TransportType>('transit');
   const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>('free');
+  const [routePlanResult, setRoutePlanResult] = useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
+  const routePlanMutation = useRoutePlanMutation();
   const cities = useMemo(() => (citiesQuery.data?.list ?? []).map(mapCity).filter((city): city is TravelCity => Boolean(city)), [citiesQuery.data?.list]);
   // 用户未主动切换时默认使用第一个城市；如果当前选择不在列表中，也回退到第一个城市。
   const activeCityId = cities.some((city) => city.id === selectedCityId) ? selectedCityId : cities[0]?.id;
@@ -75,11 +78,13 @@ export function MapWorkbenchPage() {
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
   function handleAddToTrip(spotId: number) {
+    setRoutePlanResult(undefined);
     setTripSpotIds((currentIds) => (currentIds.includes(spotId) ? currentIds : [...currentIds, spotId]));
   }
 
   // 删除行程池中的单个景点，其他景点顺序保持不变。
   function handleRemoveTripSpot(spotId: number) {
+    setRoutePlanResult(undefined);
     setTripSpotIds((currentIds) => currentIds.filter((currentId) => currentId !== spotId));
   }
 
@@ -88,6 +93,27 @@ export function MapWorkbenchPage() {
     setSelectedCityId(cityId);
     setSelectedSpotId(undefined);
     setTripSpotIds([]);
+    setRoutePlanResult(undefined);
+  }
+
+  // 当前起点输入框只有名称，没有真实坐标；先用城市中心点兜底把路线规划链路接通。
+  async function handlePlanRoute() {
+    if (!city || tripSpots.length === 0) {
+      return;
+    }
+
+    const startPointName = startPoint.trim() || `${city.name}市中心`;
+    const result = await routePlanMutation.mutateAsync({
+      cityId: city.id,
+      startPoint: {
+        name: startPointName,
+        position: city.center,
+      },
+      spotIds: tripSpots.map((spot) => spot.id),
+      transportType: selectedTransport,
+      planMode: selectedPlanMode,
+    });
+    setRoutePlanResult(result);
   }
 
   if (isInitialLoading) {
@@ -132,6 +158,7 @@ export function MapWorkbenchPage() {
           spots={visibleSpots}
           selectedSpot={selectedSpot}
           selectedSpotId={effectiveSelectedSpotId}
+          routeSegments={routePlanResult?.segments}
           onSelectSpot={setSelectedSpotId}
         />
 
@@ -174,11 +201,27 @@ export function MapWorkbenchPage() {
             startPoint={startPoint}
             selectedTransport={selectedTransport}
             selectedPlanMode={selectedPlanMode}
-            onStartPointChange={setStartPoint}
-            onTransportChange={setSelectedTransport}
-            onPlanModeChange={setSelectedPlanMode}
+            planning={routePlanMutation.isPending}
+            planResult={routePlanResult}
+            planError={routePlanMutation.error instanceof Error ? routePlanMutation.error.message : undefined}
+            onStartPointChange={(value) => {
+              setRoutePlanResult(undefined);
+              setStartPoint(value);
+            }}
+            onTransportChange={(value) => {
+              setRoutePlanResult(undefined);
+              setSelectedTransport(value);
+            }}
+            onPlanModeChange={(value) => {
+              setRoutePlanResult(undefined);
+              setSelectedPlanMode(value);
+            }}
+            onPlanRoute={handlePlanRoute}
             onRemoveSpot={handleRemoveTripSpot}
-            onClearTrip={() => setTripSpotIds([])}
+            onClearTrip={() => {
+              setTripSpotIds([]);
+              setRoutePlanResult(undefined);
+            }}
           />
         </div>
       </section>
