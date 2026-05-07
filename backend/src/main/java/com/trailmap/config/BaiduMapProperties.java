@@ -10,6 +10,10 @@ public class BaiduMapProperties {
 
     private String serverAk;
     private String placeSearchUrl = "https://api.map.baidu.com/place/v2/search";
+    private String routeDrivingUrl = "https://api.map.baidu.com/directionlite/v1/driving";
+    private String routeWalkingUrl = "https://api.map.baidu.com/directionlite/v1/walking";
+    private String routeRidingUrl = "https://api.map.baidu.com/directionlite/v1/riding";
+    private String routeTransitUrl = "https://api.map.baidu.com/directionlite/v1/transit";
 
     public String getServerAk() {
         return serverAk;
@@ -25,5 +29,37 @@ public class BaiduMapProperties {
 
     public void setPlaceSearchUrl(String placeSearchUrl) {
         this.placeSearchUrl = placeSearchUrl;
+    }
+
+    public String getRouteDrivingUrl() {
+        return routeDrivingUrl;
+    }
+
+    public void setRouteDrivingUrl(String routeDrivingUrl) {
+        this.routeDrivingUrl = routeDrivingUrl;
+    }
+
+    public String getRouteWalkingUrl() {
+        return routeWalkingUrl;
+    }
+
+    public void setRouteWalkingUrl(String routeWalkingUrl) {
+        this.routeWalkingUrl = routeWalkingUrl;
+    }
+
+    public String getRouteRidingUrl() {
+        return routeRidingUrl;
+    }
+
+    public void setRouteRidingUrl(String routeRidingUrl) {
+        this.routeRidingUrl = routeRidingUrl;
+    }
+
+    public String getRouteTransitUrl() {
+        return routeTransitUrl;
+    }
+
+    public void setRouteTransitUrl(String routeTransitUrl) {
+        this.routeTransitUrl = routeTransitUrl;
     }
 }

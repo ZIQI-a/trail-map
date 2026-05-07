@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -113,5 +114,37 @@ class TrailMapApplicationTests {
                 .andExpect(jsonPath("$.data.name").value("宽窄巷子"))
                 .andExpect(jsonPath("$.data.position.lng").value(104.053572))
                 .andExpect(jsonPath("$.data.position.lat").value(30.663689));
+    }
+
+    @Test
+    void shouldPlanFreeRoute() throws Exception {
+        String requestBody = """
+                {
+                  "cityId": 2,
+                  "startPoint": {
+                    "name": "西安钟楼酒店",
+                    "position": {
+                      "lng": 108.947152,
+                      "lat": 34.259061
+                    }
+                  },
+                  "spotIds": [201, 202, 203],
+                  "transportType": "transit",
+                  "planMode": "free"
+                }
+                """;
+
+        mockMvc.perform(post("/api/routes/plan")
+                        .contentType("application/json")
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.cityId").value(2))
+                .andExpect(jsonPath("$.data.planMode").value("free"))
+                .andExpect(jsonPath("$.data.orderedSpotIds.length()").value(3))
+                .andExpect(jsonPath("$.data.segments.length()").value(3))
+                .andExpect(jsonPath("$.data.totalStayDurationMinutes").value(450))
+                .andExpect(jsonPath("$.data.totalTravelDurationSeconds").isNumber())
+                .andExpect(jsonPath("$.data.totalTripDurationMinutes").isNumber());
     }
 }
