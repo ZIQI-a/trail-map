@@ -56,8 +56,8 @@ export function MapWorkbenchPage() {
   const tags = useMemo(() => (tagsQuery.data ?? []).map(mapTag), [tagsQuery.data]);
   const spots = useMemo(() => (spotsQuery.data?.list ?? []).map((spot) => mapSpot(spot, city)), [city, spotsQuery.data?.list]);
   const visibleSpots = getVisibleSpots(spots, activeFilter, searchKeyword, activeRecommendTab);
-  // 如果用户还未主动选择景点，或者当前选中项已被筛掉，则回退到列表首项。
-  const effectiveSelectedSpotId = visibleSpots.some((spot) => spot.id === selectedSpotId) ? selectedSpotId : visibleSpots[0]?.id;
+  // 工作台默认保持无选中态；只有用户主动选择且该景点仍在当前结果中时，才保留选中状态。
+  const effectiveSelectedSpotId = visibleSpots.some((spot) => spot.id === selectedSpotId) ? selectedSpotId : undefined;
   const spotDetailQuery = useSpotDetailQuery(effectiveSelectedSpotId);
   const selectedSpot = useMemo(
     () => mergeSpotDetail(visibleSpots.find((spot) => spot.id === effectiveSelectedSpotId), spotDetailQuery.data, city),

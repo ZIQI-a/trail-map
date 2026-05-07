@@ -148,15 +148,6 @@ export function BaiduMapStage({
     <section className={styles.mapStage} aria-label={`${city.name} 百度地图`}>
       <div className={styles.mapContainer} id={containerId} />
 
-      <div className={styles.mapToolbar}>
-        <div>
-          <p className={styles.panelLabel}>真实地图</p>
-          <h1>{city.name}景点分布</h1>
-          <p>{city.description}</p>
-        </div>
-        <span className={styles.providerBadge}>Baidu Map</span>
-      </div>
-
       <footer className={styles.mapStatus}>
         <span>已加载 {spots.length} 个景点点位</span>
         <span>
