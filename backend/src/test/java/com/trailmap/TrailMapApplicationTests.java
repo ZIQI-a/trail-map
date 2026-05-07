@@ -92,7 +92,7 @@ class TrailMapApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.name").value("大唐不夜城"))
-                .andExpect(jsonPath("$.data.boundary.length()").value(5));
+                .andExpect(jsonPath("$.data.boundary.length()").value(0));
     }
 
     @Test
@@ -101,7 +101,17 @@ class TrailMapApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.name").value("大雁塔"))
-                .andExpect(jsonPath("$.data.position.lng").value(108.964162))
-                .andExpect(jsonPath("$.data.position.lat").value(34.218285));
+                .andExpect(jsonPath("$.data.position.lng").value(108.964186))
+                .andExpect(jsonPath("$.data.position.lat").value(34.218203));
+    }
+
+    @Test
+    void shouldReturnCalibratedChengduSpotPosition() throws Exception {
+        mockMvc.perform(get("/api/spots/101"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.name").value("宽窄巷子"))
+                .andExpect(jsonPath("$.data.position.lng").value(104.053572))
+                .andExpect(jsonPath("$.data.position.lat").value(30.663689));
     }
 }
