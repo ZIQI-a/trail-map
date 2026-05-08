@@ -132,11 +132,12 @@
 }
 
 .timeline {
+  margin-block-start: 4px;
   padding-inline-start: 2px;
 }
 
 .timeline :global(.ant-timeline-item) {
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .timeline :global(.ant-timeline-item-tail) {
@@ -144,8 +145,14 @@
   border-inline-start-color: #d9e4f1;
 }
 
+.timeline .routeTimelineItem :global(.ant-timeline-item-tail) {
+  border-inline-start-color: var(--route-accent);
+}
+
 .timeline :global(.ant-timeline-item-content) {
-  margin-inline-start: 10px;
+  margin-inline-start: 14px;
+  min-height: 0;
+  padding-block: 1px;
 }
 
 .transportDot,
@@ -185,6 +192,7 @@
   border: 1px solid #e1eaf6;
   border-radius: 18px;
   background: #ffffff;
+  margin-left: 5px;
 }
 
 .pointCard {
@@ -208,18 +216,10 @@
 
 .spotCard {
   display: grid;
-  grid-template-columns: 4px 72px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   padding: 10px;
-}
-
-.spotRail,
-.segmentRail {
-  width: 4px;
-  align-self: stretch;
-  border-radius: 999px;
-  background: var(--route-accent);
 }
 
 .cover {
@@ -303,10 +303,11 @@
 
 .segmentCard {
   display: grid;
-  grid-template-columns: 4px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 10px 12px;
+  margin-left: 10px;
   background: #fbfdff;
 }
 
@@ -345,7 +346,7 @@
   }
 
   .spotCard {
-    grid-template-columns: 4px 1fr;
+    grid-template-columns: 1fr;
   }
 
   .cover {
@@ -353,7 +354,7 @@
   }
 
   .spotContent {
-    grid-column: 2;
+    grid-column: 1;
   }
 
   .spotTop,

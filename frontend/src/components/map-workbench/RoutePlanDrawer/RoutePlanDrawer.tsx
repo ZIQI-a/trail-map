@@ -182,17 +182,21 @@ function getTransportIcon(transportType: string) {
 }
 
 function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, TravelSpot>, tags: SpotTag[]) {
+  // 将路线颜色写入时间轴节点，由 CSS 统一渲染左侧步骤线，避免卡片内再出现独立竖线。
+  const timelineStyle = { '--route-accent': entry.color } as CSSProperties;
+
   if (entry.type === 'segment') {
     return {
+      className: styles.routeTimelineItem,
       color: entry.color,
+      style: timelineStyle,
       dot: (
         <span className={styles.transportDot} style={{ backgroundColor: entry.color }}>
           {entry.icon}
         </span>
       ),
       children: (
-        <div className={styles.segmentCard} style={{ '--route-accent': entry.color } as CSSProperties}>
-          <span className={styles.segmentRail} aria-hidden="true" />
+        <div className={styles.segmentCard}>
           <div className={styles.segmentMain}>
             <strong>{entry.title}</strong>
             <span>第 {entry.sequence} 段 · {entry.subtitle}</span>
@@ -208,15 +212,16 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
     const previewTags = spot?.tags.slice(0, 2) ?? [];
 
     return {
+      className: styles.routeTimelineItem,
       color: entry.color,
+      style: timelineStyle,
       dot: (
         <span className={styles.sequenceDot} style={{ backgroundColor: entry.color }}>
           {entry.sequence}
         </span>
       ),
       children: (
-        <div className={styles.spotCard} style={{ '--route-accent': entry.color } as CSSProperties}>
-          <span className={styles.spotRail} aria-hidden="true" />
+        <div className={styles.spotCard}>
           <div
             className={styles.cover}
             style={spot?.coverUrl ? { backgroundImage: `linear-gradient(160deg, rgb(20 37 64 / 12%), rgb(20 37 64 / 40%)), url(${spot.coverUrl})` } : undefined}
@@ -251,7 +256,9 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
   }
 
   return {
+    className: styles.routeTimelineItem,
     color: entry.color,
+    style: timelineStyle,
     dot: <span className={`${styles.pointDot} ${styles[entry.type]}`}>{entry.type === 'start' ? '起' : '终'}</span>,
     children: (
       <div className={styles.pointCard}>
