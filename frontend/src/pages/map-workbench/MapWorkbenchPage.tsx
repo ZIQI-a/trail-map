@@ -1,5 +1,6 @@
 import { Alert, Empty, Spin } from "antd";
 import { useMemo, useState } from "react";
+import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
 import { RoutePlanDrawer } from "../../components/map-workbench/RoutePlanDrawer";
 import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
@@ -41,7 +42,6 @@ const transportTypes = [
   { label: "驾车", value: "driving" as const },
   { label: "步行", value: "walking" as const },
   { label: "骑行", value: "bicycling" as const },
-  { label: "打车", value: "taxi" as const },
 ];
 
 const planModes = [
@@ -163,24 +163,43 @@ export function MapWorkbenchPage() {
     setRoutePlanResult(undefined);
   }
 
-  // 当前起点输入框只有名称，没有真实坐标；先用城市中心点兜底把路线规划链路接通。
+  // 起点输入优先走百度地点检索拿候选坐标，失败或无结果时再回退到城市中心点。
   async function handlePlanRoute() {
     if (!city || tripSpots.length === 0) {
       return;
     }
 
     const startPointName = startPoint.trim() || `${city.name}市中心`;
+    const resolvedStartPosition = await resolveStartPointPosition(city.name, startPointName, city.center);
     const result = await routePlanMutation.mutateAsync({
       cityId: city.id,
       startPoint: {
         name: startPointName,
-        position: city.center,
+        position: resolvedStartPosition,
       },
       spotIds: tripSpots.map((spot) => spot.id),
       transportType: selectedTransport,
       planMode: selectedPlanMode,
     });
     setRoutePlanResult(result);
+  }
+
+  /**
+   * 用户只输入地点名称时，先尝试用百度地点检索解析成坐标。
+   * 当前取第一候选项，优先使用更适合导航落点的 naviLocation。
+   */
+  async function resolveStartPointPosition(cityName: string, keyword: string, fallbackPosition: TravelCity["center"]) {
+    if (!keyword.trim()) {
+      return fallbackPosition;
+    }
+
+    try {
+      const candidates = await fetchPoiCalibrationCandidates(normalizeCityName(cityName), keyword.trim());
+      const firstCandidate = candidates[0];
+      return firstCandidate?.naviLocation ?? firstCandidate?.location ?? fallbackPosition;
+    } catch {
+      return fallbackPosition;
+    }
   }
 
   if (isInitialLoading) {
@@ -416,4 +435,12 @@ function formatDistanceText(
   const latDelta = point.lat - city.center.lat;
   const distance = Math.sqrt(lngDelta * lngDelta + latDelta * latDelta) * 111;
   return `${distance.toFixed(1)}km`;
+}
+
+// 地点检索通常更偏好完整城市名，这里给常见城市补一个“市”后缀。
+function normalizeCityName(cityName: string) {
+  if (cityName.endsWith("市") || cityName.endsWith("区") || cityName.endsWith("州")) {
+    return cityName;
+  }
+  return `${cityName}市`;
 }

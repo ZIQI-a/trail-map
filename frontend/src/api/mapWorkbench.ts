@@ -1,6 +1,7 @@
 import { request } from '../lib/http';
 import type {
   PageResponse,
+  PoiCalibrationCandidateDto,
   RoutePlanRequestDto,
   RoutePlanResponseDto,
   SpotTagDto,
@@ -44,6 +45,18 @@ export function fetchCitySpots(cityId: number, params?: { keyword?: string; type
 // 获取景点详情，在右侧详情面板选中景点时请求。
 export function fetchSpotDetail(spotId: number) {
   return request<TravelSpotDetailDto>(`/api/spots/${spotId}`);
+}
+
+// 用百度地点检索把用户输入的起点名称解析成候选坐标。
+export function fetchPoiCalibrationCandidates(cityName: string, keyword: string, addressKeyword?: string) {
+  const searchParams = new URLSearchParams();
+  searchParams.set('cityName', cityName);
+  searchParams.set('keyword', keyword);
+  if (addressKeyword) {
+    searchParams.set('addressKeyword', addressKeyword);
+  }
+
+  return request<PoiCalibrationCandidateDto[]>(`/api/poi-calibration/candidates?${searchParams.toString()}`);
 }
 
 // 提交行程规划参数，返回统一的行程结果结构。

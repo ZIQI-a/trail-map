@@ -365,12 +365,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         }
     }
 
-    /**
-     * taxi 在当前阶段直接复用 driving，避免前后端 transport 枚举不一致导致算路失败。
-     */
     private String normalizeTransportType(String transportType) {
-        String normalizedTransportType = transportType.toLowerCase(Locale.ROOT);
-        return "taxi".equals(normalizedTransportType) ? "driving" : normalizedTransportType;
+        return transportType.toLowerCase(Locale.ROOT);
     }
 
     private CoordinateResponse toCoordinate(CoordinateRequest position) {

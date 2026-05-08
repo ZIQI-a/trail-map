@@ -30,8 +30,8 @@ export type SpotTagCode =
   | 'half_day'
   | 'subway';
 
-// 出行方式：先覆盖路线规划 MVP 需要的基础方式。
-export type TransportType = 'transit' | 'driving' | 'walking' | 'bicycling' | 'taxi';
+// 出行方式：当前仅保留百度路线规划已稳定接通的几种方式。
+export type TransportType = 'transit' | 'driving' | 'walking' | 'bicycling';
 
 // 规划模式：自由路线为默认，完整行程后续再扩展。
 export type PlanMode = 'free' | 'schedule';
@@ -167,6 +167,20 @@ export interface TravelSpotDetailDto extends TravelSpotSummaryDto {
   description: string;
   travelGuide: string;
   suitableCrowd: string;
+}
+
+// 起点候选项：复用百度地点检索结果，优先给行程规划起点做名称转坐标。
+export interface PoiCalibrationCandidateDto {
+  name: string;
+  uid: string;
+  address: string;
+  province: string;
+  city: string;
+  area: string;
+  location: GeoPoint | null;
+  naviLocation: GeoPoint | null;
+  detailUrl: string;
+  sourceProvider: string;
 }
 
 // 路线规划起终点：既可表示酒店，也可表示用户手动输入的出发地。
