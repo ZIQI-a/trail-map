@@ -1,12 +1,25 @@
-import { Alert, Empty, Spin } from 'antd';
-import { useMemo, useState } from 'react';
-import { BaiduMapStage } from '../../components/map-workbench/BaiduMapStage';
-import { RoutePlanDrawer } from '../../components/map-workbench/RoutePlanDrawer';
-import { SpotDetailPanel } from '../../components/map-workbench/SpotDetailPanel';
-import { SpotRecommendList, type RecommendTab } from '../../components/map-workbench/SpotRecommendList';
-import { TripPlannerDock } from '../../components/map-workbench/TripPlannerDock';
-import { WorkbenchHeader, type ActiveSpotFilter } from '../../components/map-workbench/WorkbenchHeader';
-import { useCitiesQuery, useCityDetailQuery, useCitySpotsQuery, useCityTagsQuery, useRoutePlanMutation, useSpotDetailQuery } from '../../hooks/useMapWorkbenchData';
+import { Alert, Empty, Spin } from "antd";
+import { useMemo, useState } from "react";
+import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
+import { RoutePlanDrawer } from "../../components/map-workbench/RoutePlanDrawer";
+import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
+import {
+  SpotRecommendList,
+  type RecommendTab,
+} from "../../components/map-workbench/SpotRecommendList";
+import { TripPlannerDock } from "../../components/map-workbench/TripPlannerDock";
+import {
+  WorkbenchHeader,
+  type ActiveSpotFilter,
+} from "../../components/map-workbench/WorkbenchHeader";
+import {
+  useCitiesQuery,
+  useCityDetailQuery,
+  useCitySpotsQuery,
+  useCityTagsQuery,
+  useRoutePlanMutation,
+  useSpotDetailQuery,
+} from "../../hooks/useMapWorkbenchData";
 import type {
   PlanMode,
   RoutePlanResponseDto,
@@ -19,74 +32,127 @@ import type {
   TravelSpot,
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
-} from '../../types/mapWorkbench';
-import { getVisibleSpots } from '../../utils/map-workbench/spotFilters';
-import styles from './MapWorkbenchPage.module.css';
+} from "../../types/mapWorkbench";
+import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
+import styles from "./MapWorkbenchPage.module.css";
 
 const transportTypes = [
-  { label: '公共交通', value: 'transit' as const },
-  { label: '驾车', value: 'driving' as const },
-  { label: '步行', value: 'walking' as const },
-  { label: '骑行', value: 'bicycling' as const },
-  { label: '打车', value: 'taxi' as const },
+  { label: "公共交通", value: "transit" as const },
+  { label: "驾车", value: "driving" as const },
+  { label: "步行", value: "walking" as const },
+  { label: "骑行", value: "bicycling" as const },
+  { label: "打车", value: "taxi" as const },
 ];
 
 const planModes = [
-  { label: '自由路线', value: 'free' as const },
-  { label: '完整行程', value: 'schedule' as const },
+  { label: "自由路线", value: "free" as const },
+  { label: "完整行程", value: "schedule" as const },
 ];
 
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>('all');
-  const [activeRecommendTab, setActiveRecommendTab] = useState<RecommendTab>('recommend');
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>("all");
+  const [activeRecommendTab, setActiveRecommendTab] =
+    useState<RecommendTab>("recommend");
   const [selectedCityId, setSelectedCityId] = useState<number>();
   const [selectedSpotId, setSelectedSpotId] = useState<number>();
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
-  const [startPoint, setStartPoint] = useState('');
-  const [selectedTransport, setSelectedTransport] = useState<TransportType>('transit');
-  const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>('free');
-  const [routePlanResult, setRoutePlanResult] = useState<RoutePlanResponseDto>();
+  const [startPoint, setStartPoint] = useState("");
+  const [selectedTransport, setSelectedTransport] =
+    useState<TransportType>("transit");
+  const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>("free");
+  const [routePlanResult, setRoutePlanResult] =
+    useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
-  const cities = useMemo(() => (citiesQuery.data?.list ?? []).map(mapCity).filter((city): city is TravelCity => Boolean(city)), [citiesQuery.data?.list]);
+  const cities = useMemo(
+    () =>
+      (citiesQuery.data?.list ?? [])
+        .map(mapCity)
+        .filter((city): city is TravelCity => Boolean(city)),
+    [citiesQuery.data?.list],
+  );
   // 用户未主动切换时默认使用第一个城市；如果当前选择不在列表中，也回退到第一个城市。
-  const activeCityId = cities.some((city) => city.id === selectedCityId) ? selectedCityId : cities[0]?.id;
+  const activeCityId = cities.some((city) => city.id === selectedCityId)
+    ? selectedCityId
+    : cities[0]?.id;
   const cityDetailQuery = useCityDetailQuery(activeCityId);
   const tagsQuery = useCityTagsQuery(activeCityId);
-  const spotsQuery = useCitySpotsQuery(activeCityId, activeFilter, searchKeyword);
-  const city = useMemo(() => mapCity(cityDetailQuery.data ?? cities.find((item) => item.id === activeCityId)), [activeCityId, cities, cityDetailQuery.data]);
-  const tags = useMemo(() => (tagsQuery.data ?? []).map(mapTag), [tagsQuery.data]);
-  const spots = useMemo(() => (spotsQuery.data?.list ?? []).map((spot) => mapSpot(spot, city)), [city, spotsQuery.data?.list]);
-  const visibleSpots = getVisibleSpots(spots, activeFilter, searchKeyword, activeRecommendTab);
+  const spotsQuery = useCitySpotsQuery(
+    activeCityId,
+    activeFilter,
+    searchKeyword,
+  );
+  const city = useMemo(
+    () =>
+      mapCity(
+        cityDetailQuery.data ?? cities.find((item) => item.id === activeCityId),
+      ),
+    [activeCityId, cities, cityDetailQuery.data],
+  );
+  const tags = useMemo(
+    () => (tagsQuery.data ?? []).map(mapTag),
+    [tagsQuery.data],
+  );
+  const spots = useMemo(
+    () => (spotsQuery.data?.list ?? []).map((spot) => mapSpot(spot, city)),
+    [city, spotsQuery.data?.list],
+  );
+  const visibleSpots = getVisibleSpots(
+    spots,
+    activeFilter,
+    searchKeyword,
+    activeRecommendTab,
+  );
   // 工作台默认保持无选中态；只有用户主动选择且该景点仍在当前结果中时，才保留选中状态。
-  const effectiveSelectedSpotId = visibleSpots.some((spot) => spot.id === selectedSpotId) ? selectedSpotId : undefined;
+  const effectiveSelectedSpotId = visibleSpots.some(
+    (spot) => spot.id === selectedSpotId,
+  )
+    ? selectedSpotId
+    : undefined;
   const spotDetailQuery = useSpotDetailQuery(effectiveSelectedSpotId);
   const selectedSpot = useMemo(
-    () => mergeSpotDetail(visibleSpots.find((spot) => spot.id === effectiveSelectedSpotId), spotDetailQuery.data, city),
+    () =>
+      mergeSpotDetail(
+        visibleSpots.find((spot) => spot.id === effectiveSelectedSpotId),
+        spotDetailQuery.data,
+        city,
+      ),
     [city, effectiveSelectedSpotId, spotDetailQuery.data, visibleSpots],
   );
-  const nearbySpots = visibleSpots.filter((spot) => spot.id !== effectiveSelectedSpotId).slice(0, 3);
+  const nearbySpots = visibleSpots
+    .filter((spot) => spot.id !== effectiveSelectedSpotId)
+    .slice(0, 3);
   const tripSpots = tripSpotIds
     .map((spotId) => spots.find((spot) => spot.id === spotId))
     .filter((spot): spot is TravelSpot => Boolean(spot));
   const isInitialLoading =
     citiesQuery.isLoading ||
     (activeCityId != null &&
-      (cityDetailQuery.isLoading || tagsQuery.isLoading || (!spotsQuery.data && spotsQuery.isLoading)));
-  const pageError = citiesQuery.error ?? cityDetailQuery.error ?? tagsQuery.error ?? spotsQuery.error;
+      (cityDetailQuery.isLoading ||
+        tagsQuery.isLoading ||
+        (!spotsQuery.data && spotsQuery.isLoading)));
+  const pageError =
+    citiesQuery.error ??
+    cityDetailQuery.error ??
+    tagsQuery.error ??
+    spotsQuery.error;
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
   function handleAddToTrip(spotId: number) {
     setRoutePlanResult(undefined);
-    setTripSpotIds((currentIds) => (currentIds.includes(spotId) ? currentIds : [...currentIds, spotId]));
+    setTripSpotIds((currentIds) =>
+      currentIds.includes(spotId) ? currentIds : [...currentIds, spotId],
+    );
   }
 
   // 删除行程池中的单个景点，其他景点顺序保持不变。
   function handleRemoveTripSpot(spotId: number) {
     setRoutePlanResult(undefined);
-    setTripSpotIds((currentIds) => currentIds.filter((currentId) => currentId !== spotId));
+    setTripSpotIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== spotId),
+    );
   }
 
   // 切换城市时同步清空景点选中和行程池，避免旧城市状态残留到新城市。
@@ -133,7 +199,11 @@ export function MapWorkbenchPage() {
           type="error"
           showIcon
           message="地图工作台加载失败"
-          description={pageError instanceof Error ? pageError.message : '暂时无法获取城市和景点数据'}
+          description={
+            pageError instanceof Error
+              ? pageError.message
+              : "暂时无法获取城市和景点数据"
+          }
         />
       </main>
     );
@@ -166,7 +236,10 @@ export function MapWorkbenchPage() {
         <div className={styles.leftFloatPanel}>
           {spots.length === 0 ? (
             <aside className={styles.inlineStatePanel}>
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前城市暂无景点数据" />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="当前城市暂无景点数据"
+              />
             </aside>
           ) : (
             <SpotRecommendList
@@ -196,7 +269,14 @@ export function MapWorkbenchPage() {
 
         {routePlanResult ? (
           <div className={styles.routeDrawerPanel}>
-            <RoutePlanDrawer cityName={city.name} routePlan={routePlanResult} tripSpots={tripSpots} tags={tags} startPoint={startPoint.trim() || `${city.name}市中心`} onClose={() => setRoutePlanResult(undefined)} />
+            <RoutePlanDrawer
+              cityName={city.name}
+              routePlan={routePlanResult}
+              tripSpots={tripSpots}
+              tags={tags}
+              startPoint={startPoint.trim() || `${city.name}市中心`}
+              onClose={() => setRoutePlanResult(undefined)}
+            />
           </div>
         ) : null}
 
@@ -210,7 +290,11 @@ export function MapWorkbenchPage() {
             selectedPlanMode={selectedPlanMode}
             planning={routePlanMutation.isPending}
             planResult={routePlanResult}
-            planError={routePlanMutation.error instanceof Error ? routePlanMutation.error.message : undefined}
+            planError={
+              routePlanMutation.error instanceof Error
+                ? routePlanMutation.error.message
+                : undefined
+            }
             onStartPointChange={(value) => {
               setRoutePlanResult(undefined);
               setStartPoint(value);
@@ -283,7 +367,11 @@ function mapSpot(spot: TravelSpotSummaryDto, city?: TravelCity): TravelSpot {
   };
 }
 
-function mergeSpotDetail(spot: TravelSpot | undefined, detail: TravelSpotDetailDto | undefined, city?: TravelCity): TravelSpot | undefined {
+function mergeSpotDetail(
+  spot: TravelSpot | undefined,
+  detail: TravelSpotDetailDto | undefined,
+  city?: TravelCity,
+): TravelSpot | undefined {
   if (!spot && !detail) {
     return undefined;
   }
@@ -307,7 +395,8 @@ function mergeSpotDetail(spot: TravelSpot | undefined, detail: TravelSpotDetailD
     suggestedDurationMinutes: detail.suggestedDurationMinutes,
     bestTime: detail.bestTime,
     recommendScore: detail.recommendScore,
-    distanceText: spot?.distanceText ?? formatDistanceText(city, detail.position),
+    distanceText:
+      spot?.distanceText ?? formatDistanceText(city, detail.position),
     tags: detail.tags.map((tag) => tag.code as SpotTagCode),
     boundary: detail.boundary,
     description: detail.description,
@@ -315,9 +404,12 @@ function mergeSpotDetail(spot: TravelSpot | undefined, detail: TravelSpotDetailD
   };
 }
 
-function formatDistanceText(city: TravelCity | undefined, point: { lng: number; lat: number }) {
+function formatDistanceText(
+  city: TravelCity | undefined,
+  point: { lng: number; lat: number },
+) {
   if (!city) {
-    return '--';
+    return "--";
   }
 
   const lngDelta = point.lng - city.center.lng;

@@ -14,8 +14,7 @@
 .headerActions,
 .spotTop,
 .spotMeta,
-.spotTitleGroup,
-.pointCard {
+.spotTitleGroup {
   display: flex;
 }
 
@@ -142,6 +141,7 @@
 
 .timeline :global(.ant-timeline-item-tail) {
   border-inline-start-width: 3px;
+  border-inline-start-color: #d9e4f1;
 }
 
 .timeline :global(.ant-timeline-item-content) {
@@ -181,35 +181,45 @@
 .pointCard,
 .segmentCard,
 .spotCard {
+  position: relative;
   border: 1px solid #e1eaf6;
   border-radius: 18px;
   background: #ffffff;
 }
 
 .pointCard {
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  gap: 2px;
   padding: 10px 12px;
+}
+
+.pointTime {
+  color: #1b3556;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .pointCard strong {
   color: #1b3556;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.pointCard span {
-  min-width: 0;
-  color: #5b7390;
   font-size: 12px;
+  line-height: 1.45;
 }
 
 .spotCard {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 4px 72px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   padding: 10px;
+}
+
+.spotRail,
+.segmentRail {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 999px;
+  background: var(--route-accent);
 }
 
 .cover {
@@ -293,7 +303,7 @@
 
 .segmentCard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 4px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
@@ -335,11 +345,15 @@
   }
 
   .spotCard {
-    grid-template-columns: 1fr;
+    grid-template-columns: 4px 1fr;
   }
 
   .cover {
     height: 120px;
+  }
+
+  .spotContent {
+    grid-column: 2;
   }
 
   .spotTop,

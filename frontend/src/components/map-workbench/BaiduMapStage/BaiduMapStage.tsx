@@ -6,6 +6,7 @@ import type {
   TravelCity,
   TravelSpot,
 } from "../../../types/mapWorkbench";
+import { getRouteSegmentColor } from "../../../utils/map-workbench/routePalette";
 import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
@@ -121,14 +122,14 @@ export function BaiduMapStage({
         .map(createBaiduPoint) ?? [];
 
     // 路线规划成功后把每一段路线线条画到地图上，便于用户直观看到串联顺序。
-    routeSegments?.forEach((segment) => {
+    routeSegments?.forEach((segment, index) => {
       if (segment.polyline.length < 2) {
         return;
       }
       const routeLine = new window.BMapGL!.Polyline(
         segment.polyline.map(createBaiduPoint),
         {
-          strokeColor: "#ff6b3d",
+          strokeColor: getRouteSegmentColor(index),
           strokeWeight: 5,
           strokeOpacity: 0.88,
         },

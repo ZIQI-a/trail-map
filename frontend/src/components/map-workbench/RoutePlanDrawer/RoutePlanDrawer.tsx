@@ -11,8 +11,9 @@ import {
   ShareAltOutlined,
 } from '@ant-design/icons';
 import { Button, Tag, Timeline } from 'antd';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { RoutePlanResponseDto, SpotTag, TravelSpot } from '../../../types/mapWorkbench';
+import { getRouteSegmentColor } from '../../../utils/map-workbench/routePalette';
 import { formatRouteDistance, formatRouteDuration, formatTripDuration } from '../../../utils/map-workbench/routeDisplay';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './RoutePlanDrawer.module.css';
@@ -87,7 +88,7 @@ function MetricCard({ icon, value, label }: MetricCardProps) {
 
 type TimelineEntry =
   | { type: 'start' | 'end'; title: string; timeLabel: string; color: string }
-  | { type: 'segment'; title: string; subtitle: string; color: string; icon: ReactNode }
+  | { type: 'segment'; title: string; subtitle: string; color: string; icon: ReactNode; sequence: number }
   | {
       type: 'spot';
       sequence: number;
@@ -116,8 +117,9 @@ function buildTimelineEntries(routePlan: RoutePlanResponseDto, startPoint: strin
         type: 'segment',
         title: getTransportLabel(segment.transportType),
         subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
-        color: getSequenceColor(index),
+        color: getRouteSegmentColor(index),
         icon: getTransportIcon(segment.transportType),
+        sequence: index + 1,
       });
       currentMinutes += Math.ceil(segment.durationSeconds / 60);
     }
@@ -129,7 +131,7 @@ function buildTimelineEntries(routePlan: RoutePlanResponseDto, startPoint: strin
     entries.push({
       type: 'spot',
       sequence: index + 1,
-      color: getSequenceColor(index),
+      color: getRouteSegmentColor(index),
       stayPlan,
       arrivalLabel: formatClock(arrivalMinutes),
       leaveLabel: formatClock(leaveMinutes),
@@ -153,10 +155,6 @@ function formatClock(totalMinutes: number) {
   const hours = Math.floor(normalizedMinutes / 60);
   const minutes = normalizedMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-}
-
-function getSequenceColor(index: number) {
-  return ['#2d6bff', '#22a45a', '#f08b2f', '#7a5af8', '#ef5da8'][index % 5];
 }
 
 function getTransportLabel(transportType: string) {
@@ -187,12 +185,17 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
   if (entry.type === 'segment') {
     return {
       color: entry.color,
-      dot: <span className={styles.transportDot}>{entry.icon}</span>,
+      dot: (
+        <span className={styles.transportDot} style={{ backgroundColor: entry.color }}>
+          {entry.icon}
+        </span>
+      ),
       children: (
-        <div className={styles.segmentCard}>
+        <div className={styles.segmentCard} style={{ '--route-accent': entry.color } as CSSProperties}>
+          <span className={styles.segmentRail} aria-hidden="true" />
           <div className={styles.segmentMain}>
             <strong>{entry.title}</strong>
-            <span>{entry.subtitle}</span>
+            <span>第 {entry.sequence} 段 · {entry.subtitle}</span>
           </div>
           <ExportOutlined className={styles.segmentArrow} />
         </div>
@@ -206,9 +209,14 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
 
     return {
       color: entry.color,
-      dot: <span className={styles.sequenceDot}>{entry.sequence}</span>,
+      dot: (
+        <span className={styles.sequenceDot} style={{ backgroundColor: entry.color }}>
+          {entry.sequence}
+        </span>
+      ),
       children: (
-        <div className={styles.spotCard}>
+        <div className={styles.spotCard} style={{ '--route-accent': entry.color } as CSSProperties}>
+          <span className={styles.spotRail} aria-hidden="true" />
           <div
             className={styles.cover}
             style={spot?.coverUrl ? { backgroundImage: `linear-gradient(160deg, rgb(20 37 64 / 12%), rgb(20 37 64 / 40%)), url(${spot.coverUrl})` } : undefined}
@@ -247,8 +255,8 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
     dot: <span className={`${styles.pointDot} ${styles[entry.type]}`}>{entry.type === 'start' ? '起' : '终'}</span>,
     children: (
       <div className={styles.pointCard}>
-        <strong>{entry.timeLabel}</strong>
-        <span>{entry.title}</span>
+        <span className={styles.pointTime}>{entry.timeLabel}</span>
+        <strong>{entry.title}</strong>
       </div>
     ),
   };
