@@ -18,10 +18,13 @@ import {
   useCityDetailQuery,
   useCitySpotsQuery,
   useCityTagsQuery,
+  usePoiCandidatesQuery,
   useRoutePlanMutation,
   useSpotDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import type {
+  GeoPoint,
   PlanMode,
   RoutePlanResponseDto,
   SpotTag,
@@ -34,6 +37,7 @@ import type {
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
 } from "../../types/mapWorkbench";
+import { wgs84ToGcj02 } from "../../utils/map-workbench/coordinate";
 import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
 import styles from "./MapWorkbenchPage.module.css";
 
@@ -59,6 +63,9 @@ export function MapWorkbenchPage() {
   const [selectedSpotId, setSelectedSpotId] = useState<number>();
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState("");
+  const [startPointPosition, setStartPointPosition] = useState<GeoPoint>();
+  const [locatingCurrentPosition, setLocatingCurrentPosition] = useState(false);
+  const [plannerAssistError, setPlannerAssistError] = useState<string>();
   const [selectedTransport, setSelectedTransport] =
     useState<TransportType>("transit");
   const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>("free");
@@ -79,6 +86,7 @@ export function MapWorkbenchPage() {
     : cities[0]?.id;
   const cityDetailQuery = useCityDetailQuery(activeCityId);
   const tagsQuery = useCityTagsQuery(activeCityId);
+  const debouncedStartPoint = useDebouncedValue(startPoint, 300);
   const spotsQuery = useCitySpotsQuery(
     activeCityId,
     activeFilter,
@@ -94,6 +102,11 @@ export function MapWorkbenchPage() {
   const tags = useMemo(
     () => (tagsQuery.data ?? []).map(mapTag),
     [tagsQuery.data],
+  );
+  const poiCandidatesQuery = usePoiCandidatesQuery(
+    city ? normalizeCityName(city.name) : undefined,
+    debouncedStartPoint,
+    !startPointPosition && !locatingCurrentPosition,
   );
   const spots = useMemo(
     () => (spotsQuery.data?.list ?? []).map((spot) => mapSpot(spot, city)),
@@ -138,9 +151,24 @@ export function MapWorkbenchPage() {
     cityDetailQuery.error ??
     tagsQuery.error ??
     spotsQuery.error;
+  const startPointOptions = useMemo(
+    () =>
+      (poiCandidatesQuery.data ?? []).map((candidate) => ({
+        value: candidate.name,
+        position: candidate.naviLocation ?? candidate.location ?? undefined,
+        label: (
+          <div className={styles.startPointOption}>
+            <strong>{candidate.name}</strong>
+            <span>{candidate.address || `${candidate.city}${candidate.area}`}</span>
+          </div>
+        ),
+      })),
+    [poiCandidatesQuery.data],
+  );
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
   function handleAddToTrip(spotId: number) {
+    setPlannerAssistError(undefined);
     setRoutePlanResult(undefined);
     setTripSpotIds((currentIds) =>
       currentIds.includes(spotId) ? currentIds : [...currentIds, spotId],
@@ -149,6 +177,7 @@ export function MapWorkbenchPage() {
 
   // 删除行程池中的单个景点，其他景点顺序保持不变。
   function handleRemoveTripSpot(spotId: number) {
+    setPlannerAssistError(undefined);
     setRoutePlanResult(undefined);
     setTripSpotIds((currentIds) =>
       currentIds.filter((currentId) => currentId !== spotId),
@@ -161,6 +190,9 @@ export function MapWorkbenchPage() {
     setSelectedSpotId(undefined);
     setTripSpotIds([]);
     setRoutePlanResult(undefined);
+    setStartPoint("");
+    setStartPointPosition(undefined);
+    setPlannerAssistError(undefined);
   }
 
   // 起点输入优先走百度地点检索拿候选坐标，失败或无结果时再回退到城市中心点。
@@ -169,8 +201,11 @@ export function MapWorkbenchPage() {
       return;
     }
 
+    setPlannerAssistError(undefined);
     const startPointName = startPoint.trim() || `${city.name}市中心`;
-    const resolvedStartPosition = await resolveStartPointPosition(city.name, startPointName, city.center);
+    const resolvedStartPosition =
+      startPointPosition ??
+      (await resolveStartPointPosition(city.name, startPointName, city.center));
     const result = await routePlanMutation.mutateAsync({
       cityId: city.id,
       startPoint: {
@@ -194,12 +229,59 @@ export function MapWorkbenchPage() {
     }
 
     try {
-      const candidates = await fetchPoiCalibrationCandidates(normalizeCityName(cityName), keyword.trim());
-      const firstCandidate = candidates[0];
-      return firstCandidate?.naviLocation ?? firstCandidate?.location ?? fallbackPosition;
+      const fallbackCandidates = poiCandidatesQuery.data?.length
+        ? poiCandidatesQuery.data
+        : await fetchPoiCalibrationCandidates(normalizeCityName(cityName), keyword.trim());
+      const firstCandidate = fallbackCandidates[0];
+      if (firstCandidate) {
+        return firstCandidate.naviLocation ?? firstCandidate.location ?? fallbackPosition;
+      }
     } catch {
+      setPlannerAssistError("起点检索失败，当前已回退为城市中心点");
       return fallbackPosition;
     }
+
+    setPlannerAssistError("起点未命中候选地点，当前已回退为城市中心点");
+    return fallbackPosition;
+  }
+
+  // 用户从联想结果里选中起点时，直接绑定名称和对应坐标。
+  function handleSelectStartPoint(value: string, position?: GeoPoint) {
+    setRoutePlanResult(undefined);
+    setPlannerAssistError(undefined);
+    setStartPoint(value);
+    setStartPointPosition(position);
+  }
+
+  // 浏览器当前位置会先从 WGS-84 转为 GCJ-02，再作为路线规划起点提交。
+  function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      setPlannerAssistError("当前浏览器不支持定位，请手动输入起点");
+      return;
+    }
+
+    setLocatingCurrentPosition(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const gcjPoint = wgs84ToGcj02({
+          lng: position.coords.longitude,
+          lat: position.coords.latitude,
+        });
+        setRoutePlanResult(undefined);
+        setPlannerAssistError(undefined);
+        setStartPoint("我的位置");
+        setStartPointPosition(gcjPoint);
+        setLocatingCurrentPosition(false);
+      },
+      () => {
+        setPlannerAssistError("定位失败，请检查定位权限或手动输入起点");
+        setLocatingCurrentPosition(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+      },
+    );
   }
 
   if (isInitialLoading) {
@@ -305,19 +387,25 @@ export function MapWorkbenchPage() {
             transportTypes={transportTypes}
             planModes={planModes}
             startPoint={startPoint}
+            startPointOptions={startPointOptions}
             selectedTransport={selectedTransport}
             selectedPlanMode={selectedPlanMode}
             planning={routePlanMutation.isPending}
+            locatingCurrentPosition={locatingCurrentPosition}
             planResult={routePlanResult}
             planError={
-              routePlanMutation.error instanceof Error
+              (routePlanMutation.error instanceof Error
                 ? routePlanMutation.error.message
-                : undefined
+                : undefined) ?? plannerAssistError
             }
             onStartPointChange={(value) => {
               setRoutePlanResult(undefined);
+              setPlannerAssistError(undefined);
               setStartPoint(value);
+              setStartPointPosition(undefined);
             }}
+            onSelectStartPoint={handleSelectStartPoint}
+            onUseCurrentLocation={handleUseCurrentLocation}
             onTransportChange={(value) => {
               setRoutePlanResult(undefined);
               setSelectedTransport(value);

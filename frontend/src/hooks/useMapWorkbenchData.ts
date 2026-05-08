@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchRoutePlan, fetchSpotDetail } from '../api/mapWorkbench';
+import { fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { RoutePlanRequestDto } from '../types/mapWorkbench';
 
@@ -49,6 +49,17 @@ export function useSpotDetailQuery(spotId?: number) {
     queryKey: ['spot-detail', spotId],
     queryFn: () => fetchSpotDetail(spotId!),
     enabled: spotId != null,
+  });
+}
+
+// 起点联想查询：由页面层控制输入防抖和触发时机，这里只负责候选请求。
+export function usePoiCandidatesQuery(cityName?: string, keyword?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['poi-candidates', cityName, keyword],
+    queryFn: () => fetchPoiCalibrationCandidates(cityName!, keyword!.trim()),
+    placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,
+    enabled: enabled && Boolean(cityName && keyword?.trim() && keyword.trim().length >= 2),
   });
 }
 

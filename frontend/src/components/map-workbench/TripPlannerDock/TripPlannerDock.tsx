@@ -1,4 +1,5 @@
 import {
+  AimOutlined,
   AppstoreAddOutlined,
   CarOutlined,
   ClockCircleOutlined,
@@ -8,6 +9,7 @@ import {
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
+  AutoComplete,
   Alert,
   Badge,
   Button,
@@ -17,7 +19,9 @@ import {
   Segmented,
   Select,
 } from "antd";
+import type { ReactNode } from "react";
 import type {
+  GeoPoint,
   PlanMode,
   RoutePlanResponseDto,
   TransportType,
@@ -35,17 +39,27 @@ interface PlannerOption<T extends string> {
   value: T;
 }
 
+interface StartPointOption {
+  label: ReactNode;
+  value: string;
+  position?: GeoPoint;
+}
+
 interface TripPlannerDockProps {
   tripSpots: TravelSpot[];
   transportTypes: Array<PlannerOption<TransportType>>;
   planModes: Array<PlannerOption<PlanMode>>;
   startPoint: string;
+  startPointOptions: StartPointOption[];
   selectedTransport: TransportType;
   selectedPlanMode: PlanMode;
   planning: boolean;
+  locatingCurrentPosition: boolean;
   planResult?: RoutePlanResponseDto;
   planError?: string;
   onStartPointChange: (value: string) => void;
+  onSelectStartPoint: (value: string, position?: GeoPoint) => void;
+  onUseCurrentLocation: () => void;
   onTransportChange: (value: TransportType) => void;
   onPlanModeChange: (value: PlanMode) => void;
   onPlanRoute: () => void;
@@ -59,12 +73,16 @@ export function TripPlannerDock({
   transportTypes,
   planModes,
   startPoint,
+  startPointOptions,
   selectedTransport,
   selectedPlanMode,
   planning,
+  locatingCurrentPosition,
   planResult,
   planError,
   onStartPointChange,
+  onSelectStartPoint,
+  onUseCurrentLocation,
   onTransportChange,
   onPlanModeChange,
   onPlanRoute,
@@ -144,12 +162,32 @@ export function TripPlannerDock({
       <div className={styles.plannerRail}>
         <label className={`${styles.railCard} ${styles.startCard}`}>
           <span>起点</span>
-          <Input
-            prefix={<EnvironmentOutlined />}
+          <AutoComplete
+            className={styles.startAutocomplete}
+            filterOption={false}
             value={startPoint}
-            placeholder="例如：春熙路地铁站"
-            onChange={(event) => onStartPointChange(event.target.value)}
-          />
+            options={startPointOptions}
+            onSearch={onStartPointChange}
+            onChange={onStartPointChange}
+            onSelect={(value, option) => onSelectStartPoint(value, (option as StartPointOption).position)}
+          >
+            <Input
+              prefix={
+                <button
+                  className={styles.locateButton}
+                  type="button"
+                  title="使用当前位置"
+                  aria-label="使用当前位置"
+                  onClick={onUseCurrentLocation}
+                >
+                  <AimOutlined />
+                </button>
+              }
+              suffix={<EnvironmentOutlined className={styles.startPointIcon} />}
+              placeholder="例如：春熙路地铁站"
+              disabled={locatingCurrentPosition}
+            />
+          </AutoComplete>
         </label>
 
         <label className={styles.railCard}>

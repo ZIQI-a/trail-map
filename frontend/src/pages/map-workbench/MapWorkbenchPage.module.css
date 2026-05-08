@@ -74,6 +74,28 @@
   left: 14px;
 }
 
+.startPointOption {
+  display: grid;
+  gap: 2px;
+}
+
+.startPointOption strong,
+.startPointOption span {
+  margin: 0;
+}
+
+.startPointOption strong {
+  color: #1a3457;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.startPointOption span {
+  color: #6f8098;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

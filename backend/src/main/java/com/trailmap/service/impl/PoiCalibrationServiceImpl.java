@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -39,20 +40,7 @@ public class PoiCalibrationServiceImpl implements PoiCalibrationService {
         }
 
         String query = buildQuery(keyword, addressKeyword);
-        String responseText = restClient.get()
-                .uri(UriComponentsBuilder.fromHttpUrl(baiduMapProperties.getPlaceSearchUrl())
-                        .queryParam("query", query)
-                        .queryParam("region", cityName)
-                        .queryParam("city_limit", true)
-                        .queryParam("output", "json")
-                        .queryParam("scope", 2)
-                        .queryParam("page_size", 5)
-                        .queryParam("ret_coordtype", "gcj02ll")
-                        .queryParam("ak", baiduMapProperties.getServerAk())
-                        .build(true)
-                        .toUri())
-                .retrieve()
-                .body(String.class);
+        String responseText = requestCandidates(cityName, query);
 
         return parseCandidates(responseText);
     }
@@ -63,6 +51,34 @@ public class PoiCalibrationServiceImpl implements PoiCalibrationService {
         }
         // 地址关键词只作为辅助召回条件拼进 query，仍由人工确认最终候选项。
         return keyword.trim() + " " + addressKeyword.trim();
+    }
+
+    /**
+     * 调用百度地点检索接口。
+     * 第三方请求失败时转成业务异常，避免直接冒泡成 500。
+     */
+    private String requestCandidates(String cityName, String query) {
+        try {
+            return restClient.get()
+                    .uri(UriComponentsBuilder.fromHttpUrl(baiduMapProperties.getPlaceSearchUrl())
+                            .queryParam("query", query)
+                            .queryParam("region", cityName)
+                            .queryParam("city_limit", true)
+                            .queryParam("output", "json")
+                            .queryParam("scope", 2)
+                            .queryParam("page_size", 5)
+                            .queryParam("ret_coordtype", "gcj02ll")
+                            .queryParam("ak", baiduMapProperties.getServerAk())
+                            // query 和 region 可能包含中文，必须在这里交给 Spring 做编码，
+                            // 不能用 build(true) 假定参数已编码，否则会直接抛 Invalid character。
+                            .build()
+                            .encode()
+                            .toUri())
+                    .retrieve()
+                    .body(String.class);
+        } catch (RestClientException exception) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "百度地点检索调用失败，请稍后重试");
+        }
     }
 
     private List<PoiCalibrationCandidateResponse> parseCandidates(String responseText) {

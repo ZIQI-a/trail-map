@@ -196,6 +196,28 @@
   color: #6b7f98;
 }
 
+.startAutocomplete {
+  width: 100%;
+}
+
+.startPointIcon {
+  color: #6b7f98;
+}
+
+.locateButton {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  color: #2d6bff;
+  background: transparent;
+  cursor: pointer;
+}
+
+.locateButton:hover {
+  color: #174fce;
+}
+
 .railCard :global(.ant-segmented) {
   width: 100%;
   padding: 2px;
