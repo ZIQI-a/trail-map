@@ -89,6 +89,7 @@ export function TripPlannerDock({
   onRemoveSpot,
   onClearTrip,
 }: TripPlannerDockProps) {
+  const isScheduleMode = selectedPlanMode === "schedule";
   const totalDistanceText = planResult
     ? formatRouteDistance(planResult.totalDistanceMeters)
     : "--";
@@ -239,7 +240,13 @@ export function TripPlannerDock({
           loading={planning}
           onClick={onPlanRoute}
         >
-          {planResult ? "重新规划路线" : "开始规划路线"}
+          {planResult
+            ? isScheduleMode
+              ? "重新生成行程"
+              : "重新规划路线"
+            : isScheduleMode
+              ? "配置完整行程"
+              : "开始规划路线"}
           <RightOutlined />
         </Button>
       </div>

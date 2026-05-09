@@ -1,0 +1,101 @@
+.formShell {
+  display: grid;
+  gap: 16px;
+}
+
+.group {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e4ecf7;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff, #f7fbff);
+}
+
+.groupHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.groupHeader strong,
+.groupHeader span,
+.field span,
+.switchCard strong,
+.switchCard span {
+  margin: 0;
+}
+
+.groupHeader strong {
+  color: #163157;
+  font-size: 14px;
+}
+
+.groupHeader span {
+  color: #7387a2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #345273;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field :global(.ant-input-number),
+.field :global(.ant-select),
+.field :global(.ant-input) {
+  width: 100%;
+}
+
+.switchRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.switchCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e2ebf7;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.switchCard strong {
+  display: block;
+  color: #1b385f;
+  font-size: 13px;
+}
+
+.switchCard span {
+  display: block;
+  margin-top: 3px;
+  color: #778aa3;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .grid,
+  .switchRow {
+    grid-template-columns: 1fr;
+  }
+}

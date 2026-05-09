@@ -24,13 +24,31 @@ interface RoutePlanDrawerProps {
   tripSpots: TravelSpot[];
   tags: SpotTag[];
   startPoint: string;
+  selectedDayIndex?: number;
   onClose: () => void;
 }
 
 // RoutePlanDrawer 负责在路线规划成功后展示右侧路线时间轴详情。
-export function RoutePlanDrawer({ cityName, routePlan, tripSpots, tags, startPoint, onClose }: RoutePlanDrawerProps) {
+export function RoutePlanDrawer({
+  cityName,
+  routePlan,
+  tripSpots,
+  tags,
+  startPoint,
+  selectedDayIndex,
+  onClose,
+}: RoutePlanDrawerProps) {
   const spotMapping = new Map(tripSpots.map((spot) => [spot.id, spot]));
-  const timelineEntries = buildTimelineEntries(routePlan, startPoint);
+  const activeDay =
+    routePlan.planMode === "schedule"
+      ? routePlan.itineraryDays.find((day) => day.dayIndex === selectedDayIndex) ??
+        routePlan.itineraryDays[0]
+      : undefined;
+  const timelineEntries = buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex);
+  const metricTarget = activeDay ?? routePlan;
+  const summaryText = activeDay
+    ? `${activeDay.title} 已安排 ${activeDay.spots.length} 个景点，预计交通 ${formatRouteDuration(activeDay.totalTravelDurationSeconds)}，游玩 ${formatTripDuration(activeDay.totalStayDurationMinutes)}。`
+    : routePlan.routeSummary;
 
   return (
     <aside className={styles.drawer} aria-label="路线规划详情">
@@ -38,9 +56,15 @@ export function RoutePlanDrawer({ cityName, routePlan, tripSpots, tags, startPoi
         <div>
           <h2>
             {cityName}
-            {routePlan.planMode === 'free' ? '一日游路线' : '行程路线'}
+            {routePlan.planMode === 'free'
+              ? '一日游路线'
+              : `${activeDay?.title ?? "行程"}详细安排`}
           </h2>
-          <p className={styles.headerSubline}>按当前景点池顺序生成，后续可继续补完整行程拆分。</p>
+          <p className={styles.headerSubline}>
+            {routePlan.planMode === "schedule"
+              ? "按当前选择的 Day 展示详细时间轴，后续继续补餐饮与酒店节点。"
+              : "按当前景点池顺序生成，后续可继续补完整行程拆分。"}
+          </p>
         </div>
         <div className={styles.headerActions}>
           <Button icon={<ShareAltOutlined />} className={styles.headerButton}>
@@ -51,41 +75,20 @@ export function RoutePlanDrawer({ cityName, routePlan, tripSpots, tags, startPoi
       </div>
 
       <div className={styles.metricRow}>
-        <MetricCard icon={<FlagOutlined />} value={formatRouteDistance(routePlan.totalDistanceMeters)} label="总里程" />
-        <MetricCard icon={<CarOutlined />} value={formatRouteDuration(routePlan.totalTravelDurationSeconds)} label="交通耗时" />
-        <MetricCard icon={<ClockCircleOutlined />} value={formatTripDuration(routePlan.totalStayDurationMinutes)} label="游玩时长" />
-        <MetricCard icon={<AimOutlined />} value={formatTripDuration(routePlan.totalTripDurationMinutes)} label="预计总时长" />
-        <MetricCard icon={<NodeIndexOutlined />} value={`${routePlan.orderedSpotIds.length} 个`} label="景点数量" />
+        <MetricCard icon={<FlagOutlined />} value={formatRouteDistance(metricTarget.totalDistanceMeters)} label="总里程" />
+        <MetricCard icon={<CarOutlined />} value={formatRouteDuration(metricTarget.totalTravelDurationSeconds)} label="交通耗时" />
+        <MetricCard icon={<ClockCircleOutlined />} value={formatTripDuration(metricTarget.totalStayDurationMinutes)} label="游玩时长" />
+        <MetricCard icon={<AimOutlined />} value={formatTripDuration(metricTarget.totalTripDurationMinutes)} label="预计总时长" />
+        <MetricCard
+          icon={<NodeIndexOutlined />}
+          value={`${activeDay?.spots.length ?? routePlan.orderedSpotIds.length} 个`}
+          label="景点数量"
+        />
       </div>
 
       <div className={styles.summaryCard}>
-        <p>{routePlan.routeSummary}</p>
+        <p>{summaryText}</p>
       </div>
-
-      {routePlan.planMode === 'schedule' && routePlan.itineraryDays.length > 0 ? (
-        <div className={styles.dayGrid}>
-          {routePlan.itineraryDays.map((day) => (
-            <section className={styles.dayCard} key={day.dayIndex}>
-              <div className={styles.dayHeader}>
-                <strong>{day.title}</strong>
-                <span>{day.spots.length} 个景点</span>
-              </div>
-              <div className={styles.dayMeta}>
-                <span>{formatRouteDuration(day.totalTravelDurationSeconds)} 交通</span>
-                <span>{formatTripDuration(day.totalStayDurationMinutes)} 游玩</span>
-              </div>
-              <div className={styles.daySpotList}>
-                {day.spots.map((spot) => (
-                  <div className={styles.daySpotItem} key={`${day.dayIndex}-${spot.spotId}`}>
-                    <span>{spot.suggestedStartTime} - {spot.suggestedEndTime}</span>
-                    <strong>{spot.spotName}</strong>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : null}
 
       <Timeline
         className={styles.timeline}
@@ -123,52 +126,73 @@ type TimelineEntry =
       leaveLabel: string;
     };
 
-function buildTimelineEntries(routePlan: RoutePlanResponseDto, startPoint: string): TimelineEntry[] {
+function buildTimelineEntries(
+  routePlan: RoutePlanResponseDto,
+  startPoint: string,
+  selectedDayIndex?: number,
+): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
-  let currentMinutes = 9 * 60;
+  const scopedSpotPlans =
+    routePlan.planMode === "schedule" && selectedDayIndex != null
+      ? routePlan.spotStayPlans.filter((stayPlan) => stayPlan.dayIndex === selectedDayIndex)
+      : routePlan.spotStayPlans;
+  const scopedPlanIndexes = scopedSpotPlans
+    .map((stayPlan) =>
+      routePlan.spotStayPlans.findIndex((currentPlan) => currentPlan.spotId === stayPlan.spotId),
+    )
+    .filter((index) => index >= 0);
+  const initialMinutes = scopedSpotPlans[0]?.suggestedStartTime
+    ? parseClock(scopedSpotPlans[0].suggestedStartTime)
+    : 9 * 60;
+  let currentMinutes = initialMinutes;
 
   entries.push({
     type: 'start',
-    title: startPoint || '市中心',
-    timeLabel: formatClock(currentMinutes),
+    title: selectedDayIndex && selectedDayIndex > 1 ? `Day ${selectedDayIndex} 出发` : startPoint || '市中心',
+    timeLabel: formatClock(initialMinutes),
     color: '#20a95a',
   });
 
-  routePlan.spotStayPlans.forEach((stayPlan, index) => {
-    const segment = routePlan.segments[index];
+  scopedSpotPlans.forEach((stayPlan, localIndex) => {
+    const globalIndex = scopedPlanIndexes[localIndex];
+    const segment = globalIndex >= 0 ? routePlan.segments[globalIndex] : undefined;
     if (segment) {
       // 每个路段先展示，再进入当前景点，符合真实行程阅读顺序。
       entries.push({
         type: 'segment',
         title: getTransportLabel(segment.transportType),
         subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
-        color: getRouteSegmentColor(index),
+        color: getRouteSegmentColor(localIndex),
         icon: getTransportIcon(segment.transportType),
-        sequence: index + 1,
+        sequence: localIndex + 1,
       });
       currentMinutes += Math.ceil(segment.durationSeconds / 60);
     }
 
-    const arrivalMinutes = currentMinutes;
-    currentMinutes += stayPlan.suggestedDurationMinutes;
-    const leaveMinutes = currentMinutes;
+    const arrivalMinutes = stayPlan.suggestedStartTime
+      ? parseClock(stayPlan.suggestedStartTime)
+      : currentMinutes;
+    const leaveMinutes = stayPlan.suggestedEndTime
+      ? parseClock(stayPlan.suggestedEndTime)
+      : arrivalMinutes + stayPlan.suggestedDurationMinutes;
+    currentMinutes = leaveMinutes;
 
     entries.push({
       type: 'spot',
-      sequence: index + 1,
-      color: getRouteSegmentColor(index),
+      sequence: localIndex + 1,
+      color: getRouteSegmentColor(localIndex),
       stayPlan,
       arrivalLabel: formatClock(arrivalMinutes),
       leaveLabel: formatClock(leaveMinutes),
     });
   });
 
-  const lastStayPlan = routePlan.spotStayPlans[routePlan.spotStayPlans.length - 1];
+  const lastStayPlan = scopedSpotPlans[scopedSpotPlans.length - 1];
 
   entries.push({
     type: 'end',
-    title: lastStayPlan?.spotName ?? '行程结束',
-    timeLabel: formatClock(currentMinutes),
+    title: selectedDayIndex && selectedDayIndex > 1 ? `Day ${selectedDayIndex} 收尾` : lastStayPlan?.spotName ?? '行程结束',
+    timeLabel: lastStayPlan?.suggestedEndTime ?? formatClock(currentMinutes),
     color: '#ff5a40',
   });
 
@@ -180,6 +204,13 @@ function formatClock(totalMinutes: number) {
   const hours = Math.floor(normalizedMinutes / 60);
   const minutes = normalizedMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function parseClock(clockText: string) {
+  const [hoursText, minutesText] = clockText.split(":");
+  const hours = Number(hoursText) || 0;
+  const minutes = Number(minutesText) || 0;
+  return hours * 60 + minutes;
 }
 
 function getTransportLabel(transportType: string) {

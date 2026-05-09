@@ -39,6 +39,13 @@ export type PlanMode = 'free' | 'schedule';
 // 行程强度：完整行程模式用于控制每天安排的松紧程度。
 export type ItineraryIntensity = 'relaxed' | 'standard' | 'compact';
 
+// 完整行程偏好：当前先做前端配置占位，后续再逐步接入后端编排。
+export type SchedulePreferenceCode =
+  | 'local_food'
+  | 'night_tour'
+  | 'subway_first'
+  | 'family_friendly';
+
 // 城市信息：字段贴近 city 表，但只保留前端静态展示阶段需要的内容。
 export interface TravelCity {
   id: number;
@@ -206,6 +213,19 @@ export interface RoutePlanRequestDto {
   includeLunchBreak?: boolean;
   includeNightTour?: boolean;
   intensity?: ItineraryIntensity;
+}
+
+// 完整行程配置：规划前弹窗和结果页设置抽屉共用这一套前端状态。
+export interface SchedulePlanConfig {
+  tripDays: number;
+  dailyStartTime: string;
+  dailyEndTime: string;
+  includeLunchBreak: boolean;
+  includeNightTour: boolean;
+  intensity: ItineraryIntensity;
+  hotelName: string;
+  returnToHotel: boolean;
+  preferenceTags: SchedulePreferenceCode[];
 }
 
 // 停留安排：既给自由路线展示建议游玩时间，也为完整模式的时间编排提供基础。

@@ -38,7 +38,7 @@
 .leftFloatPanel {
   top: 14px;
   left: 14px;
-  width: min(300px, calc(100vw - 28px));
+  width: min(360px, calc(100vw - 28px));
   max-height: calc(100% - 146px);
   overflow: auto;
 }
@@ -72,6 +72,79 @@
   right: 14px;
   bottom: 14px;
   left: 14px;
+}
+
+.scheduleDayTabsPanel {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+}
+
+.scheduleDayTabsPanel :global(.ant-segmented) {
+  padding: 6px;
+  border: 1px solid rgb(214 225 239 / 92%);
+  border-radius: 22px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 16px 40px rgb(29 58 96 / 12%);
+  backdrop-filter: blur(14px);
+}
+
+.scheduleDayTabsPanel :global(.ant-segmented-item-selected) {
+  background: linear-gradient(135deg, #2a73ff, #4f92ff);
+  color: #ffffff;
+}
+
+.scheduleDayTab {
+  min-width: 92px;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+
+.scheduleDayTab strong,
+.scheduleDayTab span {
+  margin: 0;
+}
+
+.scheduleDayTab strong {
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.scheduleDayTab span {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.scheduleSettingsFab {
+  position: absolute;
+  top: 18px;
+  right: min(486px, calc(100vw - 80px));
+  z-index: 5;
+}
+
+.scheduleDialogIntro {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.scheduleDialogIntro strong,
+.scheduleDialogIntro span {
+  margin: 0;
+}
+
+.scheduleDialogIntro strong {
+  color: #183055;
+  font-size: 14px;
+}
+
+.scheduleDialogIntro span {
+  color: #7487a2;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .startPointOption {
@@ -110,7 +183,7 @@
 
 @media (max-width: 920px) {
   .leftFloatPanel {
-    width: min(290px, calc(100vw - 24px));
+    width: min(320px, calc(100vw - 24px));
     max-height: 34%;
   }
 
@@ -132,6 +205,11 @@
     right: 12px;
     bottom: 12px;
     left: 12px;
+  }
+
+  .scheduleSettingsFab {
+    top: 76px;
+    right: 12px;
   }
 }
 
@@ -159,6 +237,14 @@
     inset: auto;
     width: auto;
     max-height: none;
+    margin: 12px;
+  }
+
+  .scheduleDayTabsPanel,
+  .scheduleSettingsFab {
+    position: relative;
+    inset: auto;
+    transform: none;
     margin: 12px;
   }
 }

@@ -1,8 +1,23 @@
-import { Alert, Empty, Spin } from "antd";
+import {
+  CloseOutlined,
+  EditOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
+import {
+  Alert,
+  Button,
+  Drawer,
+  Empty,
+  FloatButton,
+  Modal,
+  Segmented,
+  Spin,
+} from "antd";
 import { useMemo, useState } from "react";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
 import { RoutePlanDrawer } from "../../components/map-workbench/RoutePlanDrawer";
+import { SchedulePlanFormFields } from "../../components/map-workbench/SchedulePlanFormFields";
 import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
 import {
   SpotRecommendList,
@@ -27,6 +42,7 @@ import type {
   GeoPoint,
   PlanMode,
   RoutePlanResponseDto,
+  SchedulePlanConfig,
   SpotTag,
   SpotTagDto,
   SpotTagCode,
@@ -53,6 +69,18 @@ const planModes = [
   { label: "完整行程", value: "schedule" as const },
 ];
 
+const defaultScheduleConfig: SchedulePlanConfig = {
+  tripDays: 2,
+  dailyStartTime: "09:00",
+  dailyEndTime: "18:00",
+  includeLunchBreak: true,
+  includeNightTour: false,
+  intensity: "standard",
+  hotelName: "",
+  returnToHotel: false,
+  preferenceTags: [],
+};
+
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -69,6 +97,12 @@ export function MapWorkbenchPage() {
   const [selectedTransport, setSelectedTransport] =
     useState<TransportType>("transit");
   const [selectedPlanMode, setSelectedPlanMode] = useState<PlanMode>("free");
+  const [scheduleConfig, setScheduleConfig] = useState<SchedulePlanConfig>(
+    defaultScheduleConfig,
+  );
+  const [scheduleConfigModalOpen, setScheduleConfigModalOpen] = useState(false);
+  const [scheduleSettingsOpen, setScheduleSettingsOpen] = useState(false);
+  const [selectedScheduleDay, setSelectedScheduleDay] = useState(1);
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
@@ -159,12 +193,41 @@ export function MapWorkbenchPage() {
         label: (
           <div className={styles.startPointOption}>
             <strong>{candidate.name}</strong>
-            <span>{candidate.address || `${candidate.city}${candidate.area}`}</span>
+            <span>
+              {candidate.address || `${candidate.city}${candidate.area}`}
+            </span>
           </div>
         ),
       })),
     [poiCandidatesQuery.data],
   );
+  // 只有在完整行程模式下且有编排结果时才展示时间轴，其他情况都展示完整路线，避免用户混淆。
+  const showingScheduleResult =
+    routePlanResult?.planMode === "schedule" &&
+    routePlanResult.itineraryDays.length > 0;
+  const activeScheduleDay = showingScheduleResult
+    ? (routePlanResult.itineraryDays.find(
+        (day) => day.dayIndex === selectedScheduleDay,
+      ) ?? routePlanResult.itineraryDays[0])
+    : undefined;
+  const visibleRouteSegments = useMemo(() => {
+    if (!routePlanResult) {
+      return undefined;
+    }
+
+    if (!showingScheduleResult || !activeScheduleDay) {
+      return routePlanResult.segments;
+    }
+
+    const activeSpotIds = new Set(
+      activeScheduleDay.spots.map((spot) => spot.spotId),
+    );
+    return routePlanResult.segments.filter((segment) => {
+      const targetSpotId =
+        routePlanResult.spotStayPlans[segment.segmentIndex]?.spotId;
+      return activeSpotIds.has(targetSpotId ?? -1);
+    });
+  }, [activeScheduleDay, routePlanResult, showingScheduleResult]);
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
   function handleAddToTrip(spotId: number) {
@@ -201,6 +264,26 @@ export function MapWorkbenchPage() {
       return;
     }
 
+    if (selectedPlanMode === "schedule") {
+      setScheduleConfigModalOpen(true);
+      return;
+    }
+
+    await submitRoutePlan();
+  }
+
+  // 完整行程模式先弹出详细配置，确认后再真正调用后端编排接口。
+  async function handleSubmitSchedulePlan() {
+    setScheduleConfigModalOpen(false);
+    await submitRoutePlan(scheduleConfig);
+  }
+
+  // 统一路线规划提交逻辑，自由路线和完整行程只在参数上有差异。
+  async function submitRoutePlan(config?: SchedulePlanConfig) {
+    if (!city || tripSpots.length === 0) {
+      return;
+    }
+
     setPlannerAssistError(undefined);
     const startPointName = startPoint.trim() || `${city.name}市中心`;
     const resolvedStartPosition =
@@ -215,15 +298,28 @@ export function MapWorkbenchPage() {
       spotIds: tripSpots.map((spot) => spot.id),
       transportType: selectedTransport,
       planMode: selectedPlanMode,
+      tripDays: config?.tripDays,
+      dailyStartTime: config?.dailyStartTime,
+      dailyEndTime: config?.dailyEndTime,
+      includeLunchBreak: config?.includeLunchBreak,
+      includeNightTour: config?.includeNightTour,
+      intensity: config?.intensity,
     });
     setRoutePlanResult(result);
+    if (result.planMode === "schedule" && result.itineraryDays.length > 0) {
+      setSelectedScheduleDay(result.itineraryDays[0].dayIndex);
+    }
   }
 
   /**
    * 用户只输入地点名称时，先尝试用百度地点检索解析成坐标。
    * 当前取第一候选项，优先使用更适合导航落点的 naviLocation。
    */
-  async function resolveStartPointPosition(cityName: string, keyword: string, fallbackPosition: TravelCity["center"]) {
+  async function resolveStartPointPosition(
+    cityName: string,
+    keyword: string,
+    fallbackPosition: TravelCity["center"],
+  ) {
     if (!keyword.trim()) {
       return fallbackPosition;
     }
@@ -231,10 +327,17 @@ export function MapWorkbenchPage() {
     try {
       const fallbackCandidates = poiCandidatesQuery.data?.length
         ? poiCandidatesQuery.data
-        : await fetchPoiCalibrationCandidates(normalizeCityName(cityName), keyword.trim());
+        : await fetchPoiCalibrationCandidates(
+            normalizeCityName(cityName),
+            keyword.trim(),
+          );
       const firstCandidate = fallbackCandidates[0];
       if (firstCandidate) {
-        return firstCandidate.naviLocation ?? firstCandidate.location ?? fallbackPosition;
+        return (
+          firstCandidate.naviLocation ??
+          firstCandidate.location ??
+          fallbackPosition
+        );
       }
     } catch {
       setPlannerAssistError("起点检索失败，当前已回退为城市中心点");
@@ -330,9 +433,27 @@ export function MapWorkbenchPage() {
           spots={visibleSpots}
           selectedSpot={selectedSpot}
           selectedSpotId={effectiveSelectedSpotId}
-          routeSegments={routePlanResult?.segments}
+          routeSegments={visibleRouteSegments}
           onSelectSpot={setSelectedSpotId}
         />
+
+        {showingScheduleResult ? (
+          <div className={styles.scheduleDayTabsPanel}>
+            <Segmented
+              value={activeScheduleDay?.dayIndex}
+              options={routePlanResult.itineraryDays.map((day) => ({
+                label: (
+                  <div className={styles.scheduleDayTab}>
+                    <strong>{`Day ${day.dayIndex}`}</strong>
+                    <span>{day.spots.length} 个景点</span>
+                  </div>
+                ),
+                value: day.dayIndex,
+              }))}
+              onChange={(value) => setSelectedScheduleDay(value as number)}
+            />
+          </div>
+        ) : null}
 
         <div className={styles.leftFloatPanel}>
           {spots.length === 0 ? (
@@ -376,8 +497,26 @@ export function MapWorkbenchPage() {
               tripSpots={tripSpots}
               tags={tags}
               startPoint={startPoint.trim() || `${city.name}市中心`}
+              selectedDayIndex={activeScheduleDay?.dayIndex}
               onClose={() => setRoutePlanResult(undefined)}
             />
+          </div>
+        ) : null}
+
+        {showingScheduleResult ? (
+          <div className={styles.scheduleSettingsFab}>
+            <FloatButton.Group shape="circle">
+              <FloatButton
+                icon={<SettingOutlined />}
+                tooltip="行程设置"
+                onClick={() => setScheduleSettingsOpen(true)}
+              />
+              <FloatButton
+                icon={<CloseOutlined />}
+                tooltip="关闭完整行程"
+                onClick={() => setRoutePlanResult(undefined)}
+              />
+            </FloatButton.Group>
           </div>
         ) : null}
 
@@ -423,6 +562,59 @@ export function MapWorkbenchPage() {
           />
         </div>
       </section>
+
+      <Modal
+        title="完整行程配置"
+        open={scheduleConfigModalOpen}
+        width={720}
+        okText="生成完整行程"
+        cancelText="取消"
+        confirmLoading={routePlanMutation.isPending}
+        onOk={handleSubmitSchedulePlan}
+        onCancel={() => setScheduleConfigModalOpen(false)}
+      >
+        <div className={styles.scheduleDialogIntro}>
+          <strong>先补齐核心偏好，再生成完整行程。</strong>
+          <span>
+            当前版本会把天数、作息、强度和午餐时段真正带进后端编排；酒店和偏好先做页面预留。
+          </span>
+        </div>
+        <SchedulePlanFormFields
+          value={scheduleConfig}
+          onChange={setScheduleConfig}
+        />
+      </Modal>
+
+      <Drawer
+        title="行程设置"
+        open={scheduleSettingsOpen}
+        width={420}
+        onClose={() => setScheduleSettingsOpen(false)}
+        extra={
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            loading={routePlanMutation.isPending}
+            onClick={async () => {
+              setScheduleSettingsOpen(false);
+              await submitRoutePlan(scheduleConfig);
+            }}
+          >
+            重新生成
+          </Button>
+        }
+      >
+        <div className={styles.scheduleDialogIntro}>
+          <strong>这里专门用来调整完整行程。</strong>
+          <span>
+            右侧主区域保留当天详细行程，设置项收进抽屉里，避免和时间轴抢视线。
+          </span>
+        </div>
+        <SchedulePlanFormFields
+          value={scheduleConfig}
+          onChange={setScheduleConfig}
+        />
+      </Drawer>
     </main>
   );
 }
@@ -527,7 +719,11 @@ function formatDistanceText(
 
 // 地点检索通常更偏好完整城市名，这里给常见城市补一个“市”后缀。
 function normalizeCityName(cityName: string) {
-  if (cityName.endsWith("市") || cityName.endsWith("区") || cityName.endsWith("州")) {
+  if (
+    cityName.endsWith("市") ||
+    cityName.endsWith("区") ||
+    cityName.endsWith("州")
+  ) {
     return cityName;
   }
   return `${cityName}市`;
