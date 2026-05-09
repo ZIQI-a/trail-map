@@ -62,6 +62,31 @@ export function RoutePlanDrawer({ cityName, routePlan, tripSpots, tags, startPoi
         <p>{routePlan.routeSummary}</p>
       </div>
 
+      {routePlan.planMode === 'schedule' && routePlan.itineraryDays.length > 0 ? (
+        <div className={styles.dayGrid}>
+          {routePlan.itineraryDays.map((day) => (
+            <section className={styles.dayCard} key={day.dayIndex}>
+              <div className={styles.dayHeader}>
+                <strong>{day.title}</strong>
+                <span>{day.spots.length} 个景点</span>
+              </div>
+              <div className={styles.dayMeta}>
+                <span>{formatRouteDuration(day.totalTravelDurationSeconds)} 交通</span>
+                <span>{formatTripDuration(day.totalStayDurationMinutes)} 游玩</span>
+              </div>
+              <div className={styles.daySpotList}>
+                {day.spots.map((spot) => (
+                  <div className={styles.daySpotItem} key={`${day.dayIndex}-${spot.spotId}`}>
+                    <span>{spot.suggestedStartTime} - {spot.suggestedEndTime}</span>
+                    <strong>{spot.spotName}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : null}
+
       <Timeline
         className={styles.timeline}
         items={timelineEntries.map((entry) => renderTimelineItem(entry, spotMapping, tags))}

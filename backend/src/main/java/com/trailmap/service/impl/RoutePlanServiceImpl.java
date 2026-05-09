@@ -21,6 +21,8 @@ import com.trailmap.model.response.RouteSpotStayPlanResponse;
 import com.trailmap.service.RoutePlanService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,6 +44,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class RoutePlanServiceImpl implements RoutePlanService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final String PLAN_MODE_SCHEDULE = "schedule";
 
     private final CityMapper cityMapper;
     private final SpotMapper spotMapper;
@@ -63,12 +67,9 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         validateTransportType(request.transportType());
 
         List<Spot> orderedSpots = loadOrderedSpots(request.cityId(), request.spotIds());
-        List<RouteSpotStayPlanResponse> spotStayPlans = orderedSpots.stream()
-                .map(this::toStayPlan)
-                .toList();
-
         List<RouteStop> routeStops = buildRouteStops(request.startPoint(), orderedSpots, request.endPoint());
         List<RouteSegmentResponse> segments = buildSegments(routeStops, request.transportType());
+        PlanningSnapshot planningSnapshot = buildPlanningSnapshot(request, orderedSpots, segments);
         int totalTravelDurationSeconds = segments.stream()
                 .map(RouteSegmentResponse::durationSeconds)
                 .filter(Objects::nonNull)
@@ -79,7 +80,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 .filter(Objects::nonNull)
                 .mapToInt(Integer::intValue)
                 .sum();
-        int totalStayDurationMinutes = spotStayPlans.stream()
+        int totalStayDurationMinutes = planningSnapshot.spotStayPlans().stream()
                 .map(RouteSpotStayPlanResponse::suggestedDurationMinutes)
                 .filter(Objects::nonNull)
                 .mapToInt(Integer::intValue)
@@ -97,10 +98,91 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 totalTravelDurationSeconds,
                 totalStayDurationMinutes,
                 totalTripDurationMinutes,
-                spotStayPlans,
+                planningSnapshot.spotStayPlans(),
                 segments,
-                List.of()
+                planningSnapshot.itineraryDays()
         );
+    }
+
+    /**
+     * 根据规划模式决定是否生成“完整行程模式”的时间编排结果。
+     * free 模式只返回建议停留时长；schedule 模式补充 dayIndex 和建议到离时间。
+     */
+    private PlanningSnapshot buildPlanningSnapshot(RoutePlanRequest request, List<Spot> orderedSpots, List<RouteSegmentResponse> segments) {
+        if (!PLAN_MODE_SCHEDULE.equals(request.planMode().toLowerCase(Locale.ROOT))) {
+            List<RouteSpotStayPlanResponse> freeModeStayPlans = orderedSpots.stream()
+                    .map(this::toStayPlan)
+                    .toList();
+            return new PlanningSnapshot(freeModeStayPlans, List.of());
+        }
+
+        return buildScheduledItinerary(request, orderedSpots, segments);
+    }
+
+    /**
+     * 完整行程模式 V1：
+     * 先做“多天拆分 + 时间表生成”，不处理酒店推荐、餐厅推荐，只按规则插入午餐占用时间。
+     */
+    private PlanningSnapshot buildScheduledItinerary(RoutePlanRequest request, List<Spot> orderedSpots, List<RouteSegmentResponse> segments) {
+        int tripDays = request.tripDays() == null ? 2 : request.tripDays();
+        LocalTime dayStartTime = parseTimeOrDefault(request.dailyStartTime(), "09:00");
+        LocalTime dayEndTime = parseTimeOrDefault(request.dailyEndTime(), "18:00");
+        boolean includeLunchBreak = Boolean.TRUE.equals(request.includeLunchBreak());
+        int lunchBreakMinutes = includeLunchBreak ? 60 : 0;
+        int dailyBudgetMinutes = Math.max(240, dayEndTime.toSecondOfDay() / 60 - dayStartTime.toSecondOfDay() / 60 - lunchBreakMinutes);
+        double intensityMultiplier = resolveIntensityMultiplier(request.intensity());
+
+        List<RouteSpotStayPlanResponse> spotStayPlans = new ArrayList<>();
+        List<ItineraryDayAccumulator> dayAccumulators = new ArrayList<>();
+        int currentDayIndex = 1;
+        int currentDayUsedMinutes = 0;
+        int currentClockMinutes = dayStartTime.toSecondOfDay() / 60;
+        ItineraryDayAccumulator currentDay = new ItineraryDayAccumulator(currentDayIndex);
+        dayAccumulators.add(currentDay);
+
+        for (int index = 0; index < orderedSpots.size(); index++) {
+            Spot spot = orderedSpots.get(index);
+            int segmentMinutes = index < segments.size() ? Math.ceilDiv(segments.get(index).durationSeconds(), 60) : 0;
+            int stayMinutes = estimateScheduledStayMinutes(spot, intensityMultiplier);
+            int projectedMinutes = currentDayUsedMinutes + segmentMinutes + stayMinutes;
+
+            // 当前天放不下时切到下一天；最后一天则继续塞满，避免出现“景点丢失”。
+            if (projectedMinutes > dailyBudgetMinutes && currentDayIndex < tripDays && !currentDay.spots().isEmpty()) {
+                currentDayIndex++;
+                currentDayUsedMinutes = 0;
+                currentClockMinutes = dayStartTime.toSecondOfDay() / 60;
+                currentDay = new ItineraryDayAccumulator(currentDayIndex);
+                dayAccumulators.add(currentDay);
+            }
+
+            currentDayUsedMinutes += segmentMinutes;
+            currentClockMinutes += segmentMinutes;
+            String suggestedStartTime = formatClock(currentClockMinutes);
+            currentClockMinutes += stayMinutes;
+            currentDayUsedMinutes += stayMinutes;
+            String suggestedEndTime = formatClock(currentClockMinutes);
+
+            RouteSpotStayPlanResponse stayPlan = new RouteSpotStayPlanResponse(
+                    spot.getId(),
+                    spot.getSpotName(),
+                    stayMinutes,
+                    suggestedStartTime,
+                    suggestedEndTime,
+                    currentDayIndex
+            );
+            spotStayPlans.add(stayPlan);
+            currentDay.spots().add(stayPlan);
+
+            if (includeLunchBreak && currentClockMinutes < 12 * 60 && currentClockMinutes + 30 >= 12 * 60) {
+                currentClockMinutes += lunchBreakMinutes;
+                currentDayUsedMinutes += lunchBreakMinutes;
+            }
+        }
+
+        List<ItineraryDayResponse> itineraryDays = dayAccumulators.stream()
+                .map(day -> toItineraryDay(day, segments, orderedSpots))
+                .toList();
+        return new PlanningSnapshot(spotStayPlans, itineraryDays);
     }
 
     /**
@@ -307,6 +389,40 @@ public class RoutePlanServiceImpl implements RoutePlanService {
     }
 
     /**
+     * 将按天累积的景点结果转换成返回前端的日程对象。
+     * 当前按“该天景点条目对应的路段”粗略汇总每日距离和交通耗时。
+     */
+    private ItineraryDayResponse toItineraryDay(ItineraryDayAccumulator day, List<RouteSegmentResponse> segments, List<Spot> orderedSpots) {
+        List<Long> daySpotIds = day.spots().stream().map(RouteSpotStayPlanResponse::spotId).toList();
+        int totalDistanceMeters = 0;
+        int totalTravelDurationSeconds = 0;
+
+        for (int index = 0; index < orderedSpots.size(); index++) {
+            if (!daySpotIds.contains(orderedSpots.get(index).getId()) || index >= segments.size()) {
+                continue;
+            }
+            totalDistanceMeters += safeInt(segments.get(index).distanceMeters());
+            totalTravelDurationSeconds += safeInt(segments.get(index).durationSeconds());
+        }
+
+        int totalStayDurationMinutes = day.spots().stream()
+                .map(RouteSpotStayPlanResponse::suggestedDurationMinutes)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+
+        return new ItineraryDayResponse(
+                day.dayIndex(),
+                "Day " + day.dayIndex(),
+                totalDistanceMeters,
+                totalTravelDurationSeconds,
+                totalStayDurationMinutes,
+                totalStayDurationMinutes + Math.ceilDiv(totalTravelDurationSeconds, 60),
+                List.copyOf(day.spots())
+        );
+    }
+
+    /**
      * 先生成一段可读摘要，方便前端底部行程池和后续 route_record 总览直接复用。
      */
     private String buildRouteSummary(String startName, List<Spot> orderedSpots, int totalTravelDurationSeconds, int totalStayDurationMinutes) {
@@ -320,6 +436,37 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 Math.ceilDiv(totalTravelDurationSeconds, 60),
                 totalStayDurationMinutes
         );
+    }
+
+    private LocalTime parseTimeOrDefault(String timeText, String defaultValue) {
+        return LocalTime.parse(StringUtils.hasText(timeText) ? timeText : defaultValue, TIME_FORMATTER);
+    }
+
+    private double resolveIntensityMultiplier(String intensity) {
+        if (!StringUtils.hasText(intensity)) {
+            return 1.0D;
+        }
+        return switch (intensity.toLowerCase(Locale.ROOT)) {
+            case "relaxed" -> 0.9D;
+            case "compact" -> 1.1D;
+            default -> 1.0D;
+        };
+    }
+
+    private int estimateScheduledStayMinutes(Spot spot, double intensityMultiplier) {
+        int baseMinutes = spot.getSuggestedDuration() == null ? 90 : spot.getSuggestedDuration();
+        return Math.max(30, (int) Math.round(baseMinutes * intensityMultiplier));
+    }
+
+    private String formatClock(int totalMinutes) {
+        int normalizedMinutes = Math.max(0, totalMinutes);
+        int hours = normalizedMinutes / 60;
+        int minutes = normalizedMinutes % 60;
+        return String.format(Locale.ROOT, "%02d:%02d", hours, minutes);
+    }
+
+    private int safeInt(Integer value) {
+        return value == null ? 0 : value;
     }
 
     /**
@@ -424,5 +571,14 @@ public class RoutePlanServiceImpl implements RoutePlanService {
     }
 
     private record RouteStop(Long spotId, String name, CoordinateResponse position, Integer suggestedDurationMinutes) {
+    }
+
+    private record PlanningSnapshot(List<RouteSpotStayPlanResponse> spotStayPlans, List<ItineraryDayResponse> itineraryDays) {
+    }
+
+    private record ItineraryDayAccumulator(Integer dayIndex, List<RouteSpotStayPlanResponse> spots) {
+        private ItineraryDayAccumulator(Integer dayIndex) {
+            this(dayIndex, new ArrayList<>());
+        }
     }
 }

@@ -131,6 +131,67 @@
   line-height: 1.45;
 }
 
+.dayGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.dayCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dfe8f5;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+}
+
+.dayHeader,
+.dayMeta,
+.daySpotItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dayHeader strong,
+.dayHeader span,
+.dayMeta span,
+.daySpotItem span,
+.daySpotItem strong {
+  margin: 0;
+}
+
+.dayHeader strong {
+  color: #183055;
+  font-size: 13px;
+}
+
+.dayHeader span,
+.dayMeta span,
+.daySpotItem span {
+  color: #72849d;
+  font-size: 11px;
+}
+
+.daySpotList {
+  display: grid;
+  gap: 6px;
+}
+
+.daySpotItem {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e6eef8;
+}
+
+.daySpotItem strong {
+  color: #1d395e;
+  font-size: 12px;
+  text-align: right;
+}
+
 .timeline {
   margin-block-start: 4px;
   padding-inline-start: 2px;

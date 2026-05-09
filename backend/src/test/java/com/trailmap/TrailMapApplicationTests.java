@@ -147,4 +147,40 @@ class TrailMapApplicationTests {
                 .andExpect(jsonPath("$.data.totalTravelDurationSeconds").isNumber())
                 .andExpect(jsonPath("$.data.totalTripDurationMinutes").isNumber());
     }
+
+    @Test
+    void shouldPlanScheduledItinerary() throws Exception {
+        String requestBody = """
+                {
+                  "cityId": 1,
+                  "startPoint": {
+                    "name": "春熙路地铁站",
+                    "position": {
+                      "lng": 104.081757,
+                      "lat": 30.657429
+                    }
+                  },
+                  "spotIds": [101, 102, 103, 104],
+                  "transportType": "transit",
+                  "planMode": "schedule",
+                  "tripDays": 2,
+                  "dailyStartTime": "09:00",
+                  "dailyEndTime": "18:00",
+                  "includeLunchBreak": true,
+                  "intensity": "standard"
+                }
+                """;
+
+        mockMvc.perform(post("/api/routes/plan")
+                        .contentType("application/json")
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.planMode").value("schedule"))
+                .andExpect(jsonPath("$.data.itineraryDays.length()").value(2))
+                .andExpect(jsonPath("$.data.itineraryDays[0].spots.length()").isNumber())
+                .andExpect(jsonPath("$.data.spotStayPlans[0].suggestedStartTime").exists())
+                .andExpect(jsonPath("$.data.spotStayPlans[0].suggestedEndTime").exists())
+                .andExpect(jsonPath("$.data.spotStayPlans[0].dayIndex").isNumber());
+    }
 }
