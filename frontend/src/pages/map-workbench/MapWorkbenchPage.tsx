@@ -227,7 +227,7 @@ export function MapWorkbenchPage() {
     if (!showingScheduleResult || !activeScheduleDay) {
       return routePlanResult.segments;
     }
-    return activeScheduleDay.segments;
+    return resolveScheduleMapSegments(routePlanResult, activeScheduleDay);
   }, [activeScheduleDay, routePlanResult, showingScheduleResult]);
   const mapRouteOverlays = useMemo(
     () => buildMapRouteOverlays(routePlanResult, visibleRouteSegments),
@@ -730,6 +730,34 @@ function buildMapRouteOverlays(
     }));
 
   return overlays;
+}
+
+function resolveScheduleMapSegments(routePlanResult: RoutePlanResponseDto, activeDay: RoutePlanResponseDto['itineraryDays'][number]) {
+  if (activeDay.segments?.length) {
+    return activeDay.segments;
+  }
+
+  const dayTargetNames = activeDay.items
+    .filter((item) => item.position)
+    .map((item) => normalizeMapPlaceName(item.placeName || item.title));
+  let searchStartIndex = 0;
+  const matchedSegments: RouteSegmentDto[] = [];
+
+  dayTargetNames.forEach((targetName) => {
+    const matchedIndex = routePlanResult.segments.findIndex(
+      (segment, index) => index >= searchStartIndex && normalizeMapPlaceName(segment.toName) === targetName,
+    );
+    if (matchedIndex >= 0) {
+      matchedSegments.push(routePlanResult.segments[matchedIndex]);
+      searchStartIndex = matchedIndex + 1;
+    }
+  });
+
+  return matchedSegments;
+}
+
+function normalizeMapPlaceName(placeName: string) {
+  return placeName.trim().replace(/\s+/g, "").toLowerCase();
 }
 
 function buildMapItineraryMarkers(

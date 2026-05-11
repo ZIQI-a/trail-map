@@ -14,7 +14,14 @@ import {
 } from '@ant-design/icons';
 import { Button, Tag, Timeline } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
-import type { ItineraryDayDto, ItineraryItemDto, RoutePlanResponseDto, SpotTag, TravelSpot } from '../../../types/mapWorkbench';
+import type {
+  ItineraryDayDto,
+  ItineraryItemDto,
+  RoutePlanResponseDto,
+  RouteSegmentDto,
+  SpotTag,
+  TravelSpot,
+} from '../../../types/mapWorkbench';
 import { getRouteSegmentColor } from '../../../utils/map-workbench/routePalette';
 import { formatRouteDistance, formatRouteDuration, formatTripDuration } from '../../../utils/map-workbench/routeDisplay';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
@@ -123,7 +130,15 @@ function MetricCard({ icon, value, label }: MetricCardProps) {
 
 type TimelineEntry =
   | { type: 'start' | 'end'; title: string; timeLabel: string; color: string }
-  | { type: 'segment'; title: string; subtitle: string; color: string; icon: ReactNode; sequence: number }
+  | {
+      type: 'segment';
+      title: string;
+      subtitle: string;
+      meta: string;
+      color: string;
+      icon: ReactNode;
+      sequence: number;
+    }
   | {
       type: 'spot';
       sequence: number;
@@ -174,7 +189,8 @@ function buildTimelineEntries(
       entries.push({
         type: 'segment',
         title: getTransportLabel(segment.transportType),
-        subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
+        subtitle: `${segment.fromName} → ${segment.toName}`,
+        meta: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
         color: getRouteSegmentColor(localIndex),
         icon: getTransportIcon(segment.transportType),
         sequence: localIndex + 1,
@@ -219,7 +235,7 @@ function buildScheduleTimelineEntries(
   scheduleStartTime?: string,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
-  const daySegments = activeDay.segments ?? [];
+  const daySegments = resolveScheduleDaySegments(routePlan, activeDay);
   const firstItem = activeDay.items[0];
   // 起点节点展示用户选择的每日开始时间；后端 startTime 可能随第一段交通被写成到达时间。
   const startLabel = scheduleStartTime || activeDay.startTime || firstItem?.suggestedStartTime || '09:00';
@@ -236,18 +252,22 @@ function buildScheduleTimelineEntries(
 
   activeDay.items.forEach((item) => {
     const sequence = item.sequence;
-    const segment = item.position ? daySegments[segmentCursor] : undefined;
+    const matchedSegmentIndex = item.position
+      ? findSegmentIndexForItem(daySegments, item, segmentCursor, Boolean(activeDay.segments?.length))
+      : -1;
+    const segment = matchedSegmentIndex >= 0 ? daySegments[matchedSegmentIndex] : undefined;
     if (segment) {
-      currentItemColor = getRouteSegmentColor(segmentCursor);
+      currentItemColor = getRouteSegmentColor(matchedSegmentIndex);
       entries.push({
         type: 'segment',
         title: getTransportLabel(segment.transportType),
-        subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
+        subtitle: `${segment.fromName} → ${segment.toName}`,
+        meta: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
         color: currentItemColor,
         icon: getTransportIcon(segment.transportType),
         sequence,
       });
-      segmentCursor += 1;
+      segmentCursor = matchedSegmentIndex + 1;
     }
 
     if (item.itemType === 'spot') {
@@ -283,6 +303,52 @@ function buildScheduleTimelineEntries(
     color: '#ff5a40',
   });
   return entries;
+}
+
+function resolveScheduleDaySegments(routePlan: RoutePlanResponseDto, activeDay: ItineraryDayDto) {
+  if (activeDay.segments?.length) {
+    return activeDay.segments;
+  }
+
+  const dayTargetNames = activeDay.items
+    .filter((item) => item.position)
+    .map((item) => normalizePlaceName(item.placeName || item.title));
+  let searchStartIndex = 0;
+  const matchedSegments: RouteSegmentDto[] = [];
+
+  dayTargetNames.forEach((targetName) => {
+    const matchedIndex = routePlan.segments.findIndex(
+      (segment, index) => index >= searchStartIndex && normalizePlaceName(segment.toName) === targetName,
+    );
+    if (matchedIndex >= 0) {
+      matchedSegments.push(routePlan.segments[matchedIndex]);
+      searchStartIndex = matchedIndex + 1;
+    }
+  });
+
+  return matchedSegments;
+}
+
+function findSegmentIndexForItem(
+  segments: RouteSegmentDto[],
+  item: ItineraryItemDto,
+  startIndex: number,
+  allowSequentialFallback: boolean,
+) {
+  const itemName = normalizePlaceName(item.placeName || item.title);
+  const matchedIndex = segments.findIndex(
+    (segment, index) => index >= startIndex && normalizePlaceName(segment.toName) === itemName,
+  );
+
+  if (matchedIndex >= 0) {
+    return matchedIndex;
+  }
+
+  return allowSequentialFallback && startIndex < segments.length ? startIndex : -1;
+}
+
+function normalizePlaceName(placeName: string) {
+  return placeName.trim().replace(/\s+/g, '').toLowerCase();
 }
 
 function formatClock(totalMinutes: number) {
@@ -352,7 +418,8 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
         <div className={styles.segmentCard}>
           <div className={styles.segmentMain}>
             <strong>{entry.title}</strong>
-            <span>第 {entry.sequence} 段 · {entry.subtitle}</span>
+            <span>{entry.subtitle}</span>
+            <span>{entry.meta}</span>
           </div>
           <ExportOutlined className={styles.segmentArrow} />
         </div>
