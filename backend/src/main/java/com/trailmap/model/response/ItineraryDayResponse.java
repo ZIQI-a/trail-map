@@ -9,6 +9,8 @@ import java.util.List;
 public record ItineraryDayResponse(
         Integer dayIndex,
         String title,
+        String startTime,
+        String startPlaceName,
         Integer totalDistanceMeters,
         Integer totalTravelDurationSeconds,
         Integer totalStayDurationMinutes,

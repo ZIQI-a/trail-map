@@ -26,6 +26,7 @@ interface RoutePlanDrawerProps {
   tripSpots: TravelSpot[];
   tags: SpotTag[];
   startPoint: string;
+  scheduleStartTime?: string;
   selectedDayIndex?: number;
   onClose: () => void;
 }
@@ -37,6 +38,7 @@ export function RoutePlanDrawer({
   tripSpots,
   tags,
   startPoint,
+  scheduleStartTime,
   selectedDayIndex,
   onClose,
 }: RoutePlanDrawerProps) {
@@ -48,7 +50,7 @@ export function RoutePlanDrawer({
       : undefined;
   const timelineEntries =
     routePlan.planMode === 'schedule' && activeDay?.items.length
-      ? buildScheduleTimelineEntries(routePlan, startPoint, activeDay)
+      ? buildScheduleTimelineEntries(routePlan, startPoint, activeDay, scheduleStartTime)
       : buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex);
   const metricTarget = activeDay ?? routePlan;
   const summaryText = activeDay
@@ -214,42 +216,38 @@ function buildScheduleTimelineEntries(
   routePlan: RoutePlanResponseDto,
   startPoint: string,
   activeDay: ItineraryDayDto,
+  scheduleStartTime?: string,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const daySegments = activeDay.segments ?? [];
   const firstItem = activeDay.items[0];
-  const startLabel = firstItem?.suggestedStartTime ?? '09:00';
+  // 起点节点展示用户选择的每日开始时间；后端 startTime 可能随第一段交通被写成到达时间。
+  const startLabel = scheduleStartTime || activeDay.startTime || firstItem?.suggestedStartTime || '09:00';
 
   entries.push({
     type: 'start',
-    title: activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 出发` : startPoint || '市中心',
+    title: activeDay.startPlaceName || (activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 出发` : startPoint || '市中心'),
     timeLabel: startLabel,
     color: '#20a95a',
   });
 
   let segmentCursor = 0;
-  let previousPositionedItem: ItineraryItemDto | undefined;
   let currentItemColor = getRouteSegmentColor(0);
 
-  activeDay.items.forEach((item, itemIndex) => {
+  activeDay.items.forEach((item) => {
     const sequence = item.sequence;
-    if (item.position) {
-      const segment = previousPositionedItem
-        ? daySegments[segmentCursor]
-        : undefined;
-      if (segment) {
-        currentItemColor = getRouteSegmentColor(segmentCursor);
-        entries.push({
-          type: 'segment',
-          title: getTransportLabel(segment.transportType),
-          subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
-          color: currentItemColor,
-          icon: getTransportIcon(segment.transportType),
-          sequence,
-        });
-        segmentCursor += 1;
-      }
-      previousPositionedItem = item;
+    const segment = item.position ? daySegments[segmentCursor] : undefined;
+    if (segment) {
+      currentItemColor = getRouteSegmentColor(segmentCursor);
+      entries.push({
+        type: 'segment',
+        title: getTransportLabel(segment.transportType),
+        subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
+        color: currentItemColor,
+        icon: getTransportIcon(segment.transportType),
+        sequence,
+      });
+      segmentCursor += 1;
     }
 
     if (item.itemType === 'spot') {
@@ -260,7 +258,7 @@ function buildScheduleTimelineEntries(
         entries.push({
           type: 'spot',
           sequence,
-          color: itemIndex === 0 ? getRouteSegmentColor(0) : currentItemColor,
+          color: currentItemColor,
           stayPlan,
           arrivalLabel: item.suggestedStartTime,
           leaveLabel: item.suggestedEndTime,
@@ -272,7 +270,7 @@ function buildScheduleTimelineEntries(
     entries.push({
       type: 'activity',
       sequence,
-      color: itemIndex === 0 ? getRouteSegmentColor(0) : currentItemColor,
+      color: currentItemColor,
       item,
     });
   });

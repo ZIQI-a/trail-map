@@ -176,7 +176,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         int currentDayIndex = 1;
         int currentDayUsedMinutes = 0;
         int currentClockMinutes = dayStartTime.toSecondOfDay() / 60;
-        ItineraryDayAccumulator currentDay = new ItineraryDayAccumulator(currentDayIndex);
+        ItineraryDayAccumulator currentDay = new ItineraryDayAccumulator(
+                currentDayIndex,
+                toRouteStop(request.startPoint()),
+                formatClock(dayStartTime.toSecondOfDay() / 60));
         dayAccumulators.add(currentDay);
         boolean lunchInserted = false;
         boolean restInserted = false;
@@ -199,7 +202,10 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 currentDayIndex++;
                 currentDayUsedMinutes = 0;
                 currentClockMinutes = dayStartTime.toSecondOfDay() / 60;
-                currentDay = new ItineraryDayAccumulator(currentDayIndex);
+                currentDay = new ItineraryDayAccumulator(
+                        currentDayIndex,
+                        resolveNextDayStartStop(currentDay, request),
+                        formatClock(dayStartTime.toSecondOfDay() / 60));
                 dayAccumulators.add(currentDay);
                 lunchInserted = false;
                 restInserted = false;
@@ -463,7 +469,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
      * 完整行程按“当天相邻真实节点”重算路线，这样吃饭、休息、酒店节点也有自己的真实路径。
      */
     private ItineraryDayResponse toItineraryDay(ItineraryDayAccumulator day, String transportType) {
-        List<RouteSegmentResponse> daySegments = buildDaySegments(day.items(), transportType);
+        List<RouteSegmentResponse> daySegments = buildDaySegments(day.startStop(), day.items(), transportType);
         int totalDistanceMeters = daySegments.stream()
                 .map(RouteSegmentResponse::distanceMeters)
                 .filter(Objects::nonNull)
@@ -490,6 +496,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return new ItineraryDayResponse(
                 day.dayIndex(),
                 "Day " + day.dayIndex(),
+                day.startTime(),
+                day.startStop().name(),
                 totalDistanceMeters,
                 totalTravelDurationSeconds,
                 totalStayDurationMinutes,
@@ -499,21 +507,38 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 List.copyOf(daySegments));
     }
 
-    private List<RouteSegmentResponse> buildDaySegments(List<ItineraryItemResponse> items, String transportType) {
+    private List<RouteSegmentResponse> buildDaySegments(RouteStop dayStartStop, List<ItineraryItemResponse> items, String transportType) {
         List<RouteSegmentResponse> daySegments = new ArrayList<>();
         List<ItineraryItemResponse> positionedItems = items.stream()
                 .filter(item -> item.position() != null)
                 .toList();
-        for (int index = 1; index < positionedItems.size(); index++) {
-            ItineraryItemResponse fromItem = positionedItems.get(index - 1);
-            ItineraryItemResponse toItem = positionedItems.get(index);
-            daySegments.add(buildSingleSegment(
-                    index,
-                    new RouteStop(fromItem.relatedSpotId(), fromItem.placeName(), fromItem.position(), fromItem.durationMinutes()),
-                    new RouteStop(toItem.relatedSpotId(), toItem.placeName(), toItem.position(), toItem.durationMinutes()),
-                    transportType));
+        RouteStop previousStop = dayStartStop;
+        int segmentIndex = 1;
+        for (ItineraryItemResponse positionedItem : positionedItems) {
+            RouteStop nextStop = new RouteStop(
+                    positionedItem.relatedSpotId(),
+                    positionedItem.placeName(),
+                    positionedItem.position(),
+                    positionedItem.durationMinutes());
+            daySegments.add(buildSingleSegment(segmentIndex, previousStop, nextStop, transportType));
+            previousStop = nextStop;
+            segmentIndex += 1;
         }
         return daySegments;
+    }
+
+    private RouteStop resolveNextDayStartStop(ItineraryDayAccumulator currentDay, RoutePlanRequest request) {
+        for (int index = currentDay.items().size() - 1; index >= 0; index--) {
+            ItineraryItemResponse item = currentDay.items().get(index);
+            if ("hotel".equals(item.itemType()) && item.position() != null) {
+                return new RouteStop(null, item.placeName(), item.position(), 0);
+            }
+        }
+        return toRouteStop(request.startPoint());
+    }
+
+    private RouteStop toRouteStop(RouteLocationRequest locationRequest) {
+        return new RouteStop(null, locationRequest.name(), toCoordinate(locationRequest.position()), 0);
     }
 
     /**
@@ -883,10 +908,14 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             List<ItineraryDayResponse> itineraryDays) {
     }
 
-    private record ItineraryDayAccumulator(Integer dayIndex, List<RouteSpotStayPlanResponse> spots,
+    private record ItineraryDayAccumulator(
+            Integer dayIndex,
+            RouteStop startStop,
+            String startTime,
+            List<RouteSpotStayPlanResponse> spots,
             List<ItineraryItemResponse> items) {
-        private ItineraryDayAccumulator(Integer dayIndex) {
-            this(dayIndex, new ArrayList<>(), new ArrayList<>());
+        private ItineraryDayAccumulator(Integer dayIndex, RouteStop startStop, String startTime) {
+            this(dayIndex, startStop, startTime, new ArrayList<>(), new ArrayList<>());
         }
     }
 }

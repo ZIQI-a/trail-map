@@ -272,6 +272,8 @@ export interface RouteSegmentDto {
 export interface ItineraryDayDto {
   dayIndex: number;
   title: string;
+  startTime: string;
+  startPlaceName: string;
   totalDistanceMeters: number;
   totalTravelDurationSeconds: number;
   totalStayDurationMinutes: number;

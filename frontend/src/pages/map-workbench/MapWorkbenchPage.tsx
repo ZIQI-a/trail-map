@@ -573,6 +573,7 @@ export function MapWorkbenchPage() {
               tripSpots={tripSpots}
               tags={tags}
               startPoint={startPoint.trim() || `${city.name}市中心`}
+              scheduleStartTime={showingScheduleResult ? scheduleConfig.dailyStartTime : undefined}
               selectedDayIndex={activeScheduleDay?.dayIndex}
               onClose={() => setRoutePlanResult(undefined)}
             />
