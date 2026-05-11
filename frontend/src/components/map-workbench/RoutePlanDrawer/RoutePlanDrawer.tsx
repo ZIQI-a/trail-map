@@ -138,6 +138,7 @@ type TimelineEntry =
       color: string;
       icon: ReactNode;
       sequence: number;
+      auxiliary?: boolean;
     }
   | {
       type: 'spot';
@@ -194,6 +195,7 @@ function buildTimelineEntries(
         color: getRouteSegmentColor(localIndex),
         icon: getTransportIcon(segment.transportType),
         sequence: localIndex + 1,
+        auxiliary: false,
       });
       currentMinutes += Math.ceil(segment.durationSeconds / 60);
     }
@@ -249,6 +251,7 @@ function buildScheduleTimelineEntries(
 
   let segmentCursor = 0;
   let currentItemColor = getRouteSegmentColor(0);
+  const auxiliaryItemMap = buildAuxiliaryItemMap(activeDay.items);
 
   activeDay.items.forEach((item) => {
     const sequence = item.sequence;
@@ -257,15 +260,22 @@ function buildScheduleTimelineEntries(
       : -1;
     const segment = matchedSegmentIndex >= 0 ? daySegments[matchedSegmentIndex] : undefined;
     if (segment) {
-      currentItemColor = getRouteSegmentColor(matchedSegmentIndex);
+      const auxiliarySegment = isAuxiliarySegment(segment, auxiliaryItemMap);
+      const segmentColor = auxiliarySegment
+        ? getAuxiliarySegmentColor(segment, auxiliaryItemMap)
+        : getRouteSegmentColor(matchedSegmentIndex);
+      if (!auxiliarySegment) {
+        currentItemColor = segmentColor;
+      }
       entries.push({
         type: 'segment',
         title: getTransportLabel(segment.transportType),
         subtitle: `${segment.fromName} → ${segment.toName}`,
         meta: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
-        color: currentItemColor,
+        color: segmentColor,
         icon: getTransportIcon(segment.transportType),
         sequence,
+        auxiliary: auxiliarySegment,
       });
       segmentCursor = matchedSegmentIndex + 1;
     }
@@ -351,6 +361,36 @@ function normalizePlaceName(placeName: string) {
   return placeName.trim().replace(/\s+/g, '').toLowerCase();
 }
 
+function buildAuxiliaryItemMap(items: ItineraryItemDto[]) {
+  const itemMap = new Map<string, ItineraryItemDto>();
+  items.forEach((item) => {
+    if (isAuxiliaryItem(item)) {
+      itemMap.set(normalizePlaceName(item.placeName || item.title), item);
+    }
+  });
+  return itemMap;
+}
+
+function isAuxiliaryItem(item: ItineraryItemDto): item is ItineraryItemDto & { itemType: 'lunch' | 'rest' | 'hotel' } {
+  return item.itemType === 'lunch' || item.itemType === 'rest' || item.itemType === 'hotel';
+}
+
+function isAuxiliarySegment(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
+  return auxiliaryItemMap.has(normalizePlaceName(segment.fromName)) || auxiliaryItemMap.has(normalizePlaceName(segment.toName));
+}
+
+function getAuxiliarySegmentColor(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
+  const targetItem =
+    auxiliaryItemMap.get(normalizePlaceName(segment.toName)) ??
+    auxiliaryItemMap.get(normalizePlaceName(segment.fromName));
+
+  if (targetItem && isAuxiliaryItem(targetItem)) {
+    return getItineraryActivityColor(targetItem.itemType);
+  }
+
+  return '#7a8ca4';
+}
+
 function formatClock(totalMinutes: number) {
   const normalizedMinutes = Math.max(0, totalMinutes);
   const hours = Math.floor(normalizedMinutes / 60);
@@ -419,7 +459,7 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
       style: timelineStyle,
       dot: <span className={styles.transportDot} style={{ color: entry.color }} aria-hidden="true" />,
       children: (
-        <div className={styles.segmentCard}>
+        <div className={entry.auxiliary ? `${styles.segmentCard} ${styles.auxiliarySegmentCard}` : styles.segmentCard}>
           <div className={styles.segmentMain}>
             <strong>{entry.title}</strong>
             <span>{entry.subtitle}</span>

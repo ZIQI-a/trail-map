@@ -390,6 +390,37 @@
   background: #fbfdff;
 }
 
+.auxiliarySegmentCard {
+  margin-left: 14px;
+  padding: 7px 10px;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--route-accent) 36%, #d8e2ee);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--route-accent) 7%, #ffffff);
+}
+
+.auxiliarySegmentCard .segmentMain {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.auxiliarySegmentCard .segmentMain strong,
+.auxiliarySegmentCard .segmentMain span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auxiliarySegmentCard .segmentMain strong {
+  color: color-mix(in srgb, var(--route-accent) 76%, #1f344d);
+}
+
+.auxiliarySegmentCard .segmentArrow {
+  display: none;
+}
+
 .segmentMain {
   min-width: 0;
   display: grid;

@@ -58,6 +58,7 @@ import type {
   TravelSpotSummaryDto,
 } from "../../types/mapWorkbench";
 import { wgs84ToGcj02 } from "../../utils/map-workbench/coordinate";
+import { getItineraryActivityColor } from "../../utils/map-workbench/routePalette";
 import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
 import styles from "./MapWorkbenchPage.module.css";
 
@@ -230,8 +231,8 @@ export function MapWorkbenchPage() {
     return resolveScheduleMapSegments(routePlanResult, activeScheduleDay);
   }, [activeScheduleDay, routePlanResult, showingScheduleResult]);
   const mapRouteOverlays = useMemo(
-    () => buildMapRouteOverlays(routePlanResult, visibleRouteSegments),
-    [routePlanResult, visibleRouteSegments],
+    () => buildMapRouteOverlays(routePlanResult, visibleRouteSegments, activeScheduleDay),
+    [activeScheduleDay, routePlanResult, visibleRouteSegments],
   );
   const mapItineraryMarkers = useMemo(
     () => buildMapItineraryMarkers(activeScheduleDay?.items),
@@ -714,22 +715,57 @@ interface MapItineraryMarker {
 function buildMapRouteOverlays(
   routePlanResult?: RoutePlanResponseDto,
   visibleRouteSegments?: RouteSegmentDto[],
+  activeDay?: RoutePlanResponseDto['itineraryDays'][number],
 ): MapRouteOverlay[] | undefined {
   if (!routePlanResult) {
     return undefined;
   }
 
+  const auxiliaryItemMap = activeDay ? buildMapAuxiliaryItemMap(activeDay.items) : new Map<string, ItineraryItemDto>();
   const overlays: MapRouteOverlay[] = (visibleRouteSegments ?? routePlanResult.segments)
     .filter((segment) => segment.polyline.length >= 2)
-    .map((segment, index) => ({
-      key: `segment-${segment.segmentIndex}`,
-      polyline: segment.polyline,
-      color: getRouteColor(index),
-      lineStyle: "solid" as const,
-      kind: "route" as const,
-    }));
+    .map((segment, index) => {
+      const auxiliarySegment = isMapAuxiliarySegment(segment, auxiliaryItemMap);
+      return {
+        key: `segment-${segment.segmentIndex}`,
+        polyline: segment.polyline,
+        color: auxiliarySegment ? getMapAuxiliarySegmentColor(segment, auxiliaryItemMap) : getRouteColor(index),
+        lineStyle: auxiliarySegment ? "dashed" as const : "solid" as const,
+        kind: auxiliarySegment ? "guide" as const : "route" as const,
+      };
+    });
 
   return overlays;
+}
+
+function buildMapAuxiliaryItemMap(items: ItineraryItemDto[]) {
+  const itemMap = new Map<string, ItineraryItemDto>();
+  items.forEach((item) => {
+    if (isMapAuxiliaryItem(item)) {
+      itemMap.set(normalizeMapPlaceName(item.placeName || item.title), item);
+    }
+  });
+  return itemMap;
+}
+
+function isMapAuxiliaryItem(item: ItineraryItemDto): item is ItineraryItemDto & { itemType: "lunch" | "rest" | "hotel" } {
+  return item.itemType === "lunch" || item.itemType === "rest" || item.itemType === "hotel";
+}
+
+function isMapAuxiliarySegment(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
+  return auxiliaryItemMap.has(normalizeMapPlaceName(segment.fromName)) || auxiliaryItemMap.has(normalizeMapPlaceName(segment.toName));
+}
+
+function getMapAuxiliarySegmentColor(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
+  const targetItem =
+    auxiliaryItemMap.get(normalizeMapPlaceName(segment.toName)) ??
+    auxiliaryItemMap.get(normalizeMapPlaceName(segment.fromName));
+
+  if (targetItem && isMapAuxiliaryItem(targetItem)) {
+    return getItineraryActivityColor(targetItem.itemType);
+  }
+
+  return "#7a8ca4";
 }
 
 function resolveScheduleMapSegments(routePlanResult: RoutePlanResponseDto, activeDay: RoutePlanResponseDto['itineraryDays'][number]) {
