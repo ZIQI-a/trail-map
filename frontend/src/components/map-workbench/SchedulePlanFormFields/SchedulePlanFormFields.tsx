@@ -2,12 +2,14 @@ import {
   ApartmentOutlined,
   ClockCircleOutlined,
   CoffeeOutlined,
+  EnvironmentOutlined,
   HomeOutlined,
   SmileOutlined,
 } from "@ant-design/icons";
 import { Input, InputNumber, Segmented, Select, Switch } from "antd";
 import type {
   ItineraryIntensity,
+  LocationArrangeMode,
   SchedulePlanConfig,
   SchedulePreferenceCode,
 } from "../../../types/mapWorkbench";
@@ -34,6 +36,15 @@ const preferenceOptions: Array<{
   { label: "夜游安排", value: "night_tour" },
   { label: "地铁优先", value: "subway_first" },
   { label: "亲子友好", value: "family_friendly" },
+];
+
+const locationModeOptions: Array<{
+  label: string;
+  value: LocationArrangeMode;
+}> = [
+  { label: "系统推荐", value: "recommended" },
+  { label: "手动选择", value: "manual" },
+  { label: "不安排", value: "none" },
 ];
 
 // SchedulePlanFormFields 负责渲染完整行程配置项，两处容器复用同一份表单内容。
@@ -185,32 +196,126 @@ export function SchedulePlanFormFields({
 
       <section className={styles.group}>
         <header className={styles.groupHeader}>
-          <strong>住宿预留</strong>
-          <span>酒店和返程逻辑先做前端占位，后续接入完整编排。</span>
+          <strong>补充地点</strong>
+          <span>午餐、休息、酒店支持手动输入名称或交给系统按附近景点推荐。</span>
         </header>
 
         <label className={styles.field}>
           <span className={styles.label}>
-            <HomeOutlined />
-            酒店名称
+            <CoffeeOutlined />
+            午餐地点
           </span>
-          <Input
-            value={value.hotelName}
-            placeholder="例如：春熙路亚朵酒店"
-            onChange={(event) =>
+          <Segmented
+            block
+            options={locationModeOptions}
+            value={value.lunchMode}
+            onChange={(nextValue) =>
               onChange({
                 ...value,
-                hotelName: event.target.value,
+                lunchMode: nextValue as LocationArrangeMode,
               })
             }
           />
         </label>
 
+        {value.lunchMode === "manual" ? (
+          <label className={styles.field}>
+            <span className={styles.label}>
+              <EnvironmentOutlined />
+              午餐地点名称
+            </span>
+            <Input
+              value={value.lunchPlaceName}
+              placeholder="例如：大悦城"
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  lunchPlaceName: event.target.value,
+                })
+              }
+            />
+          </label>
+        ) : null}
+
+        <label className={styles.field}>
+          <span className={styles.label}>
+            <ApartmentOutlined />
+            休息地点
+          </span>
+          <Segmented
+            block
+            options={locationModeOptions}
+            value={value.restMode}
+            onChange={(nextValue) =>
+              onChange({
+                ...value,
+                restMode: nextValue as LocationArrangeMode,
+              })
+            }
+          />
+        </label>
+
+        {value.restMode === "manual" ? (
+          <label className={styles.field}>
+            <span className={styles.label}>
+              <EnvironmentOutlined />
+              休息地点名称
+            </span>
+            <Input
+              value={value.restPlaceName}
+              placeholder="例如：万象城"
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  restPlaceName: event.target.value,
+                })
+              }
+            />
+          </label>
+        ) : null}
+
+        <label className={styles.field}>
+          <span className={styles.label}>
+            <HomeOutlined />
+            酒店安排
+          </span>
+          <Segmented
+            block
+            options={locationModeOptions}
+            value={value.hotelMode}
+            onChange={(nextValue) =>
+              onChange({
+                ...value,
+                hotelMode: nextValue as LocationArrangeMode,
+              })
+            }
+          />
+        </label>
+
+        {value.hotelMode === "manual" ? (
+          <label className={styles.field}>
+            <span className={styles.label}>
+              <EnvironmentOutlined />
+              酒店名称
+            </span>
+            <Input
+              value={value.hotelName}
+              placeholder="例如：春熙路亚朵酒店"
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  hotelName: event.target.value,
+                })
+              }
+            />
+          </label>
+        ) : null}
+
         <div className={styles.switchRow}>
           <div className={styles.switchCard}>
             <div>
               <strong>每日返回酒店</strong>
-              <span>后续接入后端后用于回酒店收尾。</span>
+              <span>开启后会在每天收尾时补一个酒店节点。</span>
             </div>
             <Switch
               checked={value.returnToHotel}
@@ -220,18 +325,16 @@ export function SchedulePlanFormFields({
                   returnToHotel: checked,
                 })
               }
+              disabled={value.hotelMode === "none"}
             />
           </div>
 
           <div className={styles.switchCard}>
             <div>
               <strong>夜游节点预留</strong>
-              <span>夜游开关在上方控制，这里只提示后续会与酒店收尾联动。</span>
+              <span>夜游开关在上方控制，这里保留当前结果提示。</span>
             </div>
-            <Switch
-              checked={value.includeNightTour}
-              disabled
-            />
+            <Switch checked={value.includeNightTour} disabled />
           </div>
         </div>
       </section>

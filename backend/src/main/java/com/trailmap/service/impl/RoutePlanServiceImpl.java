@@ -14,10 +14,13 @@ import com.trailmap.model.query.CoordinateRequest;
 import com.trailmap.model.query.RouteLocationRequest;
 import com.trailmap.model.query.RoutePlanRequest;
 import com.trailmap.model.response.CoordinateResponse;
+import com.trailmap.model.response.ItineraryItemResponse;
 import com.trailmap.model.response.ItineraryDayResponse;
+import com.trailmap.model.response.PoiCalibrationCandidateResponse;
 import com.trailmap.model.response.RoutePlanResponse;
 import com.trailmap.model.response.RouteSegmentResponse;
 import com.trailmap.model.response.RouteSpotStayPlanResponse;
+import com.trailmap.service.PoiCalibrationService;
 import com.trailmap.service.RoutePlanService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -46,30 +49,45 @@ public class RoutePlanServiceImpl implements RoutePlanService {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final String PLAN_MODE_SCHEDULE = "schedule";
+    private static final String LOCATION_MODE_NONE = "none";
+    private static final String LOCATION_MODE_MANUAL = "manual";
+    private static final String LOCATION_MODE_RECOMMENDED = "recommended";
 
     private final CityMapper cityMapper;
     private final SpotMapper spotMapper;
     private final BaiduMapProperties baiduMapProperties;
+    private final PoiCalibrationService poiCalibrationService;
     private final RestClient restClient;
 
-    public RoutePlanServiceImpl(CityMapper cityMapper, SpotMapper spotMapper, BaiduMapProperties baiduMapProperties) {
+    public RoutePlanServiceImpl(
+            CityMapper cityMapper,
+            SpotMapper spotMapper,
+            BaiduMapProperties baiduMapProperties,
+            PoiCalibrationService poiCalibrationService) {
         this.cityMapper = cityMapper;
         this.spotMapper = spotMapper;
         this.baiduMapProperties = baiduMapProperties;
+        this.poiCalibrationService = poiCalibrationService;
         this.restClient = RestClient.builder().build();
     }
 
     @Override
     public RoutePlanResponse plan(RoutePlanRequest request) {
         // 入口先做基础校验，避免后续第三方调用时才暴露出“城市不存在 / 参数无效”这类问题。
-        validateCity(request.cityId());
+        City city = loadCity(request.cityId());
         validatePlanMode(request.planMode());
         validateTransportType(request.transportType());
+        validateLocationMode(request.lunchMode(), "午餐");
+        validateLocationMode(request.restMode(), "休息");
+        validateLocationMode(request.hotelMode(), "酒店");
+        validateRequiredLocation(request.lunchMode(), request.lunchLocation(), "午餐");
+        validateRequiredLocation(request.restMode(), request.restLocation(), "休息");
+        validateRequiredLocation(request.hotelMode(), request.hotelLocation(), "酒店");
 
         List<Spot> orderedSpots = loadOrderedSpots(request.cityId(), request.spotIds());
         List<RouteStop> routeStops = buildRouteStops(request.startPoint(), orderedSpots, request.endPoint());
         List<RouteSegmentResponse> segments = buildSegments(routeStops, request.transportType());
-        PlanningSnapshot planningSnapshot = buildPlanningSnapshot(request, orderedSpots, segments);
+        PlanningSnapshot planningSnapshot = buildPlanningSnapshot(request, city, orderedSpots, segments);
         int totalTravelDurationSeconds = segments.stream()
                 .map(RouteSegmentResponse::durationSeconds)
                 .filter(Objects::nonNull)
@@ -85,14 +103,21 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 .filter(Objects::nonNull)
                 .mapToInt(Integer::intValue)
                 .sum();
-        int totalTripDurationMinutes = totalStayDurationMinutes + Math.ceilDiv(totalTravelDurationSeconds, 60);
+        int totalTripDurationMinutes = PLAN_MODE_SCHEDULE.equals(request.planMode().toLowerCase(Locale.ROOT))
+                ? planningSnapshot.itineraryDays().stream()
+                        .map(ItineraryDayResponse::totalTripDurationMinutes)
+                        .filter(Objects::nonNull)
+                        .mapToInt(Integer::intValue)
+                        .sum()
+                : totalStayDurationMinutes + Math.ceilDiv(totalTravelDurationSeconds, 60);
 
         return new RoutePlanResponse(
                 null,
                 request.cityId(),
                 normalizeTransportType(request.transportType()),
                 request.planMode().toLowerCase(Locale.ROOT),
-                buildRouteSummary(request.startPoint().name(), orderedSpots, totalTravelDurationSeconds, totalStayDurationMinutes),
+                buildRouteSummary(request.startPoint().name(), orderedSpots, totalTravelDurationSeconds,
+                        totalStayDurationMinutes),
                 orderedSpots.stream().map(Spot::getId).toList(),
                 totalDistanceMeters,
                 totalTravelDurationSeconds,
@@ -100,15 +125,15 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 totalTripDurationMinutes,
                 planningSnapshot.spotStayPlans(),
                 segments,
-                planningSnapshot.itineraryDays()
-        );
+                planningSnapshot.itineraryDays());
     }
 
     /**
      * 根据规划模式决定是否生成“完整行程模式”的时间编排结果。
      * free 模式只返回建议停留时长；schedule 模式补充 dayIndex 和建议到离时间。
      */
-    private PlanningSnapshot buildPlanningSnapshot(RoutePlanRequest request, List<Spot> orderedSpots, List<RouteSegmentResponse> segments) {
+    private PlanningSnapshot buildPlanningSnapshot(RoutePlanRequest request, City city, List<Spot> orderedSpots,
+            List<RouteSegmentResponse> segments) {
         if (!PLAN_MODE_SCHEDULE.equals(request.planMode().toLowerCase(Locale.ROOT))) {
             List<RouteSpotStayPlanResponse> freeModeStayPlans = orderedSpots.stream()
                     .map(this::toStayPlan)
@@ -116,20 +141,22 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             return new PlanningSnapshot(freeModeStayPlans, List.of());
         }
 
-        return buildScheduledItinerary(request, orderedSpots, segments);
+        return buildScheduledItinerary(request, city, orderedSpots, segments);
     }
 
     /**
      * 完整行程模式 V1：
      * 先做“多天拆分 + 时间表生成”，不处理酒店推荐、餐厅推荐，只按规则插入午餐占用时间。
      */
-    private PlanningSnapshot buildScheduledItinerary(RoutePlanRequest request, List<Spot> orderedSpots, List<RouteSegmentResponse> segments) {
+    private PlanningSnapshot buildScheduledItinerary(RoutePlanRequest request, City city, List<Spot> orderedSpots,
+            List<RouteSegmentResponse> segments) {
         int tripDays = request.tripDays() == null ? 2 : request.tripDays();
         LocalTime dayStartTime = parseTimeOrDefault(request.dailyStartTime(), "09:00");
         LocalTime dayEndTime = parseTimeOrDefault(request.dailyEndTime(), "18:00");
         boolean includeLunchBreak = Boolean.TRUE.equals(request.includeLunchBreak());
         int lunchBreakMinutes = includeLunchBreak ? 60 : 0;
-        int dailyBudgetMinutes = Math.max(240, dayEndTime.toSecondOfDay() / 60 - dayStartTime.toSecondOfDay() / 60 - lunchBreakMinutes);
+        int dailyBudgetMinutes = Math.max(240,
+                dayEndTime.toSecondOfDay() / 60 - dayStartTime.toSecondOfDay() / 60 - lunchBreakMinutes);
         double intensityMultiplier = resolveIntensityMultiplier(request.intensity());
 
         List<RouteSpotStayPlanResponse> spotStayPlans = new ArrayList<>();
@@ -139,6 +166,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         int currentClockMinutes = dayStartTime.toSecondOfDay() / 60;
         ItineraryDayAccumulator currentDay = new ItineraryDayAccumulator(currentDayIndex);
         dayAccumulators.add(currentDay);
+        boolean lunchInserted = false;
+        boolean restInserted = false;
 
         for (int index = 0; index < orderedSpots.size(); index++) {
             Spot spot = orderedSpots.get(index);
@@ -148,11 +177,20 @@ public class RoutePlanServiceImpl implements RoutePlanService {
 
             // 当前天放不下时切到下一天；最后一天则继续塞满，避免出现“景点丢失”。
             if (projectedMinutes > dailyBudgetMinutes && currentDayIndex < tripDays && !currentDay.spots().isEmpty()) {
+                currentClockMinutes = appendHotelIfNeeded(
+                        currentDay,
+                        request,
+                        city,
+                        orderedSpots,
+                        currentClockMinutes,
+                        currentDay.spots().get(currentDay.spots().size() - 1));
                 currentDayIndex++;
                 currentDayUsedMinutes = 0;
                 currentClockMinutes = dayStartTime.toSecondOfDay() / 60;
                 currentDay = new ItineraryDayAccumulator(currentDayIndex);
                 dayAccumulators.add(currentDay);
+                lunchInserted = false;
+                restInserted = false;
             }
 
             currentDayUsedMinutes += segmentMinutes;
@@ -168,15 +206,32 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                     stayMinutes,
                     suggestedStartTime,
                     suggestedEndTime,
-                    currentDayIndex
-            );
+                    currentDayIndex);
             spotStayPlans.add(stayPlan);
             currentDay.spots().add(stayPlan);
+            currentDay.items().add(buildSpotItem(currentDay.items().size() + 1, stayPlan, spot));
 
-            if (includeLunchBreak && currentClockMinutes < 12 * 60 && currentClockMinutes + 30 >= 12 * 60) {
-                currentClockMinutes += lunchBreakMinutes;
+            if (includeLunchBreak && !lunchInserted && shouldInsertLunch(currentClockMinutes)) {
+                currentClockMinutes = appendMealItem(currentDay, request, city, spot, currentClockMinutes);
                 currentDayUsedMinutes += lunchBreakMinutes;
+                lunchInserted = true;
             }
+
+            if (!restInserted && shouldInsertRest(request, currentClockMinutes)) {
+                currentClockMinutes = appendRestItem(currentDay, request, city, spot, currentClockMinutes);
+                currentDayUsedMinutes += 30;
+                restInserted = true;
+            }
+        }
+
+        if (!currentDay.spots().isEmpty()) {
+            appendHotelIfNeeded(
+                    currentDay,
+                    request,
+                    city,
+                    orderedSpots,
+                    currentClockMinutes,
+                    currentDay.spots().get(currentDay.spots().size() - 1));
         }
 
         List<ItineraryDayResponse> itineraryDays = dayAccumulators.stream()
@@ -189,15 +244,15 @@ public class RoutePlanServiceImpl implements RoutePlanService {
      * 把“起点 + 景点池 + 可选终点”整理成一条完整停靠链。
      * 当前自由路线模式按用户传入的景点顺序生成，不做智能重排。
      */
-    private List<RouteStop> buildRouteStops(RouteLocationRequest startPoint, List<Spot> orderedSpots, RouteLocationRequest endPoint) {
+    private List<RouteStop> buildRouteStops(RouteLocationRequest startPoint, List<Spot> orderedSpots,
+            RouteLocationRequest endPoint) {
         List<RouteStop> stops = new ArrayList<>();
         stops.add(new RouteStop(null, startPoint.name(), toCoordinate(startPoint.position()), 0));
         orderedSpots.forEach(spot -> stops.add(new RouteStop(
                 spot.getId(),
                 spot.getSpotName(),
                 new CoordinateResponse(spot.getLng(), spot.getLat()),
-                spot.getSuggestedDuration() == null ? 90 : spot.getSuggestedDuration()
-        )));
+                spot.getSuggestedDuration() == null ? 90 : spot.getSuggestedDuration())));
         if (endPoint != null) {
             stops.add(new RouteStop(null, endPoint.name(), toCoordinate(endPoint.position()), 0));
         }
@@ -222,10 +277,12 @@ public class RoutePlanServiceImpl implements RoutePlanService {
      * 优先走百度真实路线规划；如果当前环境没配 AK 或第三方失败，则退回本地估算结果。
      * 这样测试环境和未配置外部能力的开发环境也能保持主流程可用。
      */
-    private RouteSegmentResponse buildSingleSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop, String transportType) {
+    private RouteSegmentResponse buildSingleSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop,
+            String transportType) {
         String normalizedTransportType = normalizeTransportType(transportType);
         if (!StringUtils.hasText(baiduMapProperties.getServerAk())) {
-            return buildEstimatedSegment(segmentIndex, fromStop, toStop, normalizedTransportType, "未配置百度路线规划 AK，当前返回估算路线");
+            return buildEstimatedSegment(segmentIndex, fromStop, toStop, normalizedTransportType,
+                    "未配置百度路线规划 AK，当前返回估算路线");
         }
 
         try {
@@ -233,7 +290,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             return parseSegment(segmentIndex, fromStop, toStop, normalizedTransportType, responseText);
         } catch (Exception exception) {
             // 地图服务失败时先回退到估算结果，保证 MVP 行程规划主流程不中断。
-            return buildEstimatedSegment(segmentIndex, fromStop, toStop, normalizedTransportType, "百度路线规划调用失败，当前返回估算路线");
+            return buildEstimatedSegment(segmentIndex, fromStop, toStop, normalizedTransportType,
+                    "百度路线规划调用失败，当前返回估算路线");
         }
     }
 
@@ -264,11 +322,13 @@ public class RoutePlanServiceImpl implements RoutePlanService {
      * 解析百度路线规划响应，抽取当前阶段前端真正会消费的字段。
      * 完整原始响应未来如果要落库，可再补 raw_response 持久化。
      */
-    private RouteSegmentResponse parseSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop, String transportType, String responseText) {
+    private RouteSegmentResponse parseSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop,
+            String transportType, String responseText) {
         try {
             JsonNode root = OBJECT_MAPPER.readTree(responseText);
             if (root.path("status").asInt() != 0) {
-                throw new BusinessException(ErrorCode.BAD_REQUEST, "百度路线规划失败: " + root.path("message").asText("unknown error"));
+                throw new BusinessException(ErrorCode.BAD_REQUEST,
+                        "百度路线规划失败: " + root.path("message").asText("unknown error"));
             }
 
             JsonNode routeNode = root.path("result").path("routes").get(0);
@@ -289,8 +349,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                     routeNode.path("duration").asInt(),
                     stepTexts.isEmpty() ? "已生成路线" : stepTexts.get(0),
                     polyline,
-                    stepTexts
-            );
+                    stepTexts);
         } catch (BusinessException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -354,7 +413,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
     /**
      * 估算路线只作为兜底，不追求逐步导航精度，只保证距离、耗时和线段可展示。
      */
-    private RouteSegmentResponse buildEstimatedSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop, String transportType, String reason) {
+    private RouteSegmentResponse buildEstimatedSegment(int segmentIndex, RouteStop fromStop, RouteStop toStop,
+            String transportType, String reason) {
         int distanceMeters = estimateDistanceMeters(fromStop.position(), toStop.position());
         int durationSeconds = estimateDurationSeconds(distanceMeters, transportType);
         String instruction = reason + "：" + fromStop.name() + " 前往 " + toStop.name();
@@ -369,8 +429,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 durationSeconds,
                 instruction,
                 List.of(fromStop.position(), toStop.position()),
-                List.of(instruction)
-        );
+                List.of(instruction));
     }
 
     /**
@@ -384,15 +443,15 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 spot.getSuggestedDuration() == null ? 90 : spot.getSuggestedDuration(),
                 null,
                 null,
-                null
-        );
+                null);
     }
 
     /**
      * 将按天累积的景点结果转换成返回前端的日程对象。
      * 当前按“该天景点条目对应的路段”粗略汇总每日距离和交通耗时。
      */
-    private ItineraryDayResponse toItineraryDay(ItineraryDayAccumulator day, List<RouteSegmentResponse> segments, List<Spot> orderedSpots) {
+    private ItineraryDayResponse toItineraryDay(ItineraryDayAccumulator day, List<RouteSegmentResponse> segments,
+            List<Spot> orderedSpots) {
         List<Long> daySpotIds = day.spots().stream().map(RouteSpotStayPlanResponse::spotId).toList();
         int totalDistanceMeters = 0;
         int totalTravelDurationSeconds = 0;
@@ -410,6 +469,12 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 .filter(Objects::nonNull)
                 .mapToInt(Integer::intValue)
                 .sum();
+        int extraItemDurationMinutes = day.items().stream()
+                .filter(item -> !"spot".equals(item.itemType()))
+                .map(ItineraryItemResponse::durationMinutes)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
 
         return new ItineraryDayResponse(
                 day.dayIndex(),
@@ -417,15 +482,213 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 totalDistanceMeters,
                 totalTravelDurationSeconds,
                 totalStayDurationMinutes,
-                totalStayDurationMinutes + Math.ceilDiv(totalTravelDurationSeconds, 60),
-                List.copyOf(day.spots())
-        );
+                totalStayDurationMinutes + extraItemDurationMinutes + Math.ceilDiv(totalTravelDurationSeconds, 60),
+                List.copyOf(day.spots()),
+                List.copyOf(day.items()));
+    }
+
+    /**
+     * 景点节点作为完整行程时间轴的基础项，保留景点信息和到离时间。
+     */
+    private ItineraryItemResponse buildSpotItem(Integer sequence, RouteSpotStayPlanResponse stayPlan, Spot spot) {
+        return new ItineraryItemResponse(
+                sequence,
+                "spot",
+                stayPlan.spotName(),
+                stayPlan.spotName(),
+                spot.getSpotType(),
+                new CoordinateResponse(spot.getLng(), spot.getLat()),
+                stayPlan.suggestedDurationMinutes(),
+                stayPlan.suggestedStartTime(),
+                stayPlan.suggestedEndTime(),
+                stayPlan.spotId(),
+                "核心游玩节点");
+    }
+
+    private boolean shouldInsertLunch(int currentClockMinutes) {
+        return currentClockMinutes >= 11 * 60 + 30 && currentClockMinutes <= 13 * 60 + 30;
+    }
+
+    private boolean shouldInsertRest(RoutePlanRequest request, int currentClockMinutes) {
+        return !LOCATION_MODE_NONE.equals(normalizeLocationMode(request.restMode())) && currentClockMinutes >= 15 * 60;
+    }
+
+    private int appendMealItem(ItineraryDayAccumulator day, RoutePlanRequest request, City city, Spot anchorSpot,
+            int currentClockMinutes) {
+        int mealDurationMinutes = 60;
+        int startMinutes = Math.max(currentClockMinutes, 12 * 60);
+        int endMinutes = startMinutes + mealDurationMinutes;
+        ItineraryItemResponse mealItem = buildSupportItem(
+                day.items().size() + 1,
+                "lunch",
+                "午餐",
+                "dining",
+                startMinutes,
+                endMinutes,
+                request.lunchMode(),
+                request.lunchLocation(),
+                city,
+                anchorSpot,
+                "商场 美食 餐厅",
+                1200,
+                "中午用餐节点");
+        day.items().add(mealItem);
+        return endMinutes;
+    }
+
+    private int appendRestItem(ItineraryDayAccumulator day, RoutePlanRequest request, City city, Spot anchorSpot,
+            int currentClockMinutes) {
+        int restDurationMinutes = 30;
+        int startMinutes = Math.max(currentClockMinutes, 15 * 60);
+        int endMinutes = startMinutes + restDurationMinutes;
+        ItineraryItemResponse restItem = buildSupportItem(
+                day.items().size() + 1,
+                "rest",
+                "休息",
+                "rest",
+                startMinutes,
+                endMinutes,
+                request.restMode(),
+                request.restLocation(),
+                city,
+                anchorSpot,
+                "商场 咖啡馆 游客中心",
+                1500,
+                "下午休息节点");
+        day.items().add(restItem);
+        return endMinutes;
+    }
+
+    private int appendHotelIfNeeded(
+            ItineraryDayAccumulator day,
+            RoutePlanRequest request,
+            City city,
+            List<Spot> orderedSpots,
+            int currentClockMinutes,
+            RouteSpotStayPlanResponse anchorStayPlan) {
+        if (!Boolean.TRUE.equals(request.returnToHotel())
+                || LOCATION_MODE_NONE.equals(normalizeLocationMode(request.hotelMode()))) {
+            return currentClockMinutes;
+        }
+
+        Spot anchorSpot = orderedSpots.stream()
+                .filter(spot -> Objects.equals(spot.getId(), anchorStayPlan.spotId()))
+                .findFirst()
+                .orElse(null);
+        if (anchorSpot == null) {
+            return currentClockMinutes;
+        }
+
+        int stayDurationMinutes = 20;
+        int endMinutes = currentClockMinutes + stayDurationMinutes;
+        day.items().add(buildSupportItem(
+                day.items().size() + 1,
+                "hotel",
+                "返回酒店",
+                "hotel",
+                currentClockMinutes,
+                endMinutes,
+                request.hotelMode(),
+                request.hotelLocation(),
+                city,
+                anchorSpot,
+                "酒店 住宿",
+                3000,
+                "当天收尾节点"));
+        return endMinutes;
+    }
+
+    /**
+     * 午餐、休息、酒店这类节点优先使用用户手动地点；未指定时，再按景点附近做实时推荐。
+     */
+    private ItineraryItemResponse buildSupportItem(
+            Integer sequence,
+            String itemType,
+            String title,
+            String placeType,
+            int startMinutes,
+            int endMinutes,
+            String mode,
+            RouteLocationRequest manualLocation,
+            City city,
+            Spot anchorSpot,
+            String recommendKeyword,
+            int radiusMeters,
+            String fallbackNote) {
+        String normalizedMode = normalizeLocationMode(mode);
+        if (LOCATION_MODE_MANUAL.equals(normalizedMode) && manualLocation != null) {
+            return new ItineraryItemResponse(
+                    sequence,
+                    itemType,
+                    title,
+                    manualLocation.name(),
+                    placeType,
+                    toCoordinate(manualLocation.position()),
+                    endMinutes - startMinutes,
+                    formatClock(startMinutes),
+                    formatClock(endMinutes),
+                    anchorSpot.getId(),
+                    "用户手动选择地点");
+        }
+
+        if (LOCATION_MODE_RECOMMENDED.equals(normalizedMode)) {
+            PoiCalibrationCandidateResponse candidate = recommendNearbyPoi(city.getCityName(), anchorSpot,
+                    recommendKeyword, radiusMeters);
+            if (candidate != null) {
+                CoordinateResponse position = candidate.naviLocation() != null ? candidate.naviLocation()
+                        : candidate.location();
+                return new ItineraryItemResponse(
+                        sequence,
+                        itemType,
+                        title,
+                        candidate.name(),
+                        placeType,
+                        position,
+                        endMinutes - startMinutes,
+                        formatClock(startMinutes),
+                        formatClock(endMinutes),
+                        anchorSpot.getId(),
+                        "系统按附近景点实时推荐");
+            }
+        }
+
+        return new ItineraryItemResponse(
+                sequence,
+                itemType,
+                title,
+                title,
+                placeType,
+                null,
+                endMinutes - startMinutes,
+                formatClock(startMinutes),
+                formatClock(endMinutes),
+                anchorSpot.getId(),
+                fallbackNote);
+    }
+
+    private PoiCalibrationCandidateResponse recommendNearbyPoi(String cityName, Spot anchorSpot, String keyword,
+            int radiusMeters) {
+        if (!StringUtils.hasText(baiduMapProperties.getServerAk())) {
+            return null;
+        }
+
+        try {
+            List<PoiCalibrationCandidateResponse> candidates = poiCalibrationService.searchNearbyCandidates(
+                    cityName,
+                    new CoordinateResponse(anchorSpot.getLng(), anchorSpot.getLat()),
+                    keyword,
+                    radiusMeters);
+            return candidates.isEmpty() ? null : candidates.get(0);
+        } catch (Exception exception) {
+            return null;
+        }
     }
 
     /**
      * 先生成一段可读摘要，方便前端底部行程池和后续 route_record 总览直接复用。
      */
-    private String buildRouteSummary(String startName, List<Spot> orderedSpots, int totalTravelDurationSeconds, int totalStayDurationMinutes) {
+    private String buildRouteSummary(String startName, List<Spot> orderedSpots, int totalTravelDurationSeconds,
+            int totalStayDurationMinutes) {
         String spotSummary = orderedSpots.stream().map(Spot::getSpotName).collect(Collectors.joining(" → "));
         return String.format(
                 Locale.ROOT,
@@ -434,8 +697,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 orderedSpots.size(),
                 spotSummary,
                 Math.ceilDiv(totalTravelDurationSeconds, 60),
-                totalStayDurationMinutes
-        );
+                totalStayDurationMinutes);
     }
 
     private LocalTime parseTimeOrDefault(String timeText, String defaultValue) {
@@ -486,13 +748,15 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         return distinctSpotIds.stream().map(spotMapping::get).toList();
     }
 
-    private void validateCity(Long cityId) {
-        Long count = cityMapper.selectCount(new LambdaQueryWrapper<City>()
+    private City loadCity(Long cityId) {
+        City city = cityMapper.selectOne(new LambdaQueryWrapper<City>()
                 .eq(City::getId, cityId)
-                .eq(City::getStatus, 1));
-        if (count == null || count == 0L) {
+                .eq(City::getStatus, 1)
+                .last("limit 1"));
+        if (city == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "城市不存在或已下线");
         }
+        return city;
     }
 
     private void validatePlanMode(String planMode) {
@@ -510,6 +774,23 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         if (!List.of("transit", "driving", "walking", "bicycling").contains(normalizedTransportType)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "不支持的交通方式: " + transportType);
         }
+    }
+
+    private void validateLocationMode(String locationMode, String label) {
+        String normalizedMode = normalizeLocationMode(locationMode);
+        if (!List.of(LOCATION_MODE_NONE, LOCATION_MODE_MANUAL, LOCATION_MODE_RECOMMENDED).contains(normalizedMode)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, label + "地点模式不支持: " + locationMode);
+        }
+    }
+
+    private void validateRequiredLocation(String locationMode, RouteLocationRequest location, String label) {
+        if (LOCATION_MODE_MANUAL.equals(normalizeLocationMode(locationMode)) && location == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, label + "地点为手动选择时必须传入具体地点");
+        }
+    }
+
+    private String normalizeLocationMode(String locationMode) {
+        return StringUtils.hasText(locationMode) ? locationMode.toLowerCase(Locale.ROOT) : LOCATION_MODE_NONE;
     }
 
     private String normalizeTransportType(String transportType) {
@@ -573,12 +854,14 @@ public class RoutePlanServiceImpl implements RoutePlanService {
     private record RouteStop(Long spotId, String name, CoordinateResponse position, Integer suggestedDurationMinutes) {
     }
 
-    private record PlanningSnapshot(List<RouteSpotStayPlanResponse> spotStayPlans, List<ItineraryDayResponse> itineraryDays) {
+    private record PlanningSnapshot(List<RouteSpotStayPlanResponse> spotStayPlans,
+            List<ItineraryDayResponse> itineraryDays) {
     }
 
-    private record ItineraryDayAccumulator(Integer dayIndex, List<RouteSpotStayPlanResponse> spots) {
+    private record ItineraryDayAccumulator(Integer dayIndex, List<RouteSpotStayPlanResponse> spots,
+            List<ItineraryItemResponse> items) {
         private ItineraryDayAccumulator(Integer dayIndex) {
-            this(dayIndex, new ArrayList<>());
+            this(dayIndex, new ArrayList<>(), new ArrayList<>());
         }
     }
 }

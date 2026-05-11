@@ -1,5 +1,6 @@
 package com.trailmap.service;
 
+import com.trailmap.model.response.CoordinateResponse;
 import com.trailmap.model.response.PoiCalibrationCandidateResponse;
 import java.util.List;
 
@@ -9,4 +10,8 @@ import java.util.List;
 public interface PoiCalibrationService {
 
     List<PoiCalibrationCandidateResponse> searchCandidates(String cityName, String keyword, String addressKeyword);
+
+    // 搜索 nearby 候选点
+    List<PoiCalibrationCandidateResponse> searchNearbyCandidates(String cityName, CoordinateResponse center,
+            String keyword, int radiusMeters);
 }

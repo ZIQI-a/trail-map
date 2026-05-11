@@ -45,6 +45,36 @@ public class PoiCalibrationServiceImpl implements PoiCalibrationService {
         return parseCandidates(responseText);
     }
 
+    @Override
+    public List<PoiCalibrationCandidateResponse> searchNearbyCandidates(String cityName, CoordinateResponse center, String keyword, int radiusMeters) {
+        if (!StringUtils.hasText(baiduMapProperties.getServerAk())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "未配置百度地图服务端 AK，无法执行附近地点检索");
+        }
+
+        try {
+            String responseText = restClient.get()
+                    .uri(UriComponentsBuilder.fromHttpUrl(baiduMapProperties.getPlaceSearchUrl())
+                            .queryParam("query", keyword.trim())
+                            .queryParam("location", center.lat() + "," + center.lng())
+                            .queryParam("radius", Math.max(300, radiusMeters))
+                            .queryParam("radius_limit", true)
+                            .queryParam("output", "json")
+                            .queryParam("scope", 2)
+                            .queryParam("page_size", 5)
+                            .queryParam("ret_coordtype", "gcj02ll")
+                            .queryParam("ak", baiduMapProperties.getServerAk())
+                            .build()
+                            .encode()
+                            .toUri())
+                    .retrieve()
+                    .body(String.class);
+            return parseCandidates(responseText);
+        } catch (Exception exception) {
+            // 部分环境或关键词下附近检索可能失败，这里回退到城市维度检索，优先保证推荐流程可用。
+            return searchCandidates(cityName, keyword, null);
+        }
+    }
+
     private String buildQuery(String keyword, String addressKeyword) {
         if (!StringUtils.hasText(addressKeyword)) {
             return keyword.trim();

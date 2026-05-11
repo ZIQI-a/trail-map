@@ -39,6 +39,9 @@ export type PlanMode = 'free' | 'schedule';
 // 行程强度：完整行程模式用于控制每天安排的松紧程度。
 export type ItineraryIntensity = 'relaxed' | 'standard' | 'compact';
 
+// 地点安排模式：用于午餐、休息、酒店等补充节点。
+export type LocationArrangeMode = 'none' | 'manual' | 'recommended';
+
 // 完整行程偏好：当前先做前端配置占位，后续再逐步接入后端编排。
 export type SchedulePreferenceCode =
   | 'local_food'
@@ -213,6 +216,13 @@ export interface RoutePlanRequestDto {
   includeLunchBreak?: boolean;
   includeNightTour?: boolean;
   intensity?: ItineraryIntensity;
+  lunchMode?: LocationArrangeMode;
+  lunchLocation?: RouteLocation;
+  restMode?: LocationArrangeMode;
+  restLocation?: RouteLocation;
+  hotelMode?: LocationArrangeMode;
+  hotelLocation?: RouteLocation;
+  returnToHotel?: boolean;
 }
 
 // 完整行程配置：规划前弹窗和结果页设置抽屉共用这一套前端状态。
@@ -223,6 +233,11 @@ export interface SchedulePlanConfig {
   includeLunchBreak: boolean;
   includeNightTour: boolean;
   intensity: ItineraryIntensity;
+  lunchMode: LocationArrangeMode;
+  lunchPlaceName: string;
+  restMode: LocationArrangeMode;
+  restPlaceName: string;
+  hotelMode: LocationArrangeMode;
   hotelName: string;
   returnToHotel: boolean;
   preferenceTags: SchedulePreferenceCode[];
@@ -262,6 +277,22 @@ export interface ItineraryDayDto {
   totalStayDurationMinutes: number;
   totalTripDurationMinutes: number;
   spots: RouteSpotStayPlanDto[];
+  items: ItineraryItemDto[];
+}
+
+// 完整行程时间轴节点：用于展示景点、午餐、休息、酒店等混合结果。
+export interface ItineraryItemDto {
+  sequence: number;
+  itemType: 'spot' | 'lunch' | 'rest' | 'hotel';
+  title: string;
+  placeName: string;
+  placeType: string;
+  position?: GeoPoint | null;
+  durationMinutes: number;
+  suggestedStartTime: string;
+  suggestedEndTime: string;
+  relatedSpotId?: number;
+  note?: string;
 }
 
 // 行程规划响应：既包含路线分段，也包含景点停留时间和总时间汇总。

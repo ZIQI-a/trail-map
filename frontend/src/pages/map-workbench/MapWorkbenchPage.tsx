@@ -40,7 +40,9 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import type {
   GeoPoint,
+  LocationArrangeMode,
   PlanMode,
+  RouteLocation,
   RoutePlanResponseDto,
   SchedulePlanConfig,
   SpotTag,
@@ -76,6 +78,11 @@ const defaultScheduleConfig: SchedulePlanConfig = {
   includeLunchBreak: true,
   includeNightTour: false,
   intensity: "standard",
+  lunchMode: "recommended",
+  lunchPlaceName: "",
+  restMode: "none",
+  restPlaceName: "",
+  hotelMode: "none",
   hotelName: "",
   returnToHotel: false,
   preferenceTags: [],
@@ -289,6 +296,30 @@ export function MapWorkbenchPage() {
     const resolvedStartPosition =
       startPointPosition ??
       (await resolveStartPointPosition(city.name, startPointName, city.center));
+    const lunchLocation = config
+      ? await resolveOptionalPlanLocation(
+          city.name,
+          config.lunchMode,
+          config.lunchPlaceName,
+          "午餐地点",
+        )
+      : undefined;
+    const restLocation = config
+      ? await resolveOptionalPlanLocation(
+          city.name,
+          config.restMode,
+          config.restPlaceName,
+          "休息地点",
+        )
+      : undefined;
+    const hotelLocation = config
+      ? await resolveOptionalPlanLocation(
+          city.name,
+          config.hotelMode,
+          config.hotelName,
+          "酒店地点",
+        )
+      : undefined;
     const result = await routePlanMutation.mutateAsync({
       cityId: city.id,
       startPoint: {
@@ -304,6 +335,13 @@ export function MapWorkbenchPage() {
       includeLunchBreak: config?.includeLunchBreak,
       includeNightTour: config?.includeNightTour,
       intensity: config?.intensity,
+      lunchMode: config?.lunchMode,
+      lunchLocation,
+      restMode: config?.restMode,
+      restLocation,
+      hotelMode: config?.hotelMode,
+      hotelLocation,
+      returnToHotel: config?.returnToHotel,
     });
     setRoutePlanResult(result);
     if (result.planMode === "schedule" && result.itineraryDays.length > 0) {
@@ -346,6 +384,40 @@ export function MapWorkbenchPage() {
 
     setPlannerAssistError("起点未命中候选地点，当前已回退为城市中心点");
     return fallbackPosition;
+  }
+
+  // 完整行程的手动地点输入会在提交前统一解析，避免把“只写名称”的地点直接交给后端。
+  async function resolveOptionalPlanLocation(
+    cityName: string,
+    mode: LocationArrangeMode,
+    placeName: string,
+    label: string,
+  ): Promise<RouteLocation | undefined> {
+    if (mode !== "manual") {
+      return undefined;
+    }
+
+    const keyword = placeName.trim();
+    if (!keyword) {
+      throw new Error(`${label}不能为空`);
+    }
+
+    const candidates = await fetchPoiCalibrationCandidates(
+      normalizeCityName(cityName),
+      keyword,
+    );
+    const firstCandidate = candidates[0];
+    const position =
+      firstCandidate?.naviLocation ?? firstCandidate?.location ?? undefined;
+    if (!firstCandidate || !position) {
+      throw new Error(`${label}未命中候选地点，请换一个更具体的名称`);
+    }
+
+    return {
+      name: firstCandidate.name,
+      position,
+      address: firstCandidate.address,
+    };
   }
 
   // 用户从联想结果里选中起点时，直接绑定名称和对应坐标。

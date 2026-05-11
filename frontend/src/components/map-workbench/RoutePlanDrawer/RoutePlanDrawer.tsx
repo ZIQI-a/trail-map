@@ -4,15 +4,17 @@ import {
   ClockCircleOutlined,
   CloseOutlined,
   CompassOutlined,
+  CoffeeOutlined,
   EnvironmentOutlined,
   ExportOutlined,
   FlagOutlined,
+  HomeOutlined,
   NodeIndexOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons';
 import { Button, Tag, Timeline } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
-import type { RoutePlanResponseDto, SpotTag, TravelSpot } from '../../../types/mapWorkbench';
+import type { ItineraryDayDto, ItineraryItemDto, RoutePlanResponseDto, SpotTag, TravelSpot } from '../../../types/mapWorkbench';
 import { getRouteSegmentColor } from '../../../utils/map-workbench/routePalette';
 import { formatRouteDistance, formatRouteDuration, formatTripDuration } from '../../../utils/map-workbench/routeDisplay';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
@@ -44,7 +46,10 @@ export function RoutePlanDrawer({
       ? routePlan.itineraryDays.find((day) => day.dayIndex === selectedDayIndex) ??
         routePlan.itineraryDays[0]
       : undefined;
-  const timelineEntries = buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex);
+  const timelineEntries =
+    routePlan.planMode === 'schedule' && activeDay?.items.length
+      ? buildScheduleTimelineEntries(routePlan, startPoint, activeDay)
+      : buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex);
   const metricTarget = activeDay ?? routePlan;
   const summaryText = activeDay
     ? `${activeDay.title} 已安排 ${activeDay.spots.length} 个景点，预计交通 ${formatRouteDuration(activeDay.totalTravelDurationSeconds)}，游玩 ${formatTripDuration(activeDay.totalStayDurationMinutes)}。`
@@ -124,6 +129,12 @@ type TimelineEntry =
       stayPlan: RoutePlanResponseDto['spotStayPlans'][number];
       arrivalLabel: string;
       leaveLabel: string;
+    }
+  | {
+      type: 'activity';
+      sequence: number;
+      color: string;
+      item: ItineraryItemDto;
     };
 
 function buildTimelineEntries(
@@ -199,6 +210,78 @@ function buildTimelineEntries(
   return entries;
 }
 
+function buildScheduleTimelineEntries(
+  routePlan: RoutePlanResponseDto,
+  startPoint: string,
+  activeDay: ItineraryDayDto,
+): TimelineEntry[] {
+  const entries: TimelineEntry[] = [];
+  const firstItem = activeDay.items[0];
+  const startLabel = firstItem?.suggestedStartTime ?? '09:00';
+
+  entries.push({
+    type: 'start',
+    title: activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 出发` : startPoint || '市中心',
+    timeLabel: startLabel,
+    color: '#20a95a',
+  });
+
+  const spotPlanIndexMap = new Map(
+    routePlan.spotStayPlans.map((stayPlan, index) => [stayPlan.spotId, index]),
+  );
+
+  activeDay.items.forEach((item) => {
+    const sequence = item.sequence;
+    if (item.itemType === 'spot' && item.relatedSpotId != null) {
+      const globalIndex = spotPlanIndexMap.get(item.relatedSpotId);
+      const segment = globalIndex != null ? routePlan.segments[globalIndex] : undefined;
+      if (segment) {
+        entries.push({
+          type: 'segment',
+          title: getTransportLabel(segment.transportType),
+          subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
+          color: getRouteSegmentColor(Math.max(sequence - 1, 0)),
+          icon: getTransportIcon(segment.transportType),
+          sequence,
+        });
+      }
+    }
+
+    if (item.itemType === 'spot') {
+      const stayPlan = routePlan.spotStayPlans.find(
+        (currentPlan) => currentPlan.spotId === item.relatedSpotId,
+      );
+      if (stayPlan) {
+        entries.push({
+          type: 'spot',
+          sequence,
+          color: getRouteSegmentColor(Math.max(sequence - 1, 0)),
+          stayPlan,
+          arrivalLabel: item.suggestedStartTime,
+          leaveLabel: item.suggestedEndTime,
+        });
+        return;
+      }
+    }
+
+    entries.push({
+      type: 'activity',
+      sequence,
+      color: getActivityColor(item.itemType),
+      item,
+    });
+  });
+
+  const lastItem = activeDay.items[activeDay.items.length - 1];
+  entries.push({
+    type: 'end',
+    title: activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 收尾` : lastItem?.placeName ?? '行程结束',
+    timeLabel: lastItem?.suggestedEndTime ?? '18:00',
+    color: '#ff5a40',
+  });
+  return entries;
+}
+
 function formatClock(totalMinutes: number) {
   const normalizedMinutes = Math.max(0, totalMinutes);
   const hours = Math.floor(normalizedMinutes / 60);
@@ -234,6 +317,30 @@ function getTransportIcon(transportType: string) {
       return <EnvironmentOutlined />;
     default:
       return <CarOutlined />;
+  }
+}
+
+function getActivityColor(itemType: ItineraryItemDto['itemType']) {
+  switch (itemType) {
+    case 'lunch':
+      return '#f59e0b';
+    case 'rest':
+      return '#14b8a6';
+    case 'hotel':
+      return '#8b5cf6';
+    default:
+      return '#2d6bff';
+  }
+}
+
+function getActivityIcon(itemType: ItineraryItemDto['itemType']) {
+  switch (itemType) {
+    case 'lunch':
+      return <CoffeeOutlined />;
+    case 'hotel':
+      return <HomeOutlined />;
+    default:
+      return <EnvironmentOutlined />;
   }
 }
 
@@ -306,6 +413,36 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
               <strong>第 {entry.sequence} 站</strong>
             </div>
           </div>
+        </div>
+      ),
+    };
+  }
+
+  if (entry.type === 'activity') {
+    return {
+      className: styles.routeTimelineItem,
+      color: entry.color,
+      style: timelineStyle,
+      dot: (
+        <span className={styles.transportDot} style={{ backgroundColor: entry.color }}>
+          {getActivityIcon(entry.item.itemType)}
+        </span>
+      ),
+      children: (
+        <div className={styles.segmentCard}>
+          <div className={styles.segmentMain}>
+            <strong>
+              {entry.item.title}
+              {entry.item.placeName && entry.item.placeName !== entry.item.title
+                ? ` · ${entry.item.placeName}`
+                : ''}
+            </strong>
+            <span>
+              {entry.item.suggestedStartTime} - {entry.item.suggestedEndTime} · {formatDuration(entry.item.durationMinutes)}
+            </span>
+            {entry.item.note ? <span className={styles.activityNote}>{entry.item.note}</span> : null}
+          </div>
+          <ExportOutlined className={styles.segmentArrow} />
         </div>
       ),
     };
