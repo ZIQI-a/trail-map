@@ -40,9 +40,11 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import type {
   GeoPoint,
+  ItineraryItemDto,
   LocationArrangeMode,
   PlanMode,
   RouteLocation,
+  RouteSegmentDto,
   RoutePlanResponseDto,
   SchedulePlanConfig,
   SpotTag,
@@ -231,10 +233,23 @@ export function MapWorkbenchPage() {
     );
     return routePlanResult.segments.filter((segment) => {
       const targetSpotId =
-        routePlanResult.spotStayPlans[segment.segmentIndex]?.spotId;
+        routePlanResult.spotStayPlans[segment.segmentIndex - 1]?.spotId;
       return activeSpotIds.has(targetSpotId ?? -1);
     });
   }, [activeScheduleDay, routePlanResult, showingScheduleResult]);
+  const mapRouteOverlays = useMemo(
+    () =>
+      buildMapRouteOverlays(
+        routePlanResult,
+        visibleRouteSegments,
+        activeScheduleDay?.items,
+      ),
+    [activeScheduleDay?.items, routePlanResult, visibleRouteSegments],
+  );
+  const mapItineraryMarkers = useMemo(
+    () => buildMapItineraryMarkers(activeScheduleDay?.items),
+    [activeScheduleDay?.items],
+  );
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
   function handleAddToTrip(spotId: number) {
@@ -506,6 +521,8 @@ export function MapWorkbenchPage() {
           selectedSpot={selectedSpot}
           selectedSpotId={effectiveSelectedSpotId}
           routeSegments={visibleRouteSegments}
+          routeOverlays={mapRouteOverlays}
+          itineraryMarkers={mapItineraryMarkers}
           onSelectSpot={setSelectedSpotId}
         />
 
@@ -689,6 +706,118 @@ export function MapWorkbenchPage() {
       </Drawer>
     </main>
   );
+}
+
+interface MapRouteOverlay {
+  key: string;
+  polyline: GeoPoint[];
+  color: string;
+  lineStyle: "solid" | "dashed";
+  kind: "route" | "guide";
+}
+
+interface MapItineraryMarker {
+  key: string;
+  position: GeoPoint;
+  itemType: "lunch" | "rest" | "hotel";
+  title: string;
+}
+
+function buildMapRouteOverlays(
+  routePlanResult?: RoutePlanResponseDto,
+  visibleRouteSegments?: RouteSegmentDto[],
+  activeItems?: ItineraryItemDto[],
+): MapRouteOverlay[] | undefined {
+  if (!routePlanResult) {
+    return undefined;
+  }
+
+  const overlays: MapRouteOverlay[] = (visibleRouteSegments ?? routePlanResult.segments)
+    .filter((segment) => segment.polyline.length >= 2)
+    .map((segment, index) => ({
+      key: `segment-${segment.segmentIndex}`,
+      polyline: segment.polyline,
+      color: getRouteColor(index),
+      lineStyle: "solid" as const,
+      kind: "route" as const,
+    }));
+
+  if (routePlanResult.planMode !== "schedule" || !activeItems?.length) {
+    return overlays;
+  }
+
+  const positionedItems = activeItems.filter(
+    (item): item is ItineraryItemDto & { position: GeoPoint } => Boolean(item.position),
+  );
+  const spotIdToSegmentIndex = new Map<number, number>();
+  routePlanResult.spotStayPlans.forEach((stayPlan, index) => {
+    spotIdToSegmentIndex.set(stayPlan.spotId, index);
+  });
+
+  for (let index = 1; index < positionedItems.length; index += 1) {
+    const fromItem = positionedItems[index - 1];
+    const toItem = positionedItems[index];
+    const alreadyCoveredByRealSegment =
+      fromItem.itemType === "spot" &&
+      toItem.itemType === "spot" &&
+      fromItem.relatedSpotId != null &&
+      toItem.relatedSpotId != null &&
+      spotIdToSegmentIndex.get(toItem.relatedSpotId) != null;
+
+    if (alreadyCoveredByRealSegment) {
+      continue;
+    }
+
+    overlays.push({
+      key: `guide-${fromItem.sequence}-${toItem.sequence}`,
+      polyline: [fromItem.position, toItem.position],
+      color: getGuideColor(toItem.itemType),
+      lineStyle: "dashed",
+      kind: "guide",
+    });
+  }
+
+  return overlays;
+}
+
+function buildMapItineraryMarkers(
+  activeItems?: ItineraryItemDto[],
+): MapItineraryMarker[] | undefined {
+  const markers = (activeItems ?? [])
+    .filter(
+      (
+        item,
+      ): item is ItineraryItemDto & {
+        position: GeoPoint;
+        itemType: "lunch" | "rest" | "hotel";
+      } => item.itemType !== "spot" && Boolean(item.position),
+    )
+    .map((item) => ({
+      key: `${item.itemType}-${item.sequence}`,
+      position: item.position,
+      itemType: item.itemType,
+      title: item.placeName || item.title,
+    }));
+
+  return markers.length ? markers : undefined;
+}
+
+function getRouteColor(index: number) {
+  const ROUTE_SEGMENT_COLORS = ['#2d6bff', '#20a95a', '#f08b2f', '#7a5af8', '#ef5da8'];
+  return ROUTE_SEGMENT_COLORS[index % ROUTE_SEGMENT_COLORS.length];
+}
+
+function getGuideColor(itemType: ItineraryItemDto["itemType"]) {
+  switch (itemType) {
+    case "lunch":
+      return "#f59e0b";
+    case "rest":
+      return "#14b8a6";
+    case "hotel":
+      return "#8b5cf6";
+    default:
+      return "#94a3b8";
+  }
 }
 
 function mapCity(city?: TravelCity | TravelCityDto) {

@@ -2,6 +2,7 @@ import { Alert, Spin } from "antd";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createBaiduPoint, loadBaiduMapGL } from "../../../lib/baiduMap";
 import type {
+  GeoPoint,
   RouteSegmentDto,
   TravelCity,
   TravelSpot,
@@ -15,7 +16,24 @@ interface BaiduMapStageProps {
   selectedSpot?: TravelSpot;
   selectedSpotId?: number;
   routeSegments?: RouteSegmentDto[];
+  routeOverlays?: MapRouteOverlay[];
+  itineraryMarkers?: MapItineraryMarker[];
   onSelectSpot: (spotId: number) => void;
+}
+
+interface MapRouteOverlay {
+  key: string;
+  polyline: GeoPoint[];
+  color: string;
+  lineStyle: "solid" | "dashed";
+  kind: "route" | "guide";
+}
+
+interface MapItineraryMarker {
+  key: string;
+  position: GeoPoint;
+  itemType: "lunch" | "rest" | "hotel";
+  title: string;
 }
 
 // BaiduMapStage 负责真实地图底图、城市定位和景点 Marker 展示。
@@ -25,6 +43,8 @@ export function BaiduMapStage({
   selectedSpot,
   selectedSpotId,
   routeSegments,
+  routeOverlays,
+  itineraryMarkers,
   onSelectSpot,
 }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, "-");
@@ -100,6 +120,52 @@ export function BaiduMapStage({
       map.addOverlay(marker);
     });
 
+    const activeRouteOverlays =
+      routeOverlays?.length
+        ? routeOverlays
+        : routeSegments?.map((segment, index) => ({
+            key: `segment-${segment.segmentIndex}`,
+            polyline: segment.polyline,
+            color: getRouteSegmentColor(index),
+            lineStyle: "solid" as const,
+            kind: "route" as const,
+          })) ?? [];
+
+    const routeViewportPoints =
+      activeRouteOverlays.flatMap((overlay) => overlay.polyline).map(createBaiduPoint);
+
+    activeRouteOverlays.forEach((overlay) => {
+      if (overlay.polyline.length < 2) {
+        return;
+      }
+      const routeLine = new window.BMapGL!.Polyline(
+        overlay.polyline.map(createBaiduPoint),
+        ({
+          strokeColor: overlay.color,
+          strokeWeight: overlay.kind === "guide" ? 4 : 5,
+          strokeOpacity: overlay.kind === "guide" ? 0.72 : 0.88,
+          strokeStyle: overlay.lineStyle,
+        } as unknown as {
+          strokeColor?: string;
+          strokeWeight?: number;
+          strokeOpacity?: number;
+        }),
+      );
+      map.addOverlay(routeLine);
+    });
+
+    itineraryMarkers?.forEach((marker) => {
+      const overlay = new window.BMapGL!.Marker(createBaiduPoint(marker.position), {
+        icon: createActivityMarkerIcon(marker.itemType),
+      });
+      map.addOverlay(overlay);
+    });
+
+    if (routeViewportPoints.length >= 2) {
+      map.setViewport(routeViewportPoints);
+      return;
+    }
+
     // 选中景点如果带有轮廓，则优先画面并缩放到该区域；否则使用中等缩放聚焦主点位。
     if (selectedSpot?.boundary && selectedSpot.boundary.length >= 3) {
       const boundaryPoints = selectedSpot.boundary.map(createBaiduPoint);
@@ -113,32 +179,6 @@ export function BaiduMapStage({
       polygon.addEventListener("click", () => onSelectSpot(selectedSpot.id));
       map.addOverlay(polygon);
       map.setViewport(boundaryPoints);
-      return;
-    }
-
-    const routeViewportPoints =
-      routeSegments
-        ?.flatMap((segment) => segment.polyline)
-        .map(createBaiduPoint) ?? [];
-
-    // 路线规划成功后把每一段路线线条画到地图上，便于用户直观看到串联顺序。
-    routeSegments?.forEach((segment, index) => {
-      if (segment.polyline.length < 2) {
-        return;
-      }
-      const routeLine = new window.BMapGL!.Polyline(
-        segment.polyline.map(createBaiduPoint),
-        {
-          strokeColor: getRouteSegmentColor(index),
-          strokeWeight: 5,
-          strokeOpacity: 0.88,
-        },
-      );
-      map.addOverlay(routeLine);
-    });
-
-    if (routeViewportPoints.length >= 2) {
-      map.setViewport(routeViewportPoints);
       return;
     }
 
@@ -157,7 +197,9 @@ export function BaiduMapStage({
     selectedSpotSummary,
     selectedSpotZoom,
     routeSegments,
+    routeOverlays,
     spots,
+    itineraryMarkers,
   ]);
 
   if (sdkError) {
@@ -210,4 +252,34 @@ function createMarkerIcon(selected: boolean) {
       anchor: new window.BMapGL!.Size(15, 38),
     },
   );
+}
+
+function createActivityMarkerIcon(itemType: MapItineraryMarker["itemType"]) {
+  const config = resolveActivityMarkerConfig(itemType);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+      <circle cx="13" cy="13" r="11" fill="${config.fill}" />
+      <circle cx="13" cy="13" r="11" stroke="${config.ring}" stroke-width="2" fill="none" />
+      <text x="13" y="17" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">${config.label}</text>
+    </svg>
+  `;
+
+  return new window.BMapGL!.Icon(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    new window.BMapGL!.Size(26, 26),
+    {
+      anchor: new window.BMapGL!.Size(13, 13),
+    },
+  );
+}
+
+function resolveActivityMarkerConfig(itemType: MapItineraryMarker["itemType"]) {
+  switch (itemType) {
+    case "lunch":
+      return { fill: "#f59e0b", ring: "#fde68a", label: "餐" };
+    case "rest":
+      return { fill: "#14b8a6", ring: "#99f6e4", label: "休" };
+    default:
+      return { fill: "#8b5cf6", ring: "#ddd6fe", label: "住" };
+  }
 }
