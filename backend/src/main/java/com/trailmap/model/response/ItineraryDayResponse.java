@@ -14,6 +14,7 @@ public record ItineraryDayResponse(
         Integer totalStayDurationMinutes,
         Integer totalTripDurationMinutes,
         List<RouteSpotStayPlanResponse> spots,
-        List<ItineraryItemResponse> items
+        List<ItineraryItemResponse> items,
+        List<RouteSegmentResponse> segments
 ) {
 }

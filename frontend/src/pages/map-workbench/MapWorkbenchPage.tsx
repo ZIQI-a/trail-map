@@ -227,24 +227,11 @@ export function MapWorkbenchPage() {
     if (!showingScheduleResult || !activeScheduleDay) {
       return routePlanResult.segments;
     }
-
-    const activeSpotIds = new Set(
-      activeScheduleDay.spots.map((spot) => spot.spotId),
-    );
-    return routePlanResult.segments.filter((segment) => {
-      const targetSpotId =
-        routePlanResult.spotStayPlans[segment.segmentIndex - 1]?.spotId;
-      return activeSpotIds.has(targetSpotId ?? -1);
-    });
+    return activeScheduleDay.segments;
   }, [activeScheduleDay, routePlanResult, showingScheduleResult]);
   const mapRouteOverlays = useMemo(
-    () =>
-      buildMapRouteOverlays(
-        routePlanResult,
-        visibleRouteSegments,
-        activeScheduleDay?.items,
-      ),
-    [activeScheduleDay?.items, routePlanResult, visibleRouteSegments],
+    () => buildMapRouteOverlays(routePlanResult, visibleRouteSegments),
+    [routePlanResult, visibleRouteSegments],
   );
   const mapItineraryMarkers = useMemo(
     () => buildMapItineraryMarkers(activeScheduleDay?.items),
@@ -726,7 +713,6 @@ interface MapItineraryMarker {
 function buildMapRouteOverlays(
   routePlanResult?: RoutePlanResponseDto,
   visibleRouteSegments?: RouteSegmentDto[],
-  activeItems?: ItineraryItemDto[],
 ): MapRouteOverlay[] | undefined {
   if (!routePlanResult) {
     return undefined;
@@ -741,41 +727,6 @@ function buildMapRouteOverlays(
       lineStyle: "solid" as const,
       kind: "route" as const,
     }));
-
-  if (routePlanResult.planMode !== "schedule" || !activeItems?.length) {
-    return overlays;
-  }
-
-  const positionedItems = activeItems.filter(
-    (item): item is ItineraryItemDto & { position: GeoPoint } => Boolean(item.position),
-  );
-  const spotIdToSegmentIndex = new Map<number, number>();
-  routePlanResult.spotStayPlans.forEach((stayPlan, index) => {
-    spotIdToSegmentIndex.set(stayPlan.spotId, index);
-  });
-
-  for (let index = 1; index < positionedItems.length; index += 1) {
-    const fromItem = positionedItems[index - 1];
-    const toItem = positionedItems[index];
-    const alreadyCoveredByRealSegment =
-      fromItem.itemType === "spot" &&
-      toItem.itemType === "spot" &&
-      fromItem.relatedSpotId != null &&
-      toItem.relatedSpotId != null &&
-      spotIdToSegmentIndex.get(toItem.relatedSpotId) != null;
-
-    if (alreadyCoveredByRealSegment) {
-      continue;
-    }
-
-    overlays.push({
-      key: `guide-${fromItem.sequence}-${toItem.sequence}`,
-      polyline: [fromItem.position, toItem.position],
-      color: getGuideColor(toItem.itemType),
-      lineStyle: "dashed",
-      kind: "guide",
-    });
-  }
 
   return overlays;
 }
@@ -807,18 +758,6 @@ function getRouteColor(index: number) {
   return ROUTE_SEGMENT_COLORS[index % ROUTE_SEGMENT_COLORS.length];
 }
 
-function getGuideColor(itemType: ItineraryItemDto["itemType"]) {
-  switch (itemType) {
-    case "lunch":
-      return "#f59e0b";
-    case "rest":
-      return "#14b8a6";
-    case "hotel":
-      return "#8b5cf6";
-    default:
-      return "#94a3b8";
-  }
-}
 
 function mapCity(city?: TravelCity | TravelCityDto) {
   if (!city) {

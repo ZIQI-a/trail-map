@@ -216,6 +216,7 @@ function buildScheduleTimelineEntries(
   activeDay: ItineraryDayDto,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
+  const daySegments = activeDay.segments ?? [];
   const firstItem = activeDay.items[0];
   const startLabel = firstItem?.suggestedStartTime ?? '09:00';
 
@@ -226,25 +227,29 @@ function buildScheduleTimelineEntries(
     color: '#20a95a',
   });
 
-  const spotPlanIndexMap = new Map(
-    routePlan.spotStayPlans.map((stayPlan, index) => [stayPlan.spotId, index]),
-  );
+  let segmentCursor = 0;
+  let previousPositionedItem: ItineraryItemDto | undefined;
+  let currentItemColor = getRouteSegmentColor(0);
 
-  activeDay.items.forEach((item) => {
+  activeDay.items.forEach((item, itemIndex) => {
     const sequence = item.sequence;
-    if (item.itemType === 'spot' && item.relatedSpotId != null) {
-      const globalIndex = spotPlanIndexMap.get(item.relatedSpotId);
-      const segment = globalIndex != null ? routePlan.segments[globalIndex] : undefined;
+    if (item.position) {
+      const segment = previousPositionedItem
+        ? daySegments[segmentCursor]
+        : undefined;
       if (segment) {
+        currentItemColor = getRouteSegmentColor(segmentCursor);
         entries.push({
           type: 'segment',
           title: getTransportLabel(segment.transportType),
           subtitle: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
-          color: getRouteSegmentColor(Math.max(sequence - 1, 0)),
+          color: currentItemColor,
           icon: getTransportIcon(segment.transportType),
           sequence,
         });
+        segmentCursor += 1;
       }
+      previousPositionedItem = item;
     }
 
     if (item.itemType === 'spot') {
@@ -255,7 +260,7 @@ function buildScheduleTimelineEntries(
         entries.push({
           type: 'spot',
           sequence,
-          color: getRouteSegmentColor(Math.max(sequence - 1, 0)),
+          color: itemIndex === 0 ? getRouteSegmentColor(0) : currentItemColor,
           stayPlan,
           arrivalLabel: item.suggestedStartTime,
           leaveLabel: item.suggestedEndTime,
@@ -267,7 +272,7 @@ function buildScheduleTimelineEntries(
     entries.push({
       type: 'activity',
       sequence,
-      color: getActivityColor(item.itemType),
+      color: itemIndex === 0 ? getRouteSegmentColor(0) : currentItemColor,
       item,
     });
   });
@@ -317,19 +322,6 @@ function getTransportIcon(transportType: string) {
       return <EnvironmentOutlined />;
     default:
       return <CarOutlined />;
-  }
-}
-
-function getActivityColor(itemType: ItineraryItemDto['itemType']) {
-  switch (itemType) {
-    case 'lunch':
-      return '#f59e0b';
-    case 'rest':
-      return '#14b8a6';
-    case 'hotel':
-      return '#8b5cf6';
-    default:
-      return '#2d6bff';
   }
 }
 

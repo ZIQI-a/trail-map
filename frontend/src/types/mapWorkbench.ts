@@ -278,6 +278,7 @@ export interface ItineraryDayDto {
   totalTripDurationMinutes: number;
   spots: RouteSpotStayPlanDto[];
   items: ItineraryItemDto[];
+  segments: RouteSegmentDto[];
 }
 
 // 完整行程时间轴节点：用于展示景点、午餐、休息、酒店等混合结果。

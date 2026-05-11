@@ -103,6 +103,18 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 .filter(Objects::nonNull)
                 .mapToInt(Integer::intValue)
                 .sum();
+        if (PLAN_MODE_SCHEDULE.equals(request.planMode().toLowerCase(Locale.ROOT))) {
+            totalTravelDurationSeconds = planningSnapshot.itineraryDays().stream()
+                    .map(ItineraryDayResponse::totalTravelDurationSeconds)
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+            totalDistanceMeters = planningSnapshot.itineraryDays().stream()
+                    .map(ItineraryDayResponse::totalDistanceMeters)
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+        }
         int totalTripDurationMinutes = PLAN_MODE_SCHEDULE.equals(request.planMode().toLowerCase(Locale.ROOT))
                 ? planningSnapshot.itineraryDays().stream()
                         .map(ItineraryDayResponse::totalTripDurationMinutes)
@@ -235,7 +247,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         }
 
         List<ItineraryDayResponse> itineraryDays = dayAccumulators.stream()
-                .map(day -> toItineraryDay(day, segments, orderedSpots))
+                .map(day -> toItineraryDay(day, request.transportType()))
                 .toList();
         return new PlanningSnapshot(spotStayPlans, itineraryDays);
     }
@@ -447,22 +459,21 @@ public class RoutePlanServiceImpl implements RoutePlanService {
     }
 
     /**
-     * 将按天累积的景点结果转换成返回前端的日程对象。
-     * 当前按“该天景点条目对应的路段”粗略汇总每日距离和交通耗时。
+     * 将按天累积的时间轴结果转换成返回前端的日程对象。
+     * 完整行程按“当天相邻真实节点”重算路线，这样吃饭、休息、酒店节点也有自己的真实路径。
      */
-    private ItineraryDayResponse toItineraryDay(ItineraryDayAccumulator day, List<RouteSegmentResponse> segments,
-            List<Spot> orderedSpots) {
-        List<Long> daySpotIds = day.spots().stream().map(RouteSpotStayPlanResponse::spotId).toList();
-        int totalDistanceMeters = 0;
-        int totalTravelDurationSeconds = 0;
-
-        for (int index = 0; index < orderedSpots.size(); index++) {
-            if (!daySpotIds.contains(orderedSpots.get(index).getId()) || index >= segments.size()) {
-                continue;
-            }
-            totalDistanceMeters += safeInt(segments.get(index).distanceMeters());
-            totalTravelDurationSeconds += safeInt(segments.get(index).durationSeconds());
-        }
+    private ItineraryDayResponse toItineraryDay(ItineraryDayAccumulator day, String transportType) {
+        List<RouteSegmentResponse> daySegments = buildDaySegments(day.items(), transportType);
+        int totalDistanceMeters = daySegments.stream()
+                .map(RouteSegmentResponse::distanceMeters)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+        int totalTravelDurationSeconds = daySegments.stream()
+                .map(RouteSegmentResponse::durationSeconds)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
 
         int totalStayDurationMinutes = day.spots().stream()
                 .map(RouteSpotStayPlanResponse::suggestedDurationMinutes)
@@ -484,7 +495,25 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 totalStayDurationMinutes,
                 totalStayDurationMinutes + extraItemDurationMinutes + Math.ceilDiv(totalTravelDurationSeconds, 60),
                 List.copyOf(day.spots()),
-                List.copyOf(day.items()));
+                List.copyOf(day.items()),
+                List.copyOf(daySegments));
+    }
+
+    private List<RouteSegmentResponse> buildDaySegments(List<ItineraryItemResponse> items, String transportType) {
+        List<RouteSegmentResponse> daySegments = new ArrayList<>();
+        List<ItineraryItemResponse> positionedItems = items.stream()
+                .filter(item -> item.position() != null)
+                .toList();
+        for (int index = 1; index < positionedItems.size(); index++) {
+            ItineraryItemResponse fromItem = positionedItems.get(index - 1);
+            ItineraryItemResponse toItem = positionedItems.get(index);
+            daySegments.add(buildSingleSegment(
+                    index,
+                    new RouteStop(fromItem.relatedSpotId(), fromItem.placeName(), fromItem.position(), fromItem.durationMinutes()),
+                    new RouteStop(toItem.relatedSpotId(), toItem.placeName(), toItem.position(), toItem.durationMinutes()),
+                    transportType));
+        }
+        return daySegments;
     }
 
     /**
@@ -725,10 +754,6 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         int hours = normalizedMinutes / 60;
         int minutes = normalizedMinutes % 60;
         return String.format(Locale.ROOT, "%02d:%02d", hours, minutes);
-    }
-
-    private int safeInt(Integer value) {
-        return value == null ? 0 : value;
     }
 
     /**
