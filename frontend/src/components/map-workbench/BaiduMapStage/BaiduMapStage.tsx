@@ -7,7 +7,7 @@ import type {
   TravelCity,
   TravelSpot,
 } from "../../../types/mapWorkbench";
-import { getRouteSegmentColor } from "../../../utils/map-workbench/routePalette";
+import { getItineraryActivityMarkerConfig, getRouteSegmentColor } from "../../../utils/map-workbench/routePalette";
 import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
@@ -274,12 +274,5 @@ function createActivityMarkerIcon(itemType: MapItineraryMarker["itemType"]) {
 }
 
 function resolveActivityMarkerConfig(itemType: MapItineraryMarker["itemType"]) {
-  switch (itemType) {
-    case "lunch":
-      return { fill: "#f59e0b", ring: "#fde68a", label: "餐" };
-    case "rest":
-      return { fill: "#14b8a6", ring: "#99f6e4", label: "休" };
-    default:
-      return { fill: "#8b5cf6", ring: "#ddd6fe", label: "住" };
-  }
+  return getItineraryActivityMarkerConfig(itemType);
 }

@@ -22,7 +22,7 @@ import type {
   SpotTag,
   TravelSpot,
 } from '../../../types/mapWorkbench';
-import { getRouteSegmentColor } from '../../../utils/map-workbench/routePalette';
+import { getItineraryActivityColor, getRouteSegmentColor } from '../../../utils/map-workbench/routePalette';
 import { formatRouteDistance, formatRouteDuration, formatTripDuration } from '../../../utils/map-workbench/routeDisplay';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './RoutePlanDrawer.module.css';
@@ -178,7 +178,7 @@ function buildTimelineEntries(
     type: 'start',
     title: selectedDayIndex && selectedDayIndex > 1 ? `Day ${selectedDayIndex} 出发` : startPoint || '市中心',
     timeLabel: formatClock(initialMinutes),
-    color: '#20a95a',
+    color: getRouteSegmentColor(0),
   });
 
   scopedSpotPlans.forEach((stayPlan, localIndex) => {
@@ -244,7 +244,7 @@ function buildScheduleTimelineEntries(
     type: 'start',
     title: activeDay.startPlaceName || (activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 出发` : startPoint || '市中心'),
     timeLabel: startLabel,
-    color: '#20a95a',
+    color: getRouteSegmentColor(0),
   });
 
   let segmentCursor = 0;
@@ -290,7 +290,7 @@ function buildScheduleTimelineEntries(
     entries.push({
       type: 'activity',
       sequence,
-      color: currentItemColor,
+      color: getActivityTimelineColor(item.itemType),
       item,
     });
   });
@@ -400,6 +400,14 @@ function getActivityIcon(itemType: ItineraryItemDto['itemType']) {
   }
 }
 
+function getActivityTimelineColor(itemType: ItineraryItemDto['itemType']) {
+  if (itemType === 'lunch' || itemType === 'rest' || itemType === 'hotel') {
+    return getItineraryActivityColor(itemType);
+  }
+
+  return '#7a8ca4';
+}
+
 function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, TravelSpot>, tags: SpotTag[]) {
   // 将路线颜色写入时间轴节点，由 CSS 统一渲染左侧步骤线，避免卡片内再出现独立竖线。
   const timelineStyle = { '--route-accent': entry.color } as CSSProperties;
@@ -409,11 +417,7 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
       className: styles.routeTimelineItem,
       color: entry.color,
       style: timelineStyle,
-      dot: (
-        <span className={styles.transportDot} style={{ backgroundColor: entry.color }}>
-          {entry.icon}
-        </span>
-      ),
+      dot: <span className={styles.transportDot} style={{ color: entry.color }} aria-hidden="true" />,
       children: (
         <div className={styles.segmentCard}>
           <div className={styles.segmentMain}>
@@ -481,7 +485,7 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
       color: entry.color,
       style: timelineStyle,
       dot: (
-        <span className={styles.transportDot} style={{ backgroundColor: entry.color }}>
+        <span className={styles.activityDot} style={{ backgroundColor: entry.color }}>
           {getActivityIcon(entry.item.itemType)}
         </span>
       ),
@@ -509,7 +513,11 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
     className: styles.routeTimelineItem,
     color: entry.color,
     style: timelineStyle,
-    dot: <span className={`${styles.pointDot} ${styles[entry.type]}`}>{entry.type === 'start' ? '起' : '终'}</span>,
+    dot: (
+      <span className={`${styles.pointDot} ${styles[entry.type]}`} style={{ backgroundColor: entry.color }}>
+        {entry.type === 'start' ? '起' : '终'}
+      </span>
+    ),
     children: (
       <div className={styles.pointCard}>
         <span className={styles.pointTime}>{entry.timeLabel}</span>
