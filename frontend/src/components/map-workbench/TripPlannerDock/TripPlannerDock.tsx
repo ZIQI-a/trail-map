@@ -9,7 +9,6 @@ import {
   FlagOutlined,
   HolderOutlined,
   QuestionCircleOutlined,
-  PushpinOutlined,
   RightOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
@@ -124,7 +123,10 @@ export function TripPlannerDock({
     : "--";
   // 行程池通过 Popover 展开，避免长期占用地图视野。
   // 行程池拖拽只调整前端景点顺序，真正路线顺序会在下一次规划时按该顺序提交给后端。
-  const handleDragStart = (event: DragEvent<HTMLDivElement>, spotId: number) => {
+  const handleDragStart = (
+    event: DragEvent<HTMLDivElement>,
+    spotId: number,
+  ) => {
     setDraggingSpotId(spotId);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", String(spotId));
@@ -160,8 +162,12 @@ export function TripPlannerDock({
             className={[
               styles.tripPopoverItem,
               draggingSpotId === spot.id ? styles.draggingItem : "",
-              dragOverSpotId === spot.id && draggingSpotId !== spot.id ? styles.dragOverItem : "",
-            ].filter(Boolean).join(" ")}
+              dragOverSpotId === spot.id && draggingSpotId !== spot.id
+                ? styles.dragOverItem
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             key={spot.id}
             draggable
             onDragStart={(event) => handleDragStart(event, spot.id)}
@@ -181,7 +187,10 @@ export function TripPlannerDock({
             </span>
             <span className={styles.tripIndex}>{index + 1}</span>
             <strong>{spot.name}</strong>
-            <div className={styles.sortButtons} aria-label={`${spot.name}排序操作`}>
+            <div
+              className={styles.sortButtons}
+              aria-label={`${spot.name}排序操作`}
+            >
               <button
                 className={styles.sortButton}
                 type="button"
@@ -268,7 +277,9 @@ export function TripPlannerDock({
       </div>
 
       <div className={styles.plannerRail}>
-        <label className={`${styles.railCard} ${styles.startCard} ${startPointPicking ? styles.startCardPicking : ""}`}>
+        <label
+          className={`${styles.railCard} ${styles.startCard} ${startPointPicking ? styles.startCardPicking : ""}`}
+        >
           <span>{startPointPicking ? "点击地图选点中" : "起点"}</span>
           <AutoComplete
             className={styles.startAutocomplete}
@@ -278,22 +289,24 @@ export function TripPlannerDock({
             onSearch={onStartPointChange}
             onChange={onStartPointChange}
             onFocus={onStartPointFocus}
-            onSelect={(value, option) => onSelectStartPoint(value, (option as StartPointOption).position)}
+            onSelect={(value, option) =>
+              onSelectStartPoint(value, (option as StartPointOption).position)
+            }
           >
             <Input
-              prefix={<PushpinOutlined className={styles.startDecorIcon} />}
-              suffix={
+              allowClear
+              prefix={
                 <button
-                  className={styles.locateButton}
+                  className={styles.startDecorButton}
                   type="button"
                   title="使用当前位置"
                   aria-label="使用当前位置"
                   onClick={onUseCurrentLocation}
                 >
-                  <AimOutlined />
+                  <AimOutlined className={styles.startDecorIcon} />
                 </button>
               }
-              placeholder="例如：春熙路地铁站"
+              placeholder="输入起点或在地图上选点"
               disabled={locatingCurrentPosition}
             />
           </AutoComplete>
@@ -317,9 +330,13 @@ export function TripPlannerDock({
               title={
                 <div className={styles.planModeHelp}>
                   <strong>自由路线</strong>
-                  <p>按行程池中的景点顺序生成路线，重点查看每段交通距离、耗时和整体路线走向，适合先粗排景点。</p>
+                  <p>
+                    按行程池中的景点顺序生成路线，重点查看每段交通距离、耗时和整体路线走向，适合先粗排景点。
+                  </p>
                   <strong>完整行程</strong>
-                  <p>在路线基础上加入游玩天数、开始结束时间、行程强度、午餐/休息/酒店等设置，生成按天展示的时间轴。</p>
+                  <p>
+                    在路线基础上加入游玩天数、开始结束时间、行程强度、午餐/休息/酒店等设置，生成按天展示的时间轴。
+                  </p>
                 </div>
               }
             >
