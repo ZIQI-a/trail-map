@@ -145,17 +145,18 @@ export function BaiduMapStage({
       .flatMap((overlay) => overlay.polyline)
       .map(createBaiduPoint);
 
-    activeRouteOverlays.forEach((overlay) => {
+    activeRouteOverlays.forEach((overlay, index) => {
       if (overlay.polyline.length < 2) {
         return;
       }
-      const routePoints = overlay.polyline.map(createBaiduPoint);
-      const routeLine = new window.BMapGL!.Polyline(
+      const displayPolyline = offsetRoutePolyline(overlay.polyline, index, activeRouteOverlays.length);
+      const routePoints = displayPolyline.map(createBaiduPoint);
+      const casingLine = new window.BMapGL!.Polyline(
         routePoints,
         {
-          strokeColor: overlay.color,
-          strokeWeight: overlay.kind === "guide" ? 4 : 5,
-          strokeOpacity: overlay.kind === "guide" ? 0.72 : 0.88,
+          strokeColor: "#ffffff",
+          strokeWeight: overlay.kind === "guide" ? 8 : 10,
+          strokeOpacity: overlay.kind === "guide" ? 0.78 : 0.86,
           strokeStyle: overlay.lineStyle,
         } as unknown as {
           strokeColor?: string;
@@ -163,11 +164,25 @@ export function BaiduMapStage({
           strokeOpacity?: number;
         },
       );
+      const routeLine = new window.BMapGL!.Polyline(
+        routePoints,
+        {
+          strokeColor: overlay.color,
+          strokeWeight: overlay.kind === "guide" ? 4 : 6,
+          strokeOpacity: overlay.kind === "guide" ? 0.78 : 0.92,
+          strokeStyle: overlay.lineStyle,
+        } as unknown as {
+          strokeColor?: string;
+          strokeWeight?: number;
+          strokeOpacity?: number;
+        },
+      );
+      map.addOverlay(casingLine);
       map.addOverlay(routeLine);
 
       // 每条路线补充轻量端点标识，帮助用户区分当前路段从哪里出发、到哪里结束。
-      const firstPoint = overlay.polyline[0];
-      const lastPoint = overlay.polyline[overlay.polyline.length - 1];
+      const firstPoint = displayPolyline[0];
+      const lastPoint = displayPolyline[displayPolyline.length - 1];
       map.addOverlay(
         new window.BMapGL!.Marker(createBaiduPoint(firstPoint), {
           icon: createRouteEndpointIcon("起", overlay.color, overlay.kind),
@@ -316,6 +331,38 @@ function createActivityMarkerIcon(itemType: MapItineraryMarker["itemType"]) {
 
 function resolveActivityMarkerConfig(itemType: MapItineraryMarker["itemType"]) {
   return getItineraryActivityMarkerConfig(itemType);
+}
+
+/**
+ * 路线展示偏移只影响前端视觉，不回写真实路线坐标；用于缓解多条路线完全重合时看不清的问题。
+ */
+function offsetRoutePolyline(polyline: GeoPoint[], routeIndex: number, routeCount: number) {
+  if (polyline.length < 2 || routeCount <= 1) {
+    return polyline;
+  }
+
+  const offsetLevel = (routeIndex % 5) - Math.min(routeCount - 1, 4) / 2;
+  const offsetDistance = offsetLevel * 0.000035;
+  if (Math.abs(offsetDistance) < 0.000001) {
+    return polyline;
+  }
+
+  return polyline.map((point, pointIndex) => {
+    const previousPoint = polyline[Math.max(0, pointIndex - 1)];
+    const nextPoint = polyline[Math.min(polyline.length - 1, pointIndex + 1)];
+    const deltaLng = nextPoint.lng - previousPoint.lng;
+    const deltaLat = nextPoint.lat - previousPoint.lat;
+    const vectorLength = Math.hypot(deltaLng, deltaLat);
+
+    if (vectorLength === 0) {
+      return point;
+    }
+
+    return {
+      lng: point.lng + (-deltaLat / vectorLength) * offsetDistance,
+      lat: point.lat + (deltaLng / vectorLength) * offsetDistance,
+    };
+  });
 }
 
 function createRouteEndpointIcon(label: "起" | "到", color: string, kind: MapRouteOverlay["kind"]) {
