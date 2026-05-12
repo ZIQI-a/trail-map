@@ -35,6 +35,10 @@
   z-index: 5;
 }
 
+.tripFloatPanel {
+  z-index: 999;
+}
+
 .leftFloatPanel {
   top: 14px;
   left: 14px;
@@ -70,7 +74,7 @@
 
 .tripFloatPanel {
   right: 14px;
-  bottom: 14px;
+  bottom: 15px;
   left: 14px;
 }
 
@@ -203,7 +207,7 @@
 
   .tripFloatPanel {
     right: 12px;
-    bottom: 12px;
+    bottom: 15px;
     left: 12px;
   }
 
@@ -214,6 +218,7 @@
 }
 
 @media (max-height: 760px) {
+
   .leftFloatPanel,
   .detailFloatPanel {
     max-height: calc(100% - 126px);
