@@ -14,7 +14,7 @@ import {
   TeamOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Input, Segmented, Select } from "antd";
+import { Avatar, Button, Input, Select } from "antd";
 import type { ReactNode } from "react";
 import type {
   SpotTag,
@@ -55,9 +55,9 @@ export function WorkbenchHeader({
   onSearchKeywordChange,
   onActiveFilterChange,
 }: WorkbenchHeaderProps) {
-  const filterOptions = [
-    { label: buildFilterLabel("全部", <AimOutlined />), value: "all" },
-    ...tags.map((tag) => ({ label: buildFilterLabel(tag.name, getFilterIcon(tag.code)), value: tag.code })),
+  const filterOptions: Array<{ label: string; icon: ReactNode; value: ActiveSpotFilter }> = [
+    { label: "全部", icon: <AimOutlined />, value: "all" },
+    ...tags.map((tag) => ({ label: tag.name, icon: getFilterIcon(tag.code), value: tag.code })),
   ];
   const cityOptions = cities.map((city) => ({
     label: `${city.name} · ${city.provinceName}`,
@@ -102,24 +102,30 @@ export function WorkbenchHeader({
       </div>
 
       <nav className={styles.filterRail} aria-label="景点分类筛选">
-        <Segmented
-          className={styles.filterSegmented}
-          value={activeFilter}
-          options={filterOptions}
-          onChange={(value) => onActiveFilterChange(value as ActiveSpotFilter)}
-        />
+        <div className={styles.filterGroup}>
+          {filterOptions.map((option) => (
+            <button
+              className={`${styles.filterButton} ${activeFilter === option.value ? styles.filterButtonActive : ""}`}
+              type="button"
+              key={option.value}
+              aria-pressed={activeFilter === option.value}
+              onClick={() => onActiveSpotFilterChange(option.value, onActiveFilterChange)}
+            >
+              {option.icon}
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
       </nav>
     </header>
   );
 }
 
-function buildFilterLabel(label: string, icon: ReactNode) {
-  return (
-    <span className={styles.filterLabel}>
-      {icon}
-      <span>{label}</span>
-    </span>
-  );
+function onActiveSpotFilterChange(
+  value: ActiveSpotFilter,
+  onActiveFilterChange: (filter: ActiveSpotFilter) => void,
+) {
+  onActiveFilterChange(value);
 }
 
 function getFilterIcon(code: SpotTagCode) {
