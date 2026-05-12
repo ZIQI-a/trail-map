@@ -10,6 +10,17 @@
   background: rgb(255 255 255 / 96%);
   box-shadow: 0 12px 30px rgb(30 62 104 / 11%);
   backdrop-filter: blur(16px);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.tripDockDropActive {
+  border-color: #2d6bff;
+  background:
+    linear-gradient(180deg, rgb(237 244 255 / 98%), rgb(255 255 255 / 96%));
+  box-shadow: 0 16px 36px rgb(45 107 255 / 18%);
 }
 
 .tripLauncherText strong,

@@ -13,7 +13,7 @@ import {
   Segmented,
   Spin,
 } from "antd";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type DragEvent } from "react";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
 import { RoutePlanDrawer, type RouteTimelineFocusTarget } from "../../components/map-workbench/RoutePlanDrawer";
@@ -114,6 +114,7 @@ export function MapWorkbenchPage() {
   const [scheduleSettingsOpen, setScheduleSettingsOpen] = useState(false);
   const [selectedScheduleDay, setSelectedScheduleDay] = useState(1);
   const [mapFocusTarget, setMapFocusTarget] = useState<MapFocusTarget>();
+  const [dragOverTripDock, setDragOverTripDock] = useState(false);
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
@@ -263,6 +264,37 @@ export function MapWorkbenchPage() {
     setPlannerAssistError(undefined);
     setRoutePlanResult(undefined);
     setTripSpotIds((currentIds) => reorderByIndex(currentIds, fromIndex, toIndex));
+  }
+
+  // 左侧推荐景点拖拽时只写入景点 id，底部行程栏负责接收并复用加入行程逻辑。
+  function handleDragRecommendSpot(event: DragEvent<HTMLButtonElement>, spot: TravelSpot) {
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData("application/trailmap-spot-id", String(spot.id));
+    event.dataTransfer.setData("text/plain", String(spot.id));
+  }
+
+  function handleTripDockDragOver(event: DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes("application/trailmap-spot-id")) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setDragOverTripDock(true);
+  }
+
+  function handleDropRecommendSpot(event: DragEvent<HTMLElement>) {
+    const spotIdText = event.dataTransfer.getData("application/trailmap-spot-id");
+    if (!spotIdText) {
+      return;
+    }
+
+    event.preventDefault();
+    setDragOverTripDock(false);
+    const spotId = Number(spotIdText);
+    if (Number.isFinite(spotId)) {
+      handleAddToTrip(spotId);
+    }
   }
 
   // 切换城市时同步清空景点选中和行程池，避免旧城市状态残留到新城市。
@@ -571,6 +603,7 @@ export function MapWorkbenchPage() {
               selectedSpotId={effectiveSelectedSpotId}
               onActiveTabChange={setActiveRecommendTab}
               onSelectSpot={setSelectedSpotId}
+              onDragSpotStart={handleDragRecommendSpot}
             />
           )}
         </div>
@@ -633,6 +666,7 @@ export function MapWorkbenchPage() {
             selectedPlanMode={selectedPlanMode}
             planning={routePlanMutation.isPending}
             locatingCurrentPosition={locatingCurrentPosition}
+            dragOverTrip={dragOverTripDock}
             planResult={routePlanResult}
             planError={
               (routePlanMutation.error instanceof Error
@@ -658,6 +692,9 @@ export function MapWorkbenchPage() {
             onPlanRoute={handlePlanRoute}
             onRemoveSpot={handleRemoveTripSpot}
             onReorderSpot={handleReorderTripSpot}
+            onDropRecommendSpot={handleDropRecommendSpot}
+            onTripDragOver={handleTripDockDragOver}
+            onTripDragLeave={() => setDragOverTripDock(false)}
             onClearTrip={() => {
               setTripSpotIds([]);
               setRoutePlanResult(undefined);

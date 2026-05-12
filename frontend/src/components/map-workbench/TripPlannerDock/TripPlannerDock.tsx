@@ -60,6 +60,7 @@ interface TripPlannerDockProps {
   selectedPlanMode: PlanMode;
   planning: boolean;
   locatingCurrentPosition: boolean;
+  dragOverTrip: boolean;
   planResult?: RoutePlanResponseDto;
   planError?: string;
   onStartPointChange: (value: string) => void;
@@ -70,6 +71,9 @@ interface TripPlannerDockProps {
   onPlanRoute: () => void;
   onRemoveSpot: (spotId: number) => void;
   onReorderSpot: (fromIndex: number, toIndex: number) => void;
+  onDropRecommendSpot: (event: DragEvent<HTMLElement>) => void;
+  onTripDragOver: (event: DragEvent<HTMLElement>) => void;
+  onTripDragLeave: () => void;
   onClearTrip: () => void;
 }
 
@@ -84,6 +88,7 @@ export function TripPlannerDock({
   selectedPlanMode,
   planning,
   locatingCurrentPosition,
+  dragOverTrip,
   planResult,
   planError,
   onStartPointChange,
@@ -94,6 +99,9 @@ export function TripPlannerDock({
   onPlanRoute,
   onRemoveSpot,
   onReorderSpot,
+  onDropRecommendSpot,
+  onTripDragOver,
+  onTripDragLeave,
   onClearTrip,
 }: TripPlannerDockProps) {
   const [draggingSpotId, setDraggingSpotId] = useState<number>();
@@ -201,7 +209,13 @@ export function TripPlannerDock({
     );
 
   return (
-    <section className={styles.tripDock} aria-label="行程规划区域">
+    <section
+      className={`${styles.tripDock} ${dragOverTrip ? styles.tripDockDropActive : ""}`}
+      aria-label="行程规划区域"
+      onDragOver={onTripDragOver}
+      onDragLeave={onTripDragLeave}
+      onDrop={onDropRecommendSpot}
+    >
       <div className={styles.tripCluster}>
         <Popover
           placement="topLeft"

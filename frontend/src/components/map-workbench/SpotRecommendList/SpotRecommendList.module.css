@@ -115,6 +115,11 @@
   box-shadow: 0 10px 22px rgb(31 73 125 / 9%);
 }
 
+.spotCard:active,
+.spotCardActive:active {
+  cursor: grabbing;
+}
+
 .spotCardActive {
   transform: translateX(2px);
 }

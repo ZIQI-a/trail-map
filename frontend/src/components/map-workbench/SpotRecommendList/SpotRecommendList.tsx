@@ -1,4 +1,5 @@
 import { Empty, Tag } from 'antd';
+import type { DragEvent } from 'react';
 import type { SpotTag, TravelSpot } from '../../../types/mapWorkbench';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './SpotRecommendList.module.css';
@@ -13,6 +14,7 @@ interface SpotRecommendListProps {
   selectedSpotId?: number;
   onActiveTabChange: (tab: RecommendTab) => void;
   onSelectSpot: (spotId: number) => void;
+  onDragSpotStart: (event: DragEvent<HTMLButtonElement>, spot: TravelSpot) => void;
 }
 
 const recommendTabs: Array<{ label: string; value: RecommendTab }> = [
@@ -31,6 +33,7 @@ export function SpotRecommendList({
   selectedSpotId,
   onActiveTabChange,
   onSelectSpot,
+  onDragSpotStart,
 }: SpotRecommendListProps) {
   return (
     <aside className={styles.panel} aria-label="景点推荐列表">
@@ -70,7 +73,9 @@ export function SpotRecommendList({
                 className={isSelected ? styles.spotCardActive : styles.spotCard}
                 type="button"
                 key={spot.id}
+                draggable
                 aria-pressed={isSelected}
+                onDragStart={(event) => onDragSpotStart(event, spot)}
                 onClick={() => onSelectSpot(spot.id)}
               >
                 <span
