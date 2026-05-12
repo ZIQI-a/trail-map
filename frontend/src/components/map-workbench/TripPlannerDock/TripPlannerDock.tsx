@@ -1,10 +1,13 @@
 import {
   AimOutlined,
   AppstoreAddOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   CarOutlined,
   ClockCircleOutlined,
   EnvironmentOutlined,
   FlagOutlined,
+  HolderOutlined,
   RightOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
@@ -19,7 +22,7 @@ import {
   Segmented,
   Select,
 } from "antd";
-import type { ReactNode } from "react";
+import { useState, type DragEvent, type ReactNode } from "react";
 import type {
   GeoPoint,
   PlanMode,
@@ -64,6 +67,7 @@ interface TripPlannerDockProps {
   onPlanModeChange: (value: PlanMode) => void;
   onPlanRoute: () => void;
   onRemoveSpot: (spotId: number) => void;
+  onReorderSpot: (fromIndex: number, toIndex: number) => void;
   onClearTrip: () => void;
 }
 
@@ -87,8 +91,11 @@ export function TripPlannerDock({
   onPlanModeChange,
   onPlanRoute,
   onRemoveSpot,
+  onReorderSpot,
   onClearTrip,
 }: TripPlannerDockProps) {
+  const [draggingSpotId, setDraggingSpotId] = useState<number>();
+  const [dragOverSpotId, setDragOverSpotId] = useState<number>();
   const isScheduleMode = selectedPlanMode === "schedule";
   const totalDistanceText = planResult
     ? formatRouteDistance(planResult.totalDistanceMeters)
@@ -100,6 +107,29 @@ export function TripPlannerDock({
     ? formatTripDuration(planResult.totalTripDurationMinutes)
     : "--";
   // 行程池通过 Popover 展开，避免长期占用地图视野。
+  // 行程池拖拽只调整前端景点顺序，真正路线顺序会在下一次规划时按该顺序提交给后端。
+  const handleDragStart = (event: DragEvent<HTMLDivElement>, spotId: number) => {
+    setDraggingSpotId(spotId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(spotId));
+  };
+
+  const handleDrop = (targetSpotId: number) => {
+    if (!draggingSpotId || draggingSpotId === targetSpotId) {
+      setDraggingSpotId(undefined);
+      setDragOverSpotId(undefined);
+      return;
+    }
+
+    const fromIndex = tripSpots.findIndex((spot) => spot.id === draggingSpotId);
+    const toIndex = tripSpots.findIndex((spot) => spot.id === targetSpotId);
+    if (fromIndex >= 0 && toIndex >= 0) {
+      onReorderSpot(fromIndex, toIndex);
+    }
+    setDraggingSpotId(undefined);
+    setDragOverSpotId(undefined);
+  };
+
   const tripPopoverContent =
     tripSpots.length === 0 ? (
       <Empty
@@ -110,9 +140,51 @@ export function TripPlannerDock({
     ) : (
       <div className={styles.tripPopoverList}>
         {tripSpots.map((spot, index) => (
-          <div className={styles.tripPopoverItem} key={spot.id}>
+          <div
+            className={[
+              styles.tripPopoverItem,
+              draggingSpotId === spot.id ? styles.draggingItem : "",
+              dragOverSpotId === spot.id && draggingSpotId !== spot.id ? styles.dragOverItem : "",
+            ].filter(Boolean).join(" ")}
+            key={spot.id}
+            draggable
+            onDragStart={(event) => handleDragStart(event, spot.id)}
+            onDragEnd={() => {
+              setDraggingSpotId(undefined);
+              setDragOverSpotId(undefined);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              setDragOverSpotId(spot.id);
+            }}
+            onDrop={() => handleDrop(spot.id)}
+          >
+            <span className={styles.dragHandle} aria-hidden="true">
+              <HolderOutlined />
+            </span>
             <span className={styles.tripIndex}>{index + 1}</span>
             <strong>{spot.name}</strong>
+            <div className={styles.sortButtons} aria-label={`${spot.name}排序操作`}>
+              <button
+                className={styles.sortButton}
+                type="button"
+                aria-label={`${spot.name}上移`}
+                disabled={index === 0}
+                onClick={() => onReorderSpot(index, index - 1)}
+              >
+                <ArrowUpOutlined />
+              </button>
+              <button
+                className={styles.sortButton}
+                type="button"
+                aria-label={`${spot.name}下移`}
+                disabled={index === tripSpots.length - 1}
+                onClick={() => onReorderSpot(index, index + 1)}
+              >
+                <ArrowDownOutlined />
+              </button>
+            </div>
             <button
               className={styles.removeButton}
               type="button"

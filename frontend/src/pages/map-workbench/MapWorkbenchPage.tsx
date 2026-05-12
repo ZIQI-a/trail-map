@@ -258,6 +258,13 @@ export function MapWorkbenchPage() {
     );
   }
 
+  // 行程池排序会影响下一次路线规划的景点顺序，因此排序后清空旧规划结果。
+  function handleReorderTripSpot(fromIndex: number, toIndex: number) {
+    setPlannerAssistError(undefined);
+    setRoutePlanResult(undefined);
+    setTripSpotIds((currentIds) => reorderByIndex(currentIds, fromIndex, toIndex));
+  }
+
   // 切换城市时同步清空景点选中和行程池，避免旧城市状态残留到新城市。
   function handleCityChange(cityId: number) {
     setSelectedCityId(cityId);
@@ -650,6 +657,7 @@ export function MapWorkbenchPage() {
             }}
             onPlanRoute={handlePlanRoute}
             onRemoveSpot={handleRemoveTripSpot}
+            onReorderSpot={handleReorderTripSpot}
             onClearTrip={() => {
               setTripSpotIds([]);
               setRoutePlanResult(undefined);
@@ -844,6 +852,23 @@ function buildMapItineraryMarkers(
 function getRouteColor(index: number) {
   const ROUTE_SEGMENT_COLORS = ['#2d6bff', '#20a95a', '#f08b2f', '#7a5af8', '#ef5da8'];
   return ROUTE_SEGMENT_COLORS[index % ROUTE_SEGMENT_COLORS.length];
+}
+
+function reorderByIndex<T>(items: T[], fromIndex: number, toIndex: number) {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length
+  ) {
+    return items;
+  }
+
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+  nextItems.splice(toIndex, 0, movedItem);
+  return nextItems;
 }
 
 
