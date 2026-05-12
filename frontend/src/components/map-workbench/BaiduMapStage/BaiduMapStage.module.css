@@ -12,7 +12,8 @@
 }
 
 .loadingMask,
-.overlayShell {
+.overlayShell,
+.pickHint {
   position: absolute;
   z-index: 5;
 }
@@ -53,4 +54,33 @@
   gap: 12px;
   color: #355070;
   backdrop-filter: blur(2px);
+}
+
+.pickHint {
+  top: 14px;
+  left: 50%;
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  padding: 10px 14px;
+  border: 1px solid rgb(45 107 255 / 18%);
+  border-radius: 999px;
+  color: #26415f;
+  text-align: center;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 14px 32px rgb(31 73 125 / 14%);
+  transform: translateX(-50%);
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
+.pickHint strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.pickHint span {
+  color: #718196;
+  font-size: 11px;
+  line-height: 1.2;
 }

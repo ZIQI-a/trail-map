@@ -242,6 +242,15 @@
   min-width: 0;
 }
 
+.startCardPicking span {
+  color: #16a35f;
+}
+
+.startCardPicking :global(.ant-input-affix-wrapper) {
+  border-color: #16a35f;
+  box-shadow: 0 0 0 3px rgb(22 163 95 / 12%);
+}
+
 .railCard span {
   color: #50657f;
   font-size: 12px;

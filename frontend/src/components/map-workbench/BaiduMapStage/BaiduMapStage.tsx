@@ -7,6 +7,7 @@ import type {
   TravelCity,
   TravelSpot,
 } from "../../../types/mapWorkbench";
+import { bd09ToGcj02 } from "../../../utils/map-workbench/coordinate";
 import {
   getItineraryActivityMarkerConfig,
   getRouteSegmentColor,
@@ -22,7 +23,10 @@ interface BaiduMapStageProps {
   routeOverlays?: MapRouteOverlay[];
   itineraryMarkers?: MapItineraryMarker[];
   focusTarget?: MapFocusTarget; // 右侧时间轴点击时的地图聚焦目标，优先级高于 selectedSpot。
+  startPointPicking: boolean;
+  startPointPosition?: GeoPoint;
   onSelectSpot: (spotId: number) => void;
+  onPickStartPoint: (target: MapPickedStartPoint) => void;
 }
 
 interface MapRouteOverlay {
@@ -46,6 +50,11 @@ interface MapFocusTarget {
   zoom?: number;
 }
 
+interface MapPickedStartPoint {
+  name: string;
+  position: GeoPoint;
+}
+
 // BaiduMapStage 负责真实地图底图、城市定位和景点 Marker 展示。
 export function BaiduMapStage({
   city,
@@ -56,7 +65,10 @@ export function BaiduMapStage({
   routeOverlays,
   itineraryMarkers,
   focusTarget,
+  startPointPicking,
+  startPointPosition,
   onSelectSpot,
+  onPickStartPoint,
 }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, "-");
   const mapRef = useRef<BMapGLMap | null>(null);
@@ -127,9 +139,24 @@ export function BaiduMapStage({
           icon: createMarkerIcon(spot.id === selectedSpotId),
         },
       );
-      marker.addEventListener("click", () => onSelectSpot(spot.id));
+      marker.addEventListener("click", () => {
+        if (startPointPicking) {
+          onPickStartPoint({ name: spot.name, position: spot.position });
+          return;
+        }
+
+        onSelectSpot(spot.id);
+      });
       map.addOverlay(marker);
     });
+    // 起点选点模式下，如果已有选定的起点位置，则在地图上展示一个特殊标识，提示用户当前选点状态和已选位置。
+    if (startPointPosition) {
+      map.addOverlay(
+        new window.BMapGL!.Marker(createBaiduPoint(startPointPosition), {
+          icon: createStartPointIcon(),
+        }),
+      );
+    }
 
     const activeRouteOverlays = routeOverlays?.length
       ? routeOverlays
@@ -149,34 +176,32 @@ export function BaiduMapStage({
       if (overlay.polyline.length < 2) {
         return;
       }
-      const displayPolyline = offsetRoutePolyline(overlay.polyline, index, activeRouteOverlays.length);
+      const displayPolyline = offsetRoutePolyline(
+        overlay.polyline,
+        index,
+        activeRouteOverlays.length,
+      );
       const routePoints = displayPolyline.map(createBaiduPoint);
-      const casingLine = new window.BMapGL!.Polyline(
-        routePoints,
-        {
-          strokeColor: "#ffffff",
-          strokeWeight: overlay.kind === "guide" ? 8 : 10,
-          strokeOpacity: overlay.kind === "guide" ? 0.78 : 0.86,
-          strokeStyle: overlay.lineStyle,
-        } as unknown as {
-          strokeColor?: string;
-          strokeWeight?: number;
-          strokeOpacity?: number;
-        },
-      );
-      const routeLine = new window.BMapGL!.Polyline(
-        routePoints,
-        {
-          strokeColor: overlay.color,
-          strokeWeight: overlay.kind === "guide" ? 4 : 6,
-          strokeOpacity: overlay.kind === "guide" ? 0.78 : 0.92,
-          strokeStyle: overlay.lineStyle,
-        } as unknown as {
-          strokeColor?: string;
-          strokeWeight?: number;
-          strokeOpacity?: number;
-        },
-      );
+      const casingLine = new window.BMapGL!.Polyline(routePoints, {
+        strokeColor: "#ffffff",
+        strokeWeight: overlay.kind === "guide" ? 8 : 10,
+        strokeOpacity: overlay.kind === "guide" ? 0.78 : 0.86,
+        strokeStyle: overlay.lineStyle,
+      } as unknown as {
+        strokeColor?: string;
+        strokeWeight?: number;
+        strokeOpacity?: number;
+      });
+      const routeLine = new window.BMapGL!.Polyline(routePoints, {
+        strokeColor: overlay.color,
+        strokeWeight: overlay.kind === "guide" ? 4 : 6,
+        strokeOpacity: overlay.kind === "guide" ? 0.78 : 0.92,
+        strokeStyle: overlay.lineStyle,
+      } as unknown as {
+        strokeColor?: string;
+        strokeWeight?: number;
+        strokeOpacity?: number;
+      });
       map.addOverlay(casingLine);
       map.addOverlay(routeLine);
 
@@ -243,7 +268,10 @@ export function BaiduMapStage({
     routeSegments,
     routeOverlays,
     spots,
+    startPointPicking,
+    startPointPosition,
     itineraryMarkers,
+    onPickStartPoint,
   ]);
 
   useEffect(() => {
@@ -257,6 +285,39 @@ export function BaiduMapStage({
       focusTarget.zoom ?? selectedSpotZoom,
     );
   }, [focusTarget, sdkReady, selectedSpotZoom]);
+
+  useEffect(() => {
+    if (!mapRef.current || !sdkReady || !window.BMapGL || !startPointPicking) {
+      return;
+    }
+
+    const map = mapRef.current;
+    // 起点选点模式只监听地图点击；点击后由页面层回填输入框并退出选点模式。
+    const handlePickStartPoint = (event: BMapGLMapClickEvent) => {
+      const point = event.latlng ?? event.point;
+      if (!point) {
+        return;
+      }
+
+      const position = bd09ToGcj02({ lng: point.lng, lat: point.lat });
+      const fallbackName = `地图选点 ${position.lng.toFixed(6)}, ${position.lat.toFixed(6)}`;
+
+      try {
+        const geocoder = new window.BMapGL!.Geocoder();
+        geocoder.getLocation(point, (result) => {
+          onPickStartPoint({
+            name: resolvePickedStartPointName(result, fallbackName),
+            position,
+          });
+        });
+      } catch {
+        onPickStartPoint({ name: fallbackName, position });
+      }
+    };
+
+    map.addEventListener("click", handlePickStartPoint);
+    return () => map.removeEventListener("click", handlePickStartPoint);
+  }, [onPickStartPoint, sdkReady, startPointPicking]);
 
   if (sdkError) {
     return (
@@ -279,6 +340,13 @@ export function BaiduMapStage({
   return (
     <section className={styles.mapStage} aria-label={`${city.name} 百度地图`}>
       <div className={styles.mapContainer} id={containerId} />
+
+      {startPointPicking ? (
+        <div className={styles.pickHint}>
+          <strong>可直接点击地图选点</strong>
+          <span>选择后会自动回填到底部起点输入框</span>
+        </div>
+      ) : null}
 
       {!sdkReady ? (
         <div className={styles.loadingMask}>
@@ -310,6 +378,24 @@ function createMarkerIcon(selected: boolean) {
   );
 }
 
+function createStartPointIcon() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
+      <path d="M17 2C9.27 2 3 8.27 3 16c0 10.8 14 24 14 24s14-13.2 14-24C31 8.27 24.73 2 17 2z" fill="#16a35f"/>
+      <circle cx="17" cy="16" r="8" fill="#ffffff"/>
+      <text x="17" y="20" text-anchor="middle" font-size="10" font-weight="900" fill="#16a35f">起</text>
+    </svg>
+  `;
+
+  return new window.BMapGL!.Icon(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    new window.BMapGL!.Size(34, 42),
+    {
+      anchor: new window.BMapGL!.Size(17, 42),
+    },
+  );
+}
+
 function createActivityMarkerIcon(itemType: MapItineraryMarker["itemType"]) {
   const config = resolveActivityMarkerConfig(itemType);
   const svg = `
@@ -333,10 +419,42 @@ function resolveActivityMarkerConfig(itemType: MapItineraryMarker["itemType"]) {
   return getItineraryActivityMarkerConfig(itemType);
 }
 
+function resolvePickedStartPointName(
+  result: BMapGLGeocoderResult | undefined,
+  fallbackName: string,
+) {
+  const poiTitle = result?.surroundingPois?.find((poi) => poi.title)?.title;
+  if (poiTitle) {
+    return poiTitle;
+  }
+
+  if (result?.address) {
+    return result.address;
+  }
+
+  const components = result?.addressComponents;
+  const composedAddress = components
+    ? [
+        components.city,
+        components.district,
+        components.street,
+        components.streetNumber,
+      ]
+        .filter(Boolean)
+        .join("")
+    : "";
+
+  return composedAddress || fallbackName;
+}
+
 /**
  * 路线展示偏移只影响前端视觉，不回写真实路线坐标；用于缓解多条路线完全重合时看不清的问题。
  */
-function offsetRoutePolyline(polyline: GeoPoint[], routeIndex: number, routeCount: number) {
+function offsetRoutePolyline(
+  polyline: GeoPoint[],
+  routeIndex: number,
+  routeCount: number,
+) {
   if (polyline.length < 2 || routeCount <= 1) {
     return polyline;
   }
@@ -365,7 +483,11 @@ function offsetRoutePolyline(polyline: GeoPoint[], routeIndex: number, routeCoun
   });
 }
 
-function createRouteEndpointIcon(label: "起" | "到", color: string, kind: MapRouteOverlay["kind"]) {
+function createRouteEndpointIcon(
+  label: "起" | "到",
+  color: string,
+  kind: MapRouteOverlay["kind"],
+) {
   const size = kind === "guide" ? 20 : 24;
   const radius = kind === "guide" ? 8 : 9.5;
   const fontSize = kind === "guide" ? 9 : 10;

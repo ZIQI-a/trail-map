@@ -13,7 +13,7 @@ import {
   Segmented,
   Spin,
 } from "antd";
-import { useMemo, useState, type DragEvent } from "react";
+import { useCallback, useMemo, useState, type DragEvent } from "react";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
 import { RoutePlanDrawer, type RouteTimelineFocusTarget } from "../../components/map-workbench/RoutePlanDrawer";
@@ -102,6 +102,7 @@ export function MapWorkbenchPage() {
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState("");
   const [startPointPosition, setStartPointPosition] = useState<GeoPoint>();
+  const [startPointPicking, setStartPointPicking] = useState(false);
   const [locatingCurrentPosition, setLocatingCurrentPosition] = useState(false);
   const [plannerAssistError, setPlannerAssistError] = useState<string>();
   const [selectedTransport, setSelectedTransport] =
@@ -305,6 +306,7 @@ export function MapWorkbenchPage() {
     setRoutePlanResult(undefined);
     setStartPoint("");
     setStartPointPosition(undefined);
+    setStartPointPicking(false);
     setPlannerAssistError(undefined);
   }
 
@@ -469,7 +471,17 @@ export function MapWorkbenchPage() {
     setPlannerAssistError(undefined);
     setStartPoint(value);
     setStartPointPosition(position);
+    setStartPointPicking(false);
   }
+
+  // 地图点击选点会回填起点名称和坐标；名称优先使用百度前端反查结果。
+  const handlePickMapStartPoint = useCallback((target: { name: string; position: GeoPoint }) => {
+    setRoutePlanResult(undefined);
+    setPlannerAssistError(undefined);
+    setStartPoint(target.name);
+    setStartPointPosition(target.position);
+    setStartPointPicking(false);
+  }, []);
 
   // 浏览器当前位置会先从 WGS-84 转为 GCJ-02，再作为路线规划起点提交。
   function handleUseCurrentLocation() {
@@ -489,6 +501,7 @@ export function MapWorkbenchPage() {
         setPlannerAssistError(undefined);
         setStartPoint("我的位置");
         setStartPointPosition(gcjPoint);
+        setStartPointPicking(false);
         setLocatingCurrentPosition(false);
       },
       () => {
@@ -565,7 +578,10 @@ export function MapWorkbenchPage() {
           routeOverlays={mapRouteOverlays}
           itineraryMarkers={mapItineraryMarkers}
           focusTarget={mapFocusTarget}
+          startPointPicking={startPointPicking}
+          startPointPosition={startPointPosition}
           onSelectSpot={setSelectedSpotId}
+          onPickStartPoint={handlePickMapStartPoint}
         />
 
         {showingScheduleResult ? (
@@ -667,6 +683,7 @@ export function MapWorkbenchPage() {
             planning={routePlanMutation.isPending}
             locatingCurrentPosition={locatingCurrentPosition}
             dragOverTrip={dragOverTripDock}
+            startPointPicking={startPointPicking}
             planResult={routePlanResult}
             planError={
               (routePlanMutation.error instanceof Error
@@ -678,7 +695,9 @@ export function MapWorkbenchPage() {
               setPlannerAssistError(undefined);
               setStartPoint(value);
               setStartPointPosition(undefined);
+              setStartPointPicking(false);
             }}
+            onStartPointFocus={() => setStartPointPicking(true)}
             onSelectStartPoint={handleSelectStartPoint}
             onUseCurrentLocation={handleUseCurrentLocation}
             onTransportChange={(value) => {

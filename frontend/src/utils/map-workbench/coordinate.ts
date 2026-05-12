@@ -16,6 +16,19 @@ export function gcj02ToBd09(point: GeoPoint): GeoPoint {
   };
 }
 
+// 百度地图点击事件返回 BD-09 坐标，回填到业务状态前转回项目统一使用的 GCJ-02。
+export function bd09ToGcj02(point: GeoPoint): GeoPoint {
+  const x = point.lng - 0.0065;
+  const y = point.lat - 0.006;
+  const z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * X_PI);
+  const theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI);
+
+  return {
+    lng: z * Math.cos(theta),
+    lat: z * Math.sin(theta),
+  };
+}
+
 // 浏览器定位返回 WGS-84，这里转成项目当前统一使用的 GCJ-02。
 export function wgs84ToGcj02(point: GeoPoint): GeoPoint {
   if (outOfChina(point)) {

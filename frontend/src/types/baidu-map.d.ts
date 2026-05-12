@@ -1,9 +1,15 @@
 // 百度地图最小类型声明：只覆盖当前项目地图展示阶段用到的类和方法。
 type BMapGLEventHandler = () => void;
+type BMapGLMapClickHandler = (event: BMapGLMapClickEvent) => void;
 
 interface BMapGLPointLike {
   lng: number;
   lat: number;
+}
+
+interface BMapGLMapClickEvent {
+  latlng?: BMapGLPointLike;
+  point?: BMapGLPointLike;
 }
 
 interface BMapGLMap {
@@ -14,6 +20,8 @@ interface BMapGLMap {
   clearOverlays(): void;
   panTo(point: BMapGLPointLike): void;
   setViewport(points: BMapGLPointLike[]): void;
+  addEventListener(eventName: 'click', handler: BMapGLMapClickHandler): void;
+  removeEventListener(eventName: 'click', handler: BMapGLMapClickHandler): void;
 }
 
 interface BMapGLMarker {
@@ -26,6 +34,21 @@ interface BMapGLPolygon {
 
 interface BMapGLPolyline {
   addEventListener(eventName: 'click', handler: BMapGLEventHandler): void;
+}
+
+interface BMapGLGeocoderResult {
+  address?: string;
+  addressComponents?: {
+    province?: string;
+    city?: string;
+    district?: string;
+    street?: string;
+    streetNumber?: string;
+  };
+  surroundingPois?: Array<{
+    title?: string;
+    address?: string;
+  }>;
 }
 
 interface BMapGLSizeLike {
@@ -59,6 +82,9 @@ interface BMapGLNamespace {
   ) => BMapGLPolyline;
   ScaleControl: new () => unknown;
   NavigationControl: new () => unknown;
+  Geocoder: new () => {
+    getLocation(point: BMapGLPointLike, callback: (result?: BMapGLGeocoderResult) => void): void;
+  };
 }
 
 interface Window {

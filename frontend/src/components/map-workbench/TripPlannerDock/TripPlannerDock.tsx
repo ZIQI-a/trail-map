@@ -61,9 +61,11 @@ interface TripPlannerDockProps {
   planning: boolean;
   locatingCurrentPosition: boolean;
   dragOverTrip: boolean;
+  startPointPicking: boolean;
   planResult?: RoutePlanResponseDto;
   planError?: string;
   onStartPointChange: (value: string) => void;
+  onStartPointFocus: () => void;
   onSelectStartPoint: (value: string, position?: GeoPoint) => void;
   onUseCurrentLocation: () => void;
   onTransportChange: (value: TransportType) => void;
@@ -89,9 +91,11 @@ export function TripPlannerDock({
   planning,
   locatingCurrentPosition,
   dragOverTrip,
+  startPointPicking,
   planResult,
   planError,
   onStartPointChange,
+  onStartPointFocus,
   onSelectStartPoint,
   onUseCurrentLocation,
   onTransportChange,
@@ -249,8 +253,8 @@ export function TripPlannerDock({
       </div>
 
       <div className={styles.plannerRail}>
-        <label className={`${styles.railCard} ${styles.startCard}`}>
-          <span>起点</span>
+        <label className={`${styles.railCard} ${styles.startCard} ${startPointPicking ? styles.startCardPicking : ""}`}>
+          <span>{startPointPicking ? "点击地图选点中" : "起点"}</span>
           <AutoComplete
             className={styles.startAutocomplete}
             filterOption={false}
@@ -258,6 +262,7 @@ export function TripPlannerDock({
             options={startPointOptions}
             onSearch={onStartPointChange}
             onChange={onStartPointChange}
+            onFocus={onStartPointFocus}
             onSelect={(value, option) => onSelectStartPoint(value, (option as StartPointOption).position)}
           >
             <Input
