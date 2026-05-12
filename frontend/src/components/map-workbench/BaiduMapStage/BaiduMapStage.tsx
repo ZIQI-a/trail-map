@@ -72,6 +72,7 @@ export function BaiduMapStage({
 }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, "-");
   const mapRef = useRef<BMapGLMap | null>(null);
+  const routeViewportSignatureRef = useRef<string | undefined>(undefined);
   const [sdkError, setSdkError] = useState<string>();
   const [sdkReady, setSdkReady] = useState(false);
   const selectedSpotSummary = useMemo(
@@ -230,9 +231,15 @@ export function BaiduMapStage({
       map.addOverlay(overlay);
     });
 
-    if (routeViewportPoints.length >= 2) {
+    const routeViewportSignature = buildRouteViewportSignature(activeRouteOverlays);
+    if (routeViewportPoints.length >= 2 && routeViewportSignature !== routeViewportSignatureRef.current) {
+      routeViewportSignatureRef.current = routeViewportSignature;
       map.setViewport(routeViewportPoints);
       return;
+    }
+
+    if (routeViewportPoints.length < 2) {
+      routeViewportSignatureRef.current = undefined;
     }
 
     // 选中景点如果带有轮廓，则优先画面并缩放到该区域；否则使用中等缩放聚焦主点位。
@@ -445,6 +452,29 @@ function resolvePickedStartPointName(
     : "";
 
   return composedAddress || fallbackName;
+}
+
+function buildRouteViewportSignature(overlays: MapRouteOverlay[]) {
+  return overlays
+    .map((overlay) => {
+      const firstPoint = overlay.polyline[0];
+      const lastPoint = overlay.polyline[overlay.polyline.length - 1];
+      return [
+        overlay.key,
+        overlay.polyline.length,
+        formatSignaturePoint(firstPoint),
+        formatSignaturePoint(lastPoint),
+      ].join(":");
+    })
+    .join("|");
+}
+
+function formatSignaturePoint(point: GeoPoint | undefined) {
+  if (!point) {
+    return "empty";
+  }
+
+  return `${point.lng.toFixed(6)},${point.lat.toFixed(6)}`;
 }
 
 /**
