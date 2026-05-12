@@ -7,6 +7,7 @@ import {
   ClockCircleOutlined,
   FlagOutlined,
   HolderOutlined,
+  QuestionCircleOutlined,
   PushpinOutlined,
   RightOutlined,
   UnorderedListOutlined,
@@ -21,6 +22,7 @@ import {
   Popover,
   Segmented,
   Select,
+  Tooltip,
 } from "antd";
 import { useState, type DragEvent, type ReactNode } from "react";
 import type {
@@ -273,7 +275,23 @@ export function TripPlannerDock({
         </label>
 
         <label className={styles.railCard}>
-          <span>规划模式</span>
+          <span className={styles.labelWithHelp}>
+            规划模式
+            <Tooltip
+              placement="top"
+              overlayClassName={styles.planModeTooltip}
+              title={
+                <div className={styles.planModeHelp}>
+                  <strong>自由路线</strong>
+                  <p>按行程池中的景点顺序生成路线，重点查看每段交通距离、耗时和整体路线走向，适合先粗排景点。</p>
+                  <strong>完整行程</strong>
+                  <p>在路线基础上加入游玩天数、开始结束时间、行程强度、午餐/休息/酒店等设置，生成按天展示的时间轴。</p>
+                </div>
+              }
+            >
+              <QuestionCircleOutlined className={styles.helpIcon} />
+            </Tooltip>
+          </span>
           <Segmented
             className={styles.modeSegmented}
             value={selectedPlanMode}

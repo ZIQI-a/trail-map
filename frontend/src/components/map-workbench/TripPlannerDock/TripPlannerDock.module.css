@@ -238,6 +238,53 @@
   line-height: 1.1;
 }
 
+.labelWithHelp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.helpIcon {
+  color: #7f91aa;
+  font-size: 12px;
+  cursor: help;
+}
+
+.helpIcon:hover {
+  color: #2d6bff;
+}
+
+.planModeTooltip :global(.ant-tooltip-inner) {
+  width: 320px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #344761;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgb(24 48 85 / 18%);
+}
+
+.planModeTooltip :global(.ant-tooltip-arrow::before) {
+  background: #ffffff;
+}
+
+.planModeHelp {
+  display: grid;
+  gap: 6px;
+}
+
+.planModeHelp strong {
+  color: #1f4f88;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.planModeHelp p {
+  margin: 0;
+  color: #53667f;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .railCard :global(.ant-input),
 .railCard :global(.ant-select-selector) {
   min-height: 34px !important;
