@@ -39,14 +39,33 @@
   gap: 8px;
 }
 
+.tripLauncherShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid #dde6f2;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  overflow: hidden;
+}
+
 .clearButton {
-  min-height: 30px;
-  padding-inline: 10px;
-  border-radius: 999px;
-  border-color: #d9e4f0;
-  color: #667790;
-  font-size: 12px;
-  font-weight: 700;
+  min-width: 38px;
+  min-height: 48px;
+  border-inline-start: 1px solid #e2eaf5;
+  border-radius: 0 !important;
+  color: #7b8ca5;
+}
+
+.clearButton:hover:not(:disabled) {
+  color: #d9485f !important;
+  background: #fff3f3 !important;
+}
+
+.clearButton:disabled {
+  color: #c2ccda !important;
+  background: transparent !important;
 }
 
 .tripLauncher {
@@ -57,9 +76,9 @@
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border: 1px solid #dde6f2;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
 }
 

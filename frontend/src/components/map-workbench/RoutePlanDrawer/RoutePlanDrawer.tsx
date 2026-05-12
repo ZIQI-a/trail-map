@@ -11,9 +11,9 @@ import {
   HomeOutlined,
   NodeIndexOutlined,
   ShareAltOutlined,
-} from '@ant-design/icons';
-import { Button, Tag, Timeline } from 'antd';
-import type { CSSProperties, ReactNode } from 'react';
+} from "@ant-design/icons";
+import { Button, Tag, Timeline } from "antd";
+import type { CSSProperties, ReactNode } from "react";
 import type {
   GeoPoint,
   ItineraryDayDto,
@@ -22,11 +22,21 @@ import type {
   RouteSegmentDto,
   SpotTag,
   TravelSpot,
-} from '../../../types/mapWorkbench';
-import { getItineraryActivityColor, getRouteSegmentColor } from '../../../utils/map-workbench/routePalette';
-import { formatRouteDistance, formatRouteDuration, formatTripDuration } from '../../../utils/map-workbench/routeDisplay';
-import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
-import styles from './RoutePlanDrawer.module.css';
+} from "../../../types/mapWorkbench";
+import {
+  getItineraryActivityColor,
+  getRouteSegmentColor,
+} from "../../../utils/map-workbench/routePalette";
+import {
+  formatRouteDistance,
+  formatRouteDuration,
+  formatTripDuration,
+} from "../../../utils/map-workbench/routeDisplay";
+import {
+  formatDuration,
+  getSpotTagName,
+} from "../../../utils/map-workbench/spotDisplay";
+import styles from "./RoutePlanDrawer.module.css";
 
 interface RoutePlanDrawerProps {
   cityName: string;
@@ -64,13 +74,25 @@ export function RoutePlanDrawer({
   const spotMapping = new Map(tripSpots.map((spot) => [spot.id, spot]));
   const activeDay =
     routePlan.planMode === "schedule"
-      ? routePlan.itineraryDays.find((day) => day.dayIndex === selectedDayIndex) ??
-        routePlan.itineraryDays[0]
+      ? (routePlan.itineraryDays.find(
+          (day) => day.dayIndex === selectedDayIndex,
+        ) ?? routePlan.itineraryDays[0])
       : undefined;
   const timelineEntries =
-    routePlan.planMode === 'schedule' && activeDay?.items.length
-      ? buildScheduleTimelineEntries(routePlan, startPoint, activeDay, scheduleStartTime, startPosition)
-      : buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex, startPosition);
+    routePlan.planMode === "schedule" && activeDay?.items.length
+      ? buildScheduleTimelineEntries(
+          routePlan,
+          startPoint,
+          activeDay,
+          scheduleStartTime,
+          startPosition,
+        )
+      : buildTimelineEntries(
+          routePlan,
+          startPoint,
+          activeDay?.dayIndex,
+          startPosition,
+        );
   const metricTarget = activeDay ?? routePlan;
   const summaryText = activeDay
     ? `${activeDay.title} 已安排 ${activeDay.spots.length} 个景点，预计交通 ${formatRouteDuration(activeDay.totalTravelDurationSeconds)}，游玩 ${formatTripDuration(activeDay.totalStayDurationMinutes)}。`
@@ -82,29 +104,44 @@ export function RoutePlanDrawer({
         <div>
           <h2>
             {cityName}
-            {routePlan.planMode === 'free'
-              ? '一日游路线'
+            {routePlan.planMode === "free"
+              ? "一日游路线"
               : `${activeDay?.title ?? "行程"}详细安排`}
           </h2>
-          <p className={styles.headerSubline}>
-            {routePlan.planMode === "schedule"
-              ? "按当前选择的 Day 展示详细时间轴，后续继续补餐饮与酒店节点。"
-              : "按当前景点池顺序生成，后续可继续补完整行程拆分。"}
-          </p>
         </div>
         <div className={styles.headerActions}>
           <Button icon={<ShareAltOutlined />} className={styles.headerButton}>
             分享
           </Button>
-          <Button icon={<CloseOutlined />} className={styles.headerIconButton} onClick={onClose} />
+          <Button
+            icon={<CloseOutlined />}
+            className={styles.headerIconButton}
+            onClick={onClose}
+          />
         </div>
       </div>
 
       <div className={styles.metricRow}>
-        <MetricCard icon={<FlagOutlined />} value={formatRouteDistance(metricTarget.totalDistanceMeters)} label="总里程" />
-        <MetricCard icon={<CarOutlined />} value={formatRouteDuration(metricTarget.totalTravelDurationSeconds)} label="交通耗时" />
-        <MetricCard icon={<ClockCircleOutlined />} value={formatTripDuration(metricTarget.totalStayDurationMinutes)} label="游玩时长" />
-        <MetricCard icon={<AimOutlined />} value={formatTripDuration(metricTarget.totalTripDurationMinutes)} label="预计总时长" />
+        <MetricCard
+          icon={<FlagOutlined />}
+          value={formatRouteDistance(metricTarget.totalDistanceMeters)}
+          label="总里程"
+        />
+        <MetricCard
+          icon={<CarOutlined />}
+          value={formatRouteDuration(metricTarget.totalTravelDurationSeconds)}
+          label="交通耗时"
+        />
+        <MetricCard
+          icon={<ClockCircleOutlined />}
+          value={formatTripDuration(metricTarget.totalStayDurationMinutes)}
+          label="游玩时长"
+        />
+        <MetricCard
+          icon={<AimOutlined />}
+          value={formatTripDuration(metricTarget.totalTripDurationMinutes)}
+          label="预计总时长"
+        />
         <MetricCard
           icon={<NodeIndexOutlined />}
           value={`${activeDay?.spots.length ?? routePlan.orderedSpotIds.length} 个`}
@@ -118,7 +155,9 @@ export function RoutePlanDrawer({
 
       <Timeline
         className={styles.timeline}
-        items={timelineEntries.map((entry) => renderTimelineItem(entry, spotMapping, tags, onFocusLocation))}
+        items={timelineEntries.map((entry) =>
+          renderTimelineItem(entry, spotMapping, tags, onFocusLocation),
+        )}
       />
     </aside>
   );
@@ -141,9 +180,15 @@ function MetricCard({ icon, value, label }: MetricCardProps) {
 }
 
 type TimelineEntry =
-  | { type: 'start' | 'end'; title: string; timeLabel: string; color: string; position?: GeoPoint }
   | {
-      type: 'segment';
+      type: "start" | "end";
+      title: string;
+      timeLabel: string;
+      color: string;
+      position?: GeoPoint;
+    }
+  | {
+      type: "segment";
       title: string;
       subtitle: string;
       meta: string;
@@ -153,15 +198,15 @@ type TimelineEntry =
       auxiliary?: boolean;
     }
   | {
-      type: 'spot';
+      type: "spot";
       sequence: number;
       color: string;
-      stayPlan: RoutePlanResponseDto['spotStayPlans'][number];
+      stayPlan: RoutePlanResponseDto["spotStayPlans"][number];
       arrivalLabel: string;
       leaveLabel: string;
     }
   | {
-      type: 'activity';
+      type: "activity";
       sequence: number;
       color: string;
       item: ItineraryItemDto;
@@ -176,11 +221,15 @@ function buildTimelineEntries(
   const entries: TimelineEntry[] = [];
   const scopedSpotPlans =
     routePlan.planMode === "schedule" && selectedDayIndex != null
-      ? routePlan.spotStayPlans.filter((stayPlan) => stayPlan.dayIndex === selectedDayIndex)
+      ? routePlan.spotStayPlans.filter(
+          (stayPlan) => stayPlan.dayIndex === selectedDayIndex,
+        )
       : routePlan.spotStayPlans;
   const scopedPlanIndexes = scopedSpotPlans
     .map((stayPlan) =>
-      routePlan.spotStayPlans.findIndex((currentPlan) => currentPlan.spotId === stayPlan.spotId),
+      routePlan.spotStayPlans.findIndex(
+        (currentPlan) => currentPlan.spotId === stayPlan.spotId,
+      ),
     )
     .filter((index) => index >= 0);
   const initialMinutes = scopedSpotPlans[0]?.suggestedStartTime
@@ -189,8 +238,11 @@ function buildTimelineEntries(
   let currentMinutes = initialMinutes;
 
   entries.push({
-    type: 'start',
-    title: selectedDayIndex && selectedDayIndex > 1 ? `Day ${selectedDayIndex} 出发` : startPoint || '市中心',
+    type: "start",
+    title:
+      selectedDayIndex && selectedDayIndex > 1
+        ? `Day ${selectedDayIndex} 出发`
+        : startPoint || "市中心",
     timeLabel: formatClock(initialMinutes),
     color: getRouteSegmentColor(0),
     position: startPosition ?? routePlan.segments[0]?.fromPosition,
@@ -198,11 +250,12 @@ function buildTimelineEntries(
 
   scopedSpotPlans.forEach((stayPlan, localIndex) => {
     const globalIndex = scopedPlanIndexes[localIndex];
-    const segment = globalIndex >= 0 ? routePlan.segments[globalIndex] : undefined;
+    const segment =
+      globalIndex >= 0 ? routePlan.segments[globalIndex] : undefined;
     if (segment) {
       // 每个路段先展示，再进入当前景点，符合真实行程阅读顺序。
       entries.push({
-        type: 'segment',
+        type: "segment",
         title: getTransportLabel(segment.transportType),
         subtitle: `${segment.fromName} → ${segment.toName}`,
         meta: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
@@ -223,7 +276,7 @@ function buildTimelineEntries(
     currentMinutes = leaveMinutes;
 
     entries.push({
-      type: 'spot',
+      type: "spot",
       sequence: localIndex + 1,
       color: getRouteSegmentColor(localIndex),
       stayPlan,
@@ -235,10 +288,13 @@ function buildTimelineEntries(
   const lastStayPlan = scopedSpotPlans[scopedSpotPlans.length - 1];
 
   entries.push({
-    type: 'end',
-    title: selectedDayIndex && selectedDayIndex > 1 ? `Day ${selectedDayIndex} 收尾` : lastStayPlan?.spotName ?? '行程结束',
+    type: "end",
+    title:
+      selectedDayIndex && selectedDayIndex > 1
+        ? `Day ${selectedDayIndex} 收尾`
+        : (lastStayPlan?.spotName ?? "行程结束"),
     timeLabel: lastStayPlan?.suggestedEndTime ?? formatClock(currentMinutes),
-    color: '#ff5a40',
+    color: "#ff5a40",
   });
 
   return entries;
@@ -255,11 +311,19 @@ function buildScheduleTimelineEntries(
   const daySegments = resolveScheduleDaySegments(routePlan, activeDay);
   const firstItem = activeDay.items[0];
   // 起点节点展示用户选择的每日开始时间；后端 startTime 可能随第一段交通被写成到达时间。
-  const startLabel = scheduleStartTime || activeDay.startTime || firstItem?.suggestedStartTime || '09:00';
+  const startLabel =
+    scheduleStartTime ||
+    activeDay.startTime ||
+    firstItem?.suggestedStartTime ||
+    "09:00";
 
   entries.push({
-    type: 'start',
-    title: activeDay.startPlaceName || (activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 出发` : startPoint || '市中心'),
+    type: "start",
+    title:
+      activeDay.startPlaceName ||
+      (activeDay.dayIndex > 1
+        ? `Day ${activeDay.dayIndex} 出发`
+        : startPoint || "市中心"),
     timeLabel: startLabel,
     color: getRouteSegmentColor(0),
     position: startPosition ?? daySegments[0]?.fromPosition,
@@ -272,9 +336,15 @@ function buildScheduleTimelineEntries(
   activeDay.items.forEach((item) => {
     const sequence = item.sequence;
     const matchedSegmentIndex = item.position
-      ? findSegmentIndexForItem(daySegments, item, segmentCursor, Boolean(activeDay.segments?.length))
+      ? findSegmentIndexForItem(
+          daySegments,
+          item,
+          segmentCursor,
+          Boolean(activeDay.segments?.length),
+        )
       : -1;
-    const segment = matchedSegmentIndex >= 0 ? daySegments[matchedSegmentIndex] : undefined;
+    const segment =
+      matchedSegmentIndex >= 0 ? daySegments[matchedSegmentIndex] : undefined;
     if (segment) {
       const auxiliarySegment = isAuxiliarySegment(segment, auxiliaryItemMap);
       const segmentColor = auxiliarySegment
@@ -284,7 +354,7 @@ function buildScheduleTimelineEntries(
         currentItemColor = segmentColor;
       }
       entries.push({
-        type: 'segment',
+        type: "segment",
         title: getTransportLabel(segment.transportType),
         subtitle: `${segment.fromName} → ${segment.toName}`,
         meta: `${formatRouteDistance(segment.distanceMeters)} · ${formatRouteDuration(segment.durationSeconds)}`,
@@ -296,13 +366,13 @@ function buildScheduleTimelineEntries(
       segmentCursor = matchedSegmentIndex + 1;
     }
 
-    if (item.itemType === 'spot') {
+    if (item.itemType === "spot") {
       const stayPlan = routePlan.spotStayPlans.find(
         (currentPlan) => currentPlan.spotId === item.relatedSpotId,
       );
       if (stayPlan) {
         entries.push({
-          type: 'spot',
+          type: "spot",
           sequence,
           color: currentItemColor,
           stayPlan,
@@ -314,7 +384,7 @@ function buildScheduleTimelineEntries(
     }
 
     entries.push({
-      type: 'activity',
+      type: "activity",
       sequence,
       color: getActivityTimelineColor(item.itemType),
       item,
@@ -323,15 +393,21 @@ function buildScheduleTimelineEntries(
 
   const lastItem = activeDay.items[activeDay.items.length - 1];
   entries.push({
-    type: 'end',
-    title: activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 收尾` : lastItem?.placeName ?? '行程结束',
-    timeLabel: lastItem?.suggestedEndTime ?? '18:00',
-    color: '#ff5a40',
+    type: "end",
+    title:
+      activeDay.dayIndex > 1
+        ? `Day ${activeDay.dayIndex} 收尾`
+        : (lastItem?.placeName ?? "行程结束"),
+    timeLabel: lastItem?.suggestedEndTime ?? "18:00",
+    color: "#ff5a40",
   });
   return entries;
 }
 
-function resolveScheduleDaySegments(routePlan: RoutePlanResponseDto, activeDay: ItineraryDayDto) {
+function resolveScheduleDaySegments(
+  routePlan: RoutePlanResponseDto,
+  activeDay: ItineraryDayDto,
+) {
   if (activeDay.segments?.length) {
     return activeDay.segments;
   }
@@ -344,7 +420,9 @@ function resolveScheduleDaySegments(routePlan: RoutePlanResponseDto, activeDay: 
 
   dayTargetNames.forEach((targetName) => {
     const matchedIndex = routePlan.segments.findIndex(
-      (segment, index) => index >= searchStartIndex && normalizePlaceName(segment.toName) === targetName,
+      (segment, index) =>
+        index >= searchStartIndex &&
+        normalizePlaceName(segment.toName) === targetName,
     );
     if (matchedIndex >= 0) {
       matchedSegments.push(routePlan.segments[matchedIndex]);
@@ -363,18 +441,21 @@ function findSegmentIndexForItem(
 ) {
   const itemName = normalizePlaceName(item.placeName || item.title);
   const matchedIndex = segments.findIndex(
-    (segment, index) => index >= startIndex && normalizePlaceName(segment.toName) === itemName,
+    (segment, index) =>
+      index >= startIndex && normalizePlaceName(segment.toName) === itemName,
   );
 
   if (matchedIndex >= 0) {
     return matchedIndex;
   }
 
-  return allowSequentialFallback && startIndex < segments.length ? startIndex : -1;
+  return allowSequentialFallback && startIndex < segments.length
+    ? startIndex
+    : -1;
 }
 
 function normalizePlaceName(placeName: string) {
-  return placeName.trim().replace(/\s+/g, '').toLowerCase();
+  return placeName.trim().replace(/\s+/g, "").toLowerCase();
 }
 
 function buildAuxiliaryItemMap(items: ItineraryItemDto[]) {
@@ -387,15 +468,30 @@ function buildAuxiliaryItemMap(items: ItineraryItemDto[]) {
   return itemMap;
 }
 
-function isAuxiliaryItem(item: ItineraryItemDto): item is ItineraryItemDto & { itemType: 'lunch' | 'rest' | 'hotel' } {
-  return item.itemType === 'lunch' || item.itemType === 'rest' || item.itemType === 'hotel';
+function isAuxiliaryItem(
+  item: ItineraryItemDto,
+): item is ItineraryItemDto & { itemType: "lunch" | "rest" | "hotel" } {
+  return (
+    item.itemType === "lunch" ||
+    item.itemType === "rest" ||
+    item.itemType === "hotel"
+  );
 }
 
-function isAuxiliarySegment(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
-  return auxiliaryItemMap.has(normalizePlaceName(segment.fromName)) || auxiliaryItemMap.has(normalizePlaceName(segment.toName));
+function isAuxiliarySegment(
+  segment: RouteSegmentDto,
+  auxiliaryItemMap: Map<string, ItineraryItemDto>,
+) {
+  return (
+    auxiliaryItemMap.has(normalizePlaceName(segment.fromName)) ||
+    auxiliaryItemMap.has(normalizePlaceName(segment.toName))
+  );
 }
 
-function getAuxiliarySegmentColor(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
+function getAuxiliarySegmentColor(
+  segment: RouteSegmentDto,
+  auxiliaryItemMap: Map<string, ItineraryItemDto>,
+) {
   const targetItem =
     auxiliaryItemMap.get(normalizePlaceName(segment.toName)) ??
     auxiliaryItemMap.get(normalizePlaceName(segment.fromName));
@@ -404,14 +500,14 @@ function getAuxiliarySegmentColor(segment: RouteSegmentDto, auxiliaryItemMap: Ma
     return getItineraryActivityColor(targetItem.itemType);
   }
 
-  return '#7a8ca4';
+  return "#7a8ca4";
 }
 
 function formatClock(totalMinutes: number) {
   const normalizedMinutes = Math.max(0, totalMinutes);
   const hours = Math.floor(normalizedMinutes / 60);
   const minutes = normalizedMinutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 function parseClock(clockText: string) {
@@ -423,45 +519,45 @@ function parseClock(clockText: string) {
 
 function getTransportLabel(transportType: string) {
   switch (transportType) {
-    case 'walking':
-      return '步行';
-    case 'bicycling':
-      return '骑行';
-    case 'transit':
-      return '公共交通';
+    case "walking":
+      return "步行";
+    case "bicycling":
+      return "骑行";
+    case "transit":
+      return "公共交通";
     default:
-      return '驾车';
+      return "驾车";
   }
 }
 
 function getTransportIcon(transportType: string) {
   switch (transportType) {
-    case 'walking':
+    case "walking":
       return <CompassOutlined />;
-    case 'transit':
+    case "transit":
       return <EnvironmentOutlined />;
     default:
       return <CarOutlined />;
   }
 }
 
-function getActivityIcon(itemType: ItineraryItemDto['itemType']) {
+function getActivityIcon(itemType: ItineraryItemDto["itemType"]) {
   switch (itemType) {
-    case 'lunch':
+    case "lunch":
       return <CoffeeOutlined />;
-    case 'hotel':
+    case "hotel":
       return <HomeOutlined />;
     default:
       return <EnvironmentOutlined />;
   }
 }
 
-function getActivityTimelineColor(itemType: ItineraryItemDto['itemType']) {
-  if (itemType === 'lunch' || itemType === 'rest' || itemType === 'hotel') {
+function getActivityTimelineColor(itemType: ItineraryItemDto["itemType"]) {
+  if (itemType === "lunch" || itemType === "rest" || itemType === "hotel") {
     return getItineraryActivityColor(itemType);
   }
 
-  return '#7a8ca4';
+  return "#7a8ca4";
 }
 
 function renderTimelineItem(
@@ -471,16 +567,28 @@ function renderTimelineItem(
   onFocusLocation: (target: RouteTimelineFocusTarget) => void,
 ) {
   // 将路线颜色写入时间轴节点，由 CSS 统一渲染左侧步骤线，避免卡片内再出现独立竖线。
-  const timelineStyle = { '--route-accent': entry.color } as CSSProperties;
+  const timelineStyle = { "--route-accent": entry.color } as CSSProperties;
 
-  if (entry.type === 'segment') {
+  if (entry.type === "segment") {
     return {
       className: styles.routeTimelineItem,
       color: entry.color,
       style: timelineStyle,
-      dot: <span className={styles.transportDot} style={{ color: entry.color }} aria-hidden="true" />,
+      dot: (
+        <span
+          className={styles.transportDot}
+          style={{ color: entry.color }}
+          aria-hidden="true"
+        />
+      ),
       children: (
-        <div className={entry.auxiliary ? `${styles.segmentCard} ${styles.auxiliarySegmentCard}` : styles.segmentCard}>
+        <div
+          className={
+            entry.auxiliary
+              ? `${styles.segmentCard} ${styles.auxiliarySegmentCard}`
+              : styles.segmentCard
+          }
+        >
           <div className={styles.segmentMain}>
             <strong>{entry.title}</strong>
             <span>{entry.subtitle}</span>
@@ -492,7 +600,7 @@ function renderTimelineItem(
     };
   }
 
-  if (entry.type === 'spot') {
+  if (entry.type === "spot") {
     const spot = spotMapping.get(entry.stayPlan.spotId);
     const previewTags = spot?.tags.slice(0, 2) ?? [];
     const handleFocusSpot = () => {
@@ -512,18 +620,25 @@ function renderTimelineItem(
       color: entry.color,
       style: timelineStyle,
       dot: (
-        <span className={styles.sequenceDot} style={{ backgroundColor: entry.color }}>
+        <span
+          className={styles.sequenceDot}
+          style={{ backgroundColor: entry.color }}
+        >
           {entry.sequence}
         </span>
       ),
       children: (
         <div
-          className={spot ? `${styles.spotCard} ${styles.clickableCard}` : styles.spotCard}
-          role={spot ? 'button' : undefined}
+          className={
+            spot
+              ? `${styles.spotCard} ${styles.clickableCard}`
+              : styles.spotCard
+          }
+          role={spot ? "button" : undefined}
           tabIndex={spot ? 0 : undefined}
           onClick={handleFocusSpot}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
+            if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               handleFocusSpot();
             }
@@ -531,7 +646,13 @@ function renderTimelineItem(
         >
           <div
             className={styles.cover}
-            style={spot?.coverUrl ? { backgroundImage: `linear-gradient(160deg, rgb(20 37 64 / 12%), rgb(20 37 64 / 40%)), url(${spot.coverUrl})` } : undefined}
+            style={
+              spot?.coverUrl
+                ? {
+                    backgroundImage: `linear-gradient(160deg, rgb(20 37 64 / 12%), rgb(20 37 64 / 40%)), url(${spot.coverUrl})`,
+                  }
+                : undefined
+            }
           />
           <div className={styles.spotContent}>
             <div className={styles.spotTop}>
@@ -546,14 +667,21 @@ function renderTimelineItem(
             {previewTags.length > 0 ? (
               <div className={styles.tagLine}>
                 {previewTags.map((tagCode) => (
-                  <Tag className={styles.tagPill} bordered={false} key={`${entry.stayPlan.spotId}-${tagCode}`}>
+                  <Tag
+                    className={styles.tagPill}
+                    bordered={false}
+                    key={`${entry.stayPlan.spotId}-${tagCode}`}
+                  >
                     {getSpotTagName(tagCode, tags)}
                   </Tag>
                 ))}
               </div>
             ) : null}
             <div className={styles.spotMeta}>
-              <span>游玩时长 {formatDuration(entry.stayPlan.suggestedDurationMinutes)}</span>
+              <span>
+                游玩时长{" "}
+                {formatDuration(entry.stayPlan.suggestedDurationMinutes)}
+              </span>
               <strong>第 {entry.sequence} 站</strong>
             </div>
           </div>
@@ -562,7 +690,7 @@ function renderTimelineItem(
     };
   }
 
-  if (entry.type === 'activity') {
+  if (entry.type === "activity") {
     const canFocusActivity = Boolean(entry.item.position);
     const handleFocusActivity = () => {
       if (!entry.item.position) {
@@ -580,18 +708,25 @@ function renderTimelineItem(
       color: entry.color,
       style: timelineStyle,
       dot: (
-        <span className={styles.activityDot} style={{ backgroundColor: entry.color }}>
+        <span
+          className={styles.activityDot}
+          style={{ backgroundColor: entry.color }}
+        >
           {getActivityIcon(entry.item.itemType)}
         </span>
       ),
       children: (
         <div
-          className={canFocusActivity ? `${styles.segmentCard} ${styles.clickableCard}` : styles.segmentCard}
-          role={canFocusActivity ? 'button' : undefined}
+          className={
+            canFocusActivity
+              ? `${styles.segmentCard} ${styles.clickableCard}`
+              : styles.segmentCard
+          }
+          role={canFocusActivity ? "button" : undefined}
           tabIndex={canFocusActivity ? 0 : undefined}
           onClick={handleFocusActivity}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
+            if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               handleFocusActivity();
             }
@@ -602,12 +737,15 @@ function renderTimelineItem(
               {entry.item.title}
               {entry.item.placeName && entry.item.placeName !== entry.item.title
                 ? ` · ${entry.item.placeName}`
-                : ''}
+                : ""}
             </strong>
             <span>
-              {entry.item.suggestedStartTime} - {entry.item.suggestedEndTime} · {formatDuration(entry.item.durationMinutes)}
+              {entry.item.suggestedStartTime} - {entry.item.suggestedEndTime} ·{" "}
+              {formatDuration(entry.item.durationMinutes)}
             </span>
-            {entry.item.note ? <span className={styles.activityNote}>{entry.item.note}</span> : null}
+            {entry.item.note ? (
+              <span className={styles.activityNote}>{entry.item.note}</span>
+            ) : null}
           </div>
           <ExportOutlined className={styles.segmentArrow} />
         </div>
@@ -615,14 +753,14 @@ function renderTimelineItem(
     };
   }
 
-  const canFocusPoint = entry.type === 'start' && Boolean(entry.position);
+  const canFocusPoint = entry.type === "start" && Boolean(entry.position);
   const handleFocusPoint = () => {
     if (!canFocusPoint || !entry.position) {
       return;
     }
 
     onFocusLocation({
-      key: 'route-start',
+      key: "route-start",
       title: entry.title,
       position: entry.position,
     });
@@ -633,18 +771,25 @@ function renderTimelineItem(
     color: entry.color,
     style: timelineStyle,
     dot: (
-      <span className={`${styles.pointDot} ${styles[entry.type]}`} style={{ backgroundColor: entry.color }}>
-        {entry.type === 'start' ? '起' : '终'}
+      <span
+        className={`${styles.pointDot} ${styles[entry.type]}`}
+        style={{ backgroundColor: entry.color }}
+      >
+        {entry.type === "start" ? "起" : "终"}
       </span>
     ),
     children: (
       <div
-        className={canFocusPoint ? `${styles.pointCard} ${styles.clickableCard}` : styles.pointCard}
-        role={canFocusPoint ? 'button' : undefined}
+        className={
+          canFocusPoint
+            ? `${styles.pointCard} ${styles.clickableCard}`
+            : styles.pointCard
+        }
+        role={canFocusPoint ? "button" : undefined}
         tabIndex={canFocusPoint ? 0 : undefined}
         onClick={handleFocusPoint}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
+          if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             handleFocusPoint();
           }

@@ -5,6 +5,7 @@ import {
   ArrowUpOutlined,
   CarOutlined,
   ClockCircleOutlined,
+  DeleteOutlined,
   FlagOutlined,
   HolderOutlined,
   QuestionCircleOutlined,
@@ -19,6 +20,7 @@ import {
   Button,
   Empty,
   Input,
+  Popconfirm,
   Popover,
   Segmented,
   Select,
@@ -221,35 +223,48 @@ export function TripPlannerDock({
       onDrop={onDropRecommendSpot}
     >
       <div className={styles.tripCluster}>
-        <Popover
-          placement="topLeft"
-          trigger="click"
-          content={tripPopoverContent}
-          overlayClassName={styles.tripPopover}
-        >
-          <button className={styles.tripLauncher} type="button">
-            <span className={styles.tripLauncherIcon}>
-              <UnorderedListOutlined />
-            </span>
-            <div className={styles.tripLauncherText}>
-              <strong>我的行程</strong>
-              <span>
-                {tripSpots.length === 0
-                  ? "还没有加入景点"
-                  : `已选 ${tripSpots.length} 个景点`}
+        <div className={styles.tripLauncherShell}>
+          <Popover
+            placement="topLeft"
+            trigger="click"
+            content={tripPopoverContent}
+            overlayClassName={styles.tripPopover}
+          >
+            <button className={styles.tripLauncher} type="button">
+              <span className={styles.tripLauncherIcon}>
+                <UnorderedListOutlined />
               </span>
-            </div>
-            <Badge count={tripSpots.length} size="small" />
-          </button>
-        </Popover>
-        <Button
-          className={styles.clearButton}
-          size="small"
-          disabled={tripSpots.length === 0}
-          onClick={onClearTrip}
-        >
-          清空
-        </Button>
+              <div className={styles.tripLauncherText}>
+                <strong>我的行程</strong>
+                <span>
+                  {tripSpots.length === 0
+                    ? "还没有加入景点"
+                    : `已选 ${tripSpots.length} 个景点`}
+                </span>
+              </div>
+              <Badge count={tripSpots.length} size="small" />
+            </button>
+          </Popover>
+
+          <Popconfirm
+            title="清空我的行程？"
+            description="会移除当前已选景点，并清除当前路线结果。"
+            okText="确认清空"
+            cancelText="取消"
+            placement="top"
+            onConfirm={onClearTrip}
+            disabled={tripSpots.length === 0}
+          >
+            <Button
+              className={styles.clearButton}
+              size="small"
+              type="text"
+              icon={<DeleteOutlined />}
+              disabled={tripSpots.length === 0}
+              aria-label="清空我的行程"
+            />
+          </Popconfirm>
+        </div>
       </div>
 
       <div className={styles.plannerRail}>
