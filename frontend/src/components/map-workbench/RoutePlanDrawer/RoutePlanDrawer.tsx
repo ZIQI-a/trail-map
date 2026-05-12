@@ -15,6 +15,7 @@ import {
 import { Button, Tag, Timeline } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
 import type {
+  GeoPoint,
   ItineraryDayDto,
   ItineraryItemDto,
   RoutePlanResponseDto,
@@ -35,7 +36,15 @@ interface RoutePlanDrawerProps {
   startPoint: string;
   scheduleStartTime?: string;
   selectedDayIndex?: number;
+  onFocusLocation: (target: RouteTimelineFocusTarget) => void;
   onClose: () => void;
+}
+
+export interface RouteTimelineFocusTarget {
+  key: string;
+  title: string;
+  position: GeoPoint;
+  spotId?: number;
 }
 
 // RoutePlanDrawer 负责在路线规划成功后展示右侧路线时间轴详情。
@@ -47,6 +56,7 @@ export function RoutePlanDrawer({
   startPoint,
   scheduleStartTime,
   selectedDayIndex,
+  onFocusLocation,
   onClose,
 }: RoutePlanDrawerProps) {
   const spotMapping = new Map(tripSpots.map((spot) => [spot.id, spot]));
@@ -106,7 +116,7 @@ export function RoutePlanDrawer({
 
       <Timeline
         className={styles.timeline}
-        items={timelineEntries.map((entry) => renderTimelineItem(entry, spotMapping, tags))}
+        items={timelineEntries.map((entry) => renderTimelineItem(entry, spotMapping, tags, onFocusLocation))}
       />
     </aside>
   );
@@ -448,7 +458,12 @@ function getActivityTimelineColor(itemType: ItineraryItemDto['itemType']) {
   return '#7a8ca4';
 }
 
-function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, TravelSpot>, tags: SpotTag[]) {
+function renderTimelineItem(
+  entry: TimelineEntry,
+  spotMapping: Map<number, TravelSpot>,
+  tags: SpotTag[],
+  onFocusLocation: (target: RouteTimelineFocusTarget) => void,
+) {
   // 将路线颜色写入时间轴节点，由 CSS 统一渲染左侧步骤线，避免卡片内再出现独立竖线。
   const timelineStyle = { '--route-accent': entry.color } as CSSProperties;
 
@@ -474,6 +489,17 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
   if (entry.type === 'spot') {
     const spot = spotMapping.get(entry.stayPlan.spotId);
     const previewTags = spot?.tags.slice(0, 2) ?? [];
+    const handleFocusSpot = () => {
+      if (!spot) {
+        return;
+      }
+      onFocusLocation({
+        key: `spot-${entry.stayPlan.spotId}`,
+        title: entry.stayPlan.spotName,
+        position: spot.position,
+        spotId: spot.id,
+      });
+    };
 
     return {
       className: styles.routeTimelineItem,
@@ -485,7 +511,18 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
         </span>
       ),
       children: (
-        <div className={styles.spotCard}>
+        <div
+          className={spot ? `${styles.spotCard} ${styles.clickableCard}` : styles.spotCard}
+          role={spot ? 'button' : undefined}
+          tabIndex={spot ? 0 : undefined}
+          onClick={handleFocusSpot}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleFocusSpot();
+            }
+          }}
+        >
           <div
             className={styles.cover}
             style={spot?.coverUrl ? { backgroundImage: `linear-gradient(160deg, rgb(20 37 64 / 12%), rgb(20 37 64 / 40%)), url(${spot.coverUrl})` } : undefined}
@@ -520,6 +557,18 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
   }
 
   if (entry.type === 'activity') {
+    const canFocusActivity = Boolean(entry.item.position);
+    const handleFocusActivity = () => {
+      if (!entry.item.position) {
+        return;
+      }
+      onFocusLocation({
+        key: `${entry.item.itemType}-${entry.item.sequence}`,
+        title: entry.item.placeName || entry.item.title,
+        position: entry.item.position,
+      });
+    };
+
     return {
       className: styles.routeTimelineItem,
       color: entry.color,
@@ -530,7 +579,18 @@ function renderTimelineItem(entry: TimelineEntry, spotMapping: Map<number, Trave
         </span>
       ),
       children: (
-        <div className={styles.segmentCard}>
+        <div
+          className={canFocusActivity ? `${styles.segmentCard} ${styles.clickableCard}` : styles.segmentCard}
+          role={canFocusActivity ? 'button' : undefined}
+          tabIndex={canFocusActivity ? 0 : undefined}
+          onClick={handleFocusActivity}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleFocusActivity();
+            }
+          }}
+        >
           <div className={styles.segmentMain}>
             <strong>
               {entry.item.title}

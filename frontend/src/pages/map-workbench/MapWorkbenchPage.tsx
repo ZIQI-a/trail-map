@@ -16,7 +16,7 @@ import {
 import { useMemo, useState } from "react";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
-import { RoutePlanDrawer } from "../../components/map-workbench/RoutePlanDrawer";
+import { RoutePlanDrawer, type RouteTimelineFocusTarget } from "../../components/map-workbench/RoutePlanDrawer";
 import { SchedulePlanFormFields } from "../../components/map-workbench/SchedulePlanFormFields";
 import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
 import {
@@ -113,6 +113,7 @@ export function MapWorkbenchPage() {
   const [scheduleConfigModalOpen, setScheduleConfigModalOpen] = useState(false);
   const [scheduleSettingsOpen, setScheduleSettingsOpen] = useState(false);
   const [selectedScheduleDay, setSelectedScheduleDay] = useState(1);
+  const [mapFocusTarget, setMapFocusTarget] = useState<MapFocusTarget>();
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
@@ -462,6 +463,19 @@ export function MapWorkbenchPage() {
     );
   }
 
+  // 右侧完整行程时间轴点击地点时，地图聚焦到该地点；景点同时同步左侧和地图选中态。
+  function handleFocusRouteTimelineLocation(target: RouteTimelineFocusTarget) {
+    if (target.spotId) {
+      setSelectedSpotId(target.spotId);
+    }
+
+    setMapFocusTarget({
+      key: `${target.key}-${Date.now()}`,
+      position: target.position,
+      zoom: 16,
+    });
+  }
+
   if (isInitialLoading) {
     return (
       <main className={styles.workbenchStateShell}>
@@ -511,6 +525,7 @@ export function MapWorkbenchPage() {
           routeSegments={visibleRouteSegments}
           routeOverlays={mapRouteOverlays}
           itineraryMarkers={mapItineraryMarkers}
+          focusTarget={mapFocusTarget}
           onSelectSpot={setSelectedSpotId}
         />
 
@@ -576,6 +591,7 @@ export function MapWorkbenchPage() {
               startPoint={startPoint.trim() || `${city.name}市中心`}
               scheduleStartTime={showingScheduleResult ? scheduleConfig.dailyStartTime : undefined}
               selectedDayIndex={activeScheduleDay?.dayIndex}
+              onFocusLocation={handleFocusRouteTimelineLocation}
               onClose={() => setRoutePlanResult(undefined)}
             />
           </div>
@@ -703,6 +719,12 @@ interface MapRouteOverlay {
   color: string;
   lineStyle: "solid" | "dashed";
   kind: "route" | "guide";
+}
+
+interface MapFocusTarget {
+  key: string;
+  position: GeoPoint;
+  zoom?: number;
 }
 
 interface MapItineraryMarker {

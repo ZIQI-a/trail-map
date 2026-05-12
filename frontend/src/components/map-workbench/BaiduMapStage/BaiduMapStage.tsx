@@ -7,7 +7,10 @@ import type {
   TravelCity,
   TravelSpot,
 } from "../../../types/mapWorkbench";
-import { getItineraryActivityMarkerConfig, getRouteSegmentColor } from "../../../utils/map-workbench/routePalette";
+import {
+  getItineraryActivityMarkerConfig,
+  getRouteSegmentColor,
+} from "../../../utils/map-workbench/routePalette";
 import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
@@ -18,6 +21,7 @@ interface BaiduMapStageProps {
   routeSegments?: RouteSegmentDto[];
   routeOverlays?: MapRouteOverlay[];
   itineraryMarkers?: MapItineraryMarker[];
+  focusTarget?: MapFocusTarget; // 右侧时间轴点击时的地图聚焦目标，优先级高于 selectedSpot。
   onSelectSpot: (spotId: number) => void;
 }
 
@@ -36,6 +40,12 @@ interface MapItineraryMarker {
   title: string;
 }
 
+interface MapFocusTarget {
+  key: string;
+  position: GeoPoint;
+  zoom?: number;
+}
+
 // BaiduMapStage 负责真实地图底图、城市定位和景点 Marker 展示。
 export function BaiduMapStage({
   city,
@@ -45,6 +55,7 @@ export function BaiduMapStage({
   routeSegments,
   routeOverlays,
   itineraryMarkers,
+  focusTarget,
   onSelectSpot,
 }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, "-");
@@ -120,19 +131,19 @@ export function BaiduMapStage({
       map.addOverlay(marker);
     });
 
-    const activeRouteOverlays =
-      routeOverlays?.length
-        ? routeOverlays
-        : routeSegments?.map((segment, index) => ({
-            key: `segment-${segment.segmentIndex}`,
-            polyline: segment.polyline,
-            color: getRouteSegmentColor(index),
-            lineStyle: "solid" as const,
-            kind: "route" as const,
-          })) ?? [];
+    const activeRouteOverlays = routeOverlays?.length
+      ? routeOverlays
+      : (routeSegments?.map((segment, index) => ({
+          key: `segment-${segment.segmentIndex}`,
+          polyline: segment.polyline,
+          color: getRouteSegmentColor(index),
+          lineStyle: "solid" as const,
+          kind: "route" as const,
+        })) ?? []);
 
-    const routeViewportPoints =
-      activeRouteOverlays.flatMap((overlay) => overlay.polyline).map(createBaiduPoint);
+    const routeViewportPoints = activeRouteOverlays
+      .flatMap((overlay) => overlay.polyline)
+      .map(createBaiduPoint);
 
     activeRouteOverlays.forEach((overlay) => {
       if (overlay.polyline.length < 2) {
@@ -140,7 +151,7 @@ export function BaiduMapStage({
       }
       const routeLine = new window.BMapGL!.Polyline(
         overlay.polyline.map(createBaiduPoint),
-        ({
+        {
           strokeColor: overlay.color,
           strokeWeight: overlay.kind === "guide" ? 4 : 5,
           strokeOpacity: overlay.kind === "guide" ? 0.72 : 0.88,
@@ -149,15 +160,18 @@ export function BaiduMapStage({
           strokeColor?: string;
           strokeWeight?: number;
           strokeOpacity?: number;
-        }),
+        },
       );
       map.addOverlay(routeLine);
     });
 
     itineraryMarkers?.forEach((marker) => {
-      const overlay = new window.BMapGL!.Marker(createBaiduPoint(marker.position), {
-        icon: createActivityMarkerIcon(marker.itemType),
-      });
+      const overlay = new window.BMapGL!.Marker(
+        createBaiduPoint(marker.position),
+        {
+          icon: createActivityMarkerIcon(marker.itemType),
+        },
+      );
       map.addOverlay(overlay);
     });
 
@@ -201,6 +215,18 @@ export function BaiduMapStage({
     spots,
     itineraryMarkers,
   ]);
+
+  useEffect(() => {
+    if (!mapRef.current || !sdkReady || !focusTarget) {
+      return;
+    }
+
+    // 右侧时间轴点击地点时，地图只做视角聚焦，不触发路线重绘。
+    mapRef.current.centerAndZoom(
+      createBaiduPoint(focusTarget.position),
+      focusTarget.zoom ?? selectedSpotZoom,
+    );
+  }, [focusTarget, sdkReady, selectedSpotZoom]);
 
   if (sdkError) {
     return (

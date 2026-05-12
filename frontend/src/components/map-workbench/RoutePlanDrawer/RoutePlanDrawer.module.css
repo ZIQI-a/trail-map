@@ -274,6 +274,22 @@
   margin-left: 5px;
 }
 
+.clickableCard {
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.clickableCard:hover,
+.clickableCard:focus-visible {
+  border-color: var(--route-accent);
+  outline: 0;
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--route-accent) 18%, transparent);
+  transform: translateY(-1px);
+}
+
 .pointCard {
   display: grid;
   gap: 2px;
