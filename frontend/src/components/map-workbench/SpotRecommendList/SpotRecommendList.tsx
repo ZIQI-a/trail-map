@@ -1,4 +1,4 @@
-import { Button, Empty, Segmented, Tag } from 'antd';
+import { Empty, Tag } from 'antd';
 import type { SpotTag, TravelSpot } from '../../../types/mapWorkbench';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './SpotRecommendList.module.css';
@@ -45,13 +45,17 @@ export function SpotRecommendList({
       </div>
 
       <div className={styles.tabGroup} aria-label="推荐列表排序">
-        <Segmented
-          block
-          className={styles.tabSegmented}
-          value={activeTab}
-          options={recommendTabs}
-          onChange={(value) => onActiveTabChange(value as RecommendTab)}
-        />
+        {recommendTabs.map((tab) => (
+          <button
+            className={`${styles.tabButton} ${activeTab === tab.value ? styles.tabButtonActive : ''}`}
+            type="button"
+            key={tab.value}
+            aria-pressed={activeTab === tab.value}
+            onClick={() => onActiveTabChange(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className={styles.spotList}>
@@ -62,34 +66,38 @@ export function SpotRecommendList({
             const isSelected = spot.id === selectedSpotId;
 
             return (
-              <Button
+              <button
                 className={isSelected ? styles.spotCardActive : styles.spotCard}
-                type="text"
-                block
+                type="button"
                 key={spot.id}
                 aria-pressed={isSelected}
                 onClick={() => onSelectSpot(spot.id)}
               >
-                <span className={styles.rank}>{String(index + 1).padStart(2, '0')}</span>
+                <span
+                  className={styles.thumbnail}
+                  style={spot.coverUrl ? { backgroundImage: `url(${spot.coverUrl})` } : undefined}
+                  aria-hidden="true"
+                >
+                  <span className={styles.rank}>TOP{index + 1}</span>
+                </span>
                 <span className={styles.cardMain}>
                   <span className={styles.cardTopLine}>
                     <strong>{spot.name}</strong>
-                    <span>{spot.distanceText}</span>
-                  </span>
-                  <span className={styles.reason}>{spot.recommendReason}</span>
-                  <span className={styles.metaLine}>
-                    <span>评分 {spot.recommendScore.toFixed(1)}</span>
-                    <span>{formatDuration(spot.suggestedDurationMinutes)}</span>
                   </span>
                   <span className={styles.tagLine}>
-                    {spot.tags.slice(0, 3).map((tagCode) => (
+                    {spot.tags.slice(0, 2).map((tagCode) => (
                       <Tag className={styles.tagPill} bordered={false} key={tagCode}>
                         {getSpotTagName(tagCode, tags)}
                       </Tag>
                     ))}
                   </span>
+                  <span className={styles.metaLine}>
+                    <span className={styles.scoreText}>{spot.recommendScore.toFixed(1)}分</span>
+                    <span>{spot.distanceText}</span>
+                    <span>{formatDuration(spot.suggestedDurationMinutes)}</span>
+                  </span>
                 </span>
-              </Button>
+              </button>
             );
           })
         )}

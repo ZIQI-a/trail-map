@@ -2,12 +2,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid rgb(203 216 235 / 86%);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 94%);
-  box-shadow: 0 12px 34px rgb(41 78 118 / 10%);
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgb(215 225 238 / 86%);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 16px 42px rgb(31 73 125 / 12%);
+  backdrop-filter: blur(16px);
 }
 
 .panelHeader {
@@ -23,22 +24,23 @@
 }
 
 .panelLabel {
-  color: #2266e8;
-  font-size: 13px;
-  font-weight: 800;
+  color: #152d4f;
+  font-size: 17px;
+  font-weight: 900;
 }
 
 .panelHeader h2 {
-  margin-top: 4px;
-  color: #132748;
-  font-size: 18px;
+  margin-top: 5px;
+  color: #718196;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .countBadge {
   flex: 0 0 auto;
   padding: 5px 9px;
   border-radius: 999px;
-  color: #2266e8;
+  color: #2d6bff;
   font-size: 12px;
   font-weight: 800;
   background: #edf4ff;
@@ -47,56 +49,98 @@
 
 .tabGroup {
   min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: #f3f6fa;
 }
 
-.tabSegmented {
-  width: 100%;
-  font-size: 13px;
+.tabButton {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  color: #60728a;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tabButton:hover {
+  color: #2d6bff;
+}
+
+.tabButtonActive {
+  color: #1f5fe8;
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgb(45 107 255 / 12%);
 }
 
 .spotList {
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 0;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .spotCard,
 .spotCardActive {
   width: 100%;
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 8px;
-  padding: 9px;
-  height: auto;
-  border: 1px solid #dce6f3;
-  border-radius: 8px;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   text-align: left;
-  background: #ffffff;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .spotCard:hover,
 .spotCardActive {
-  border-color: #2266e8;
-  background: #f4f8ff;
-  box-shadow: 0 12px 24px rgb(34 102 232 / 11%);
+  border-color: #dce8fb;
+  background: #f8fbff;
+  box-shadow: 0 10px 22px rgb(31 73 125 / 9%);
+}
+
+.spotCardActive {
+  transform: translateX(2px);
+}
+
+.thumbnail {
+  position: relative;
+  width: 74px;
+  aspect-ratio: 1.18;
+  overflow: hidden;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgb(35 79 132 / 20%), rgb(35 79 132 / 44%)),
+    linear-gradient(135deg, #dbe8f8, #adc4e5);
+  background-position: center;
+  background-size: cover;
 }
 
 .rank {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  color: #2266e8;
-  font-size: 12px;
-  font-weight: 900;
-  background: #edf4ff;
-}
-
-.spotCardActive .rank {
+  position: absolute;
+  inset: 0 auto auto 0;
+  padding: 3px 6px;
+  border-bottom-right-radius: 9px;
   color: #ffffff;
-  background: #2266e8;
+  background: linear-gradient(135deg, #ff9f1a, #ff6b2d);
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .cardMain,
@@ -109,11 +153,10 @@
 
 .cardMain {
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
 }
 
-.cardTopLine,
-.metaLine {
+.cardTopLine {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -122,50 +165,48 @@
 .cardTopLine strong {
   min-width: 0;
   overflow: hidden;
-  color: #132748;
+  color: #162f52;
   font-size: 15px;
+  font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cardTopLine span,
 .metaLine {
-  color: #65748a;
+  align-items: center;
+  gap: 10px;
+  color: #718196;
   font-size: 12px;
+  line-height: 1.2;
 }
 
-.reason {
-  display: -webkit-box;
-  overflow: hidden;
-  color: #475a72;
-  font-size: 13px;
-  line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+.scoreText {
+  color: #ff8a00;
+  font-weight: 900;
 }
 
 .tagLine {
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 
 .tagPill {
   max-width: 100%;
-  padding: 4px 7px;
+  padding: 3px 7px;
   overflow: hidden;
   border-radius: 999px;
-  color: #31506f;
+  color: #60728a;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: #eef5fb;
+  background: #eef3f9;
   margin-inline-end: 0;
 }
 
 .emptyState {
   padding: 18px 12px;
   border: 1px dashed #c8d8eb;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #f8fbff;
 }
 
@@ -183,7 +224,7 @@
 
 @media (max-width: 640px) {
   .panel {
-    padding: 12px;
+    padding: 14px;
   }
 
   .spotList {

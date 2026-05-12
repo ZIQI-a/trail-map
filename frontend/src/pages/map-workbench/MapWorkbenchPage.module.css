@@ -38,7 +38,7 @@
 .leftFloatPanel {
   top: 14px;
   left: 14px;
-  width: min(360px, calc(100vw - 28px));
+  width: min(330px, calc(100vw - 28px));
   max-height: calc(100% - 146px);
   overflow: auto;
 }
@@ -53,7 +53,7 @@
 .detailFloatPanel {
   top: 14px;
   right: 14px;
-  width: min(330px, calc(100vw - 28px));
+  width: min(370px, calc(100vw - 28px));
   max-height: calc(100% - 146px);
   overflow: auto;
   animation: slideIn 180ms ease-out;

@@ -1,4 +1,13 @@
-import { Button, Descriptions, Empty, Tag } from 'antd';
+import {
+  ClockCircleOutlined,
+  CompassOutlined,
+  EnvironmentOutlined,
+  HeartOutlined,
+  PlusOutlined,
+  StarFilled,
+  TagsOutlined,
+} from '@ant-design/icons';
+import { Empty, Tag } from 'antd';
 import type { SpotTag, TravelSpot } from '../../../types/mapWorkbench';
 import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spotDisplay';
 import styles from './SpotDetailPanel.module.css';
@@ -32,26 +41,25 @@ export function SpotDetailPanel({
 
   return (
     <aside className={styles.panel} aria-label="景点详情">
-      <div className={styles.coverBlock}>
-        <span className={styles.coverType}>{spot.ticketInfo}</span>
-        <strong>{spot.name}</strong>
-        <span>{spot.address}</span>
+      <div
+        className={styles.coverBlock}
+        style={spot.coverUrl ? { backgroundImage: `linear-gradient(180deg, rgb(13 30 56 / 4%), rgb(13 30 56 / 62%)), url(${spot.coverUrl})` } : undefined}
+      >
+        <div className={styles.coverActions} aria-hidden="true">
+          <span><HeartOutlined /></span>
+        </div>
       </div>
 
       <div className={styles.titleBlock}>
-        <p className={styles.panelLabel}>景点详情</p>
         <h2>{spot.name}</h2>
-        <p>{spot.summary}</p>
-      </div>
-
-      <div className={styles.scoreRow}>
-        <div>
-          <strong>{spot.recommendScore.toFixed(1)}</strong>
-          <span>推荐评分</span>
-        </div>
-        <div>
-          <strong>{formatDuration(spot.suggestedDurationMinutes)}</strong>
-          <span>建议游玩</span>
+        <div className={styles.ratingRow}>
+          <span className={styles.ratingScore}>{spot.recommendScore.toFixed(1)}</span>
+          <span className={styles.stars} aria-hidden="true">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <StarFilled key={index} />
+            ))}
+          </span>
+          <span>{spot.distanceText}</span>
         </div>
       </div>
 
@@ -63,17 +71,30 @@ export function SpotDetailPanel({
         ))}
       </div>
 
-      <Descriptions
-        className={styles.infoList}
-        column={1}
-        size="small"
-        bordered
-        items={[
-          { key: 'openingHours', label: '开放时间', children: spot.openingHours },
-          { key: 'ticketInfo', label: '门票信息', children: spot.ticketInfo },
-          { key: 'bestTime', label: '推荐时段', children: spot.bestTime },
-        ]}
-      />
+      <p className={styles.summaryText}>{spot.summary}</p>
+
+      <div className={styles.infoGrid}>
+        <div className={styles.infoItem}>
+          <ClockCircleOutlined />
+          <span>开放时间</span>
+          <strong>{spot.openingHours}</strong>
+        </div>
+        <div className={styles.infoItem}>
+          <TagsOutlined />
+          <span>门票价格</span>
+          <strong>{spot.ticketInfo}</strong>
+        </div>
+        <div className={styles.infoItem}>
+          <CompassOutlined />
+          <span>建议游玩</span>
+          <strong>{formatDuration(spot.suggestedDurationMinutes)}</strong>
+        </div>
+        <div className={styles.infoItem}>
+          <EnvironmentOutlined />
+          <span>推荐时段</span>
+          <strong>{spot.bestTime}</strong>
+        </div>
+      </div>
 
       <div className={styles.reasonBlock}>
         <span>推荐理由</span>
@@ -81,10 +102,14 @@ export function SpotDetailPanel({
       </div>
 
       <div className={styles.actionRow}>
-        <Button className={styles.primaryButton} type="primary" disabled={isInTrip} onClick={() => onAddToTrip(spot.id)}>
+        <button className={styles.secondaryButton} type="button" disabled={isInTrip} onClick={() => onAddToTrip(spot.id)}>
+          <PlusOutlined />
           {isInTrip ? '已加入行程' : '加入行程'}
-        </Button>
-        <Button className={styles.secondaryButton}>导航到这里</Button>
+        </button>
+        <button className={styles.primaryButton} type="button">
+          <CompassOutlined />
+          导航到这里
+        </button>
       </div>
 
       <section className={styles.nearbyBlock} aria-label="附近景点">
@@ -94,10 +119,17 @@ export function SpotDetailPanel({
         </div>
         <div className={styles.nearbyList}>
           {nearbySpots.map((nearbySpot) => (
-            <Button className={styles.nearbyItem} type="text" block key={nearbySpot.id} onClick={() => onSelectSpot(nearbySpot.id)}>
-              <strong>{nearbySpot.name}</strong>
-              <span>{nearbySpot.distanceText}</span>
-            </Button>
+            <button className={styles.nearbyItem} type="button" key={nearbySpot.id} onClick={() => onSelectSpot(nearbySpot.id)}>
+              <span
+                className={styles.nearbyThumb}
+                style={nearbySpot.coverUrl ? { backgroundImage: `url(${nearbySpot.coverUrl})` } : undefined}
+                aria-hidden="true"
+              />
+              <span className={styles.nearbyText}>
+                <strong>{nearbySpot.name}</strong>
+                <span>{nearbySpot.distanceText}</span>
+              </span>
+            </button>
           ))}
         </div>
       </section>
