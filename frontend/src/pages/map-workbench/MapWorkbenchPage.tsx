@@ -589,6 +589,7 @@ export function MapWorkbenchPage() {
               tripSpots={tripSpots}
               tags={tags}
               startPoint={startPoint.trim() || `${city.name}市中心`}
+              startPosition={visibleRouteSegments?.[0]?.fromPosition ?? startPointPosition ?? city.center}
               scheduleStartTime={showingScheduleResult ? scheduleConfig.dailyStartTime : undefined}
               selectedDayIndex={activeScheduleDay?.dayIndex}
               onFocusLocation={handleFocusRouteTimelineLocation}

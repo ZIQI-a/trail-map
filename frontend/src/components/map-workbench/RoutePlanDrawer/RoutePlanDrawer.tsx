@@ -34,6 +34,7 @@ interface RoutePlanDrawerProps {
   tripSpots: TravelSpot[];
   tags: SpotTag[];
   startPoint: string;
+  startPosition?: GeoPoint;
   scheduleStartTime?: string;
   selectedDayIndex?: number;
   onFocusLocation: (target: RouteTimelineFocusTarget) => void;
@@ -54,6 +55,7 @@ export function RoutePlanDrawer({
   tripSpots,
   tags,
   startPoint,
+  startPosition,
   scheduleStartTime,
   selectedDayIndex,
   onFocusLocation,
@@ -67,8 +69,8 @@ export function RoutePlanDrawer({
       : undefined;
   const timelineEntries =
     routePlan.planMode === 'schedule' && activeDay?.items.length
-      ? buildScheduleTimelineEntries(routePlan, startPoint, activeDay, scheduleStartTime)
-      : buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex);
+      ? buildScheduleTimelineEntries(routePlan, startPoint, activeDay, scheduleStartTime, startPosition)
+      : buildTimelineEntries(routePlan, startPoint, activeDay?.dayIndex, startPosition);
   const metricTarget = activeDay ?? routePlan;
   const summaryText = activeDay
     ? `${activeDay.title} 已安排 ${activeDay.spots.length} 个景点，预计交通 ${formatRouteDuration(activeDay.totalTravelDurationSeconds)}，游玩 ${formatTripDuration(activeDay.totalStayDurationMinutes)}。`
@@ -139,7 +141,7 @@ function MetricCard({ icon, value, label }: MetricCardProps) {
 }
 
 type TimelineEntry =
-  | { type: 'start' | 'end'; title: string; timeLabel: string; color: string }
+  | { type: 'start' | 'end'; title: string; timeLabel: string; color: string; position?: GeoPoint }
   | {
       type: 'segment';
       title: string;
@@ -169,6 +171,7 @@ function buildTimelineEntries(
   routePlan: RoutePlanResponseDto,
   startPoint: string,
   selectedDayIndex?: number,
+  startPosition?: GeoPoint,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const scopedSpotPlans =
@@ -190,6 +193,7 @@ function buildTimelineEntries(
     title: selectedDayIndex && selectedDayIndex > 1 ? `Day ${selectedDayIndex} 出发` : startPoint || '市中心',
     timeLabel: formatClock(initialMinutes),
     color: getRouteSegmentColor(0),
+    position: startPosition ?? routePlan.segments[0]?.fromPosition,
   });
 
   scopedSpotPlans.forEach((stayPlan, localIndex) => {
@@ -245,6 +249,7 @@ function buildScheduleTimelineEntries(
   startPoint: string,
   activeDay: ItineraryDayDto,
   scheduleStartTime?: string,
+  startPosition?: GeoPoint,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const daySegments = resolveScheduleDaySegments(routePlan, activeDay);
@@ -257,6 +262,7 @@ function buildScheduleTimelineEntries(
     title: activeDay.startPlaceName || (activeDay.dayIndex > 1 ? `Day ${activeDay.dayIndex} 出发` : startPoint || '市中心'),
     timeLabel: startLabel,
     color: getRouteSegmentColor(0),
+    position: startPosition ?? daySegments[0]?.fromPosition,
   });
 
   let segmentCursor = 0;
@@ -609,6 +615,19 @@ function renderTimelineItem(
     };
   }
 
+  const canFocusPoint = entry.type === 'start' && Boolean(entry.position);
+  const handleFocusPoint = () => {
+    if (!canFocusPoint || !entry.position) {
+      return;
+    }
+
+    onFocusLocation({
+      key: 'route-start',
+      title: entry.title,
+      position: entry.position,
+    });
+  };
+
   return {
     className: styles.routeTimelineItem,
     color: entry.color,
@@ -619,7 +638,18 @@ function renderTimelineItem(
       </span>
     ),
     children: (
-      <div className={styles.pointCard}>
+      <div
+        className={canFocusPoint ? `${styles.pointCard} ${styles.clickableCard}` : styles.pointCard}
+        role={canFocusPoint ? 'button' : undefined}
+        tabIndex={canFocusPoint ? 0 : undefined}
+        onClick={handleFocusPoint}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleFocusPoint();
+          }
+        }}
+      >
         <span className={styles.pointTime}>{entry.timeLabel}</span>
         <strong>{entry.title}</strong>
       </div>

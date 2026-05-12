@@ -669,7 +669,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             String recommendKeyword,
             int radiusMeters,
             String fallbackNote) {
-        String normalizedMode = normalizeLocationMode(mode);
+            String normalizedMode = normalizeLocationMode(mode);
         if (LOCATION_MODE_MANUAL.equals(normalizedMode) && manualLocation != null) {
             return new ItineraryItemResponse(
                     sequence,
@@ -706,6 +706,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             }
         }
 
+        // 系统推荐失败时保留时间块，但把失败原因写入 note，方便前端和调试时判断是配置问题还是召回问题。
+        String resolvedFallbackNote = resolveSupportItemFallbackNote(normalizedMode, fallbackNote);
         return new ItineraryItemResponse(
                 sequence,
                 itemType,
@@ -717,7 +719,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 formatClock(startMinutes),
                 formatClock(endMinutes),
                 anchorSpot.getId(),
-                fallbackNote);
+                resolvedFallbackNote);
     }
 
     private PoiCalibrationCandidateResponse recommendNearbyPoi(String cityName, Spot anchorSpot, String keyword,
@@ -736,6 +738,21 @@ public class RoutePlanServiceImpl implements RoutePlanService {
         } catch (Exception exception) {
             return null;
         }
+    }
+
+    /**
+     * 补充节点没有真实地点时仍要区分原因，避免“系统推荐已开启但只看到午餐占位”时难以排查。
+     */
+    private String resolveSupportItemFallbackNote(String normalizedMode, String fallbackNote) {
+        if (!LOCATION_MODE_RECOMMENDED.equals(normalizedMode)) {
+            return fallbackNote;
+        }
+
+        if (!StringUtils.hasText(baiduMapProperties.getServerAk())) {
+            return "未配置百度地图服务端 AK，暂以时间块占位";
+        }
+
+        return "附近未检索到合适地点或第三方检索失败，暂以时间块占位";
     }
 
     /**

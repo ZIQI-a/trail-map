@@ -149,8 +149,9 @@ export function BaiduMapStage({
       if (overlay.polyline.length < 2) {
         return;
       }
+      const routePoints = overlay.polyline.map(createBaiduPoint);
       const routeLine = new window.BMapGL!.Polyline(
-        overlay.polyline.map(createBaiduPoint),
+        routePoints,
         {
           strokeColor: overlay.color,
           strokeWeight: overlay.kind === "guide" ? 4 : 5,
@@ -163,6 +164,20 @@ export function BaiduMapStage({
         },
       );
       map.addOverlay(routeLine);
+
+      // 每条路线补充轻量端点标识，帮助用户区分当前路段从哪里出发、到哪里结束。
+      const firstPoint = overlay.polyline[0];
+      const lastPoint = overlay.polyline[overlay.polyline.length - 1];
+      map.addOverlay(
+        new window.BMapGL!.Marker(createBaiduPoint(firstPoint), {
+          icon: createRouteEndpointIcon("起", overlay.color, overlay.kind),
+        }),
+      );
+      map.addOverlay(
+        new window.BMapGL!.Marker(createBaiduPoint(lastPoint), {
+          icon: createRouteEndpointIcon("到", overlay.color, overlay.kind),
+        }),
+      );
     });
 
     itineraryMarkers?.forEach((marker) => {
@@ -301,4 +316,26 @@ function createActivityMarkerIcon(itemType: MapItineraryMarker["itemType"]) {
 
 function resolveActivityMarkerConfig(itemType: MapItineraryMarker["itemType"]) {
   return getItineraryActivityMarkerConfig(itemType);
+}
+
+function createRouteEndpointIcon(label: "起" | "到", color: string, kind: MapRouteOverlay["kind"]) {
+  const size = kind === "guide" ? 20 : 24;
+  const radius = kind === "guide" ? 8 : 9.5;
+  const fontSize = kind === "guide" ? 9 : 10;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${radius + 3}" fill="#ffffff" fill-opacity="0.92"/>
+      <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="${color}" fill-opacity="${kind === "guide" ? "0.82" : "0.96"}"/>
+      <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" stroke="#ffffff" stroke-width="2" fill="none"/>
+      <text x="${size / 2}" y="${size / 2 + 3.5}" text-anchor="middle" font-size="${fontSize}" font-weight="800" fill="#ffffff">${label}</text>
+    </svg>
+  `;
+
+  return new window.BMapGL!.Icon(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    new window.BMapGL!.Size(size, size),
+    {
+      anchor: new window.BMapGL!.Size(size / 2, size / 2),
+    },
+  );
 }
