@@ -5,9 +5,9 @@ import {
   ArrowUpOutlined,
   CarOutlined,
   ClockCircleOutlined,
-  EnvironmentOutlined,
   FlagOutlined,
   HolderOutlined,
+  PushpinOutlined,
   RightOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
@@ -245,7 +245,8 @@ export function TripPlannerDock({
             onSelect={(value, option) => onSelectStartPoint(value, (option as StartPointOption).position)}
           >
             <Input
-              prefix={
+              prefix={<PushpinOutlined className={styles.startDecorIcon} />}
+              suffix={
                 <button
                   className={styles.locateButton}
                   type="button"
@@ -256,7 +257,6 @@ export function TripPlannerDock({
                   <AimOutlined />
                 </button>
               }
-              suffix={<EnvironmentOutlined className={styles.startPointIcon} />}
               placeholder="例如：春熙路地铁站"
               disabled={locatingCurrentPosition}
             />
