@@ -1,4 +1,21 @@
-import { Button, Input, Segmented, Select } from "antd";
+import {
+  AimOutlined,
+  BankOutlined,
+  CameraOutlined,
+  CompassOutlined,
+  EnvironmentOutlined,
+  HeartOutlined,
+  HomeOutlined,
+  PictureOutlined,
+  SearchOutlined,
+  SmileOutlined,
+  StarOutlined,
+  TagOutlined,
+  TeamOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
+import { Avatar, Button, Input, Segmented, Select } from "antd";
+import type { ReactNode } from "react";
 import type {
   SpotTag,
   SpotTagCode,
@@ -20,7 +37,11 @@ interface WorkbenchHeaderProps {
   onActiveFilterChange: (filter: ActiveSpotFilter) => void;
 }
 
-const quickActions = ["我的位置", "路线规划", "收藏夹"];
+const quickActions = [
+  { label: "我的位置", icon: <EnvironmentOutlined /> },
+  { label: "路线规划", icon: <CompassOutlined /> },
+  { label: "收藏夹", icon: <HeartOutlined /> },
+];
 
 // WorkbenchHeader 负责顶部品牌、搜索、城市和分类筛选区域。
 export function WorkbenchHeader({
@@ -35,8 +56,8 @@ export function WorkbenchHeader({
   onActiveFilterChange,
 }: WorkbenchHeaderProps) {
   const filterOptions = [
-    { label: "全部", value: "all" },
-    ...tags.map((tag) => ({ label: tag.name, value: tag.code })),
+    { label: buildFilterLabel("全部", <AimOutlined />), value: "all" },
+    ...tags.map((tag) => ({ label: buildFilterLabel(tag.name, getFilterIcon(tag.code)), value: tag.code })),
   ];
   const cityOptions = cities.map((city) => ({
     label: `${city.name} · ${city.provinceName}`,
@@ -47,20 +68,14 @@ export function WorkbenchHeader({
     <header className={styles.topBar}>
       <div className={styles.topBarMain}>
         <div className={styles.brandArea}>
-          <div className={styles.logoMark} aria-hidden="true">
-            行
-          </div>
-          <div>
-            <p className={styles.brandName}>行迹旅图 TrailMap</p>
-            <p className={styles.brandMeta}>全国一站式旅游规划</p>
-          </div>
+          <img className={styles.brandLogo} src="/header_logo.png" alt="行迹旅图 TrailMap" />
         </div>
 
         <Input
           className={styles.searchBox}
           aria-label="搜索城市、景点或美食"
           value={searchKeyword}
-          prefix="⌕"
+          prefix={<SearchOutlined />}
           placeholder="搜索城市 / 景点 / 美食"
           allowClear
           onChange={(event) => onSearchKeywordChange(event.target.value)}
@@ -71,16 +86,18 @@ export function WorkbenchHeader({
           aria-label="切换当前城市"
           value={selectedCityId}
           options={cityOptions}
+          suffixIcon={<EnvironmentOutlined />}
           placeholder={cityName}
           onChange={onCityChange}
         />
 
         <div className={styles.actionGroup} aria-label="快捷操作">
           {quickActions.map((action) => (
-            <Button className={styles.actionButton} key={action}>
-              {action}
+            <Button className={styles.actionButton} icon={action.icon} key={action.label}>
+              {action.label}
             </Button>
           ))}
+          <Avatar className={styles.userAvatar} size={36} icon={<SmileOutlined />} />
         </div>
       </div>
 
@@ -94,4 +111,40 @@ export function WorkbenchHeader({
       </nav>
     </header>
   );
+}
+
+function buildFilterLabel(label: string, icon: ReactNode) {
+  return (
+    <span className={styles.filterLabel}>
+      {icon}
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function getFilterIcon(code: SpotTagCode) {
+  switch (code) {
+    case "first_visit":
+      return <StarOutlined />;
+    case "photo":
+      return <CameraOutlined />;
+    case "night_tour":
+      return <ThunderboltOutlined />;
+    case "family":
+      return <TeamOutlined />;
+    case "couple":
+      return <HeartOutlined />;
+    case "free":
+      return <TagOutlined />;
+    case "indoor":
+      return <HomeOutlined />;
+    case "rainy_day":
+      return <PictureOutlined />;
+    case "half_day":
+      return <BankOutlined />;
+    case "subway":
+      return <EnvironmentOutlined />;
+    default:
+      return <AimOutlined />;
+  }
 }
