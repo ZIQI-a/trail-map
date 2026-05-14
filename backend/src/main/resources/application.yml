@@ -27,6 +27,10 @@ baidu:
   map:
     server-ak: ${BAIDU_MAP_SERVER_AK:}
 
+trailmap:
+  auth:
+    token-secret: ${TRAILMAP_AUTH_TOKEN_SECRET:trailmap-dev-secret}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

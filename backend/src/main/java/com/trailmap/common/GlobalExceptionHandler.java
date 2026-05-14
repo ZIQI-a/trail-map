@@ -1,6 +1,7 @@
 package com.trailmap.common;
 
 import com.trailmap.exception.BusinessException;
+import com.trailmap.exception.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,16 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleBusinessException(BusinessException exception) {
         log.warn("业务异常: code={}, message={}", exception.getCode(), exception.getMessage());
+        return ApiResponse.failure(exception.getCode(), exception.getMessage());
+    }
+
+    /**
+     * 登录态异常单独返回 401，方便前端区分“参数错”和“需要登录”。
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> handleUnauthorizedException(UnauthorizedException exception) {
+        log.warn("登录态异常: code={}, message={}", exception.getCode(), exception.getMessage());
         return ApiResponse.failure(exception.getCode(), exception.getMessage());
     }
 

@@ -1,5 +1,6 @@
 package com.trailmap;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -9,7 +10,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -182,5 +185,109 @@ class TrailMapApplicationTests {
                 .andExpect(jsonPath("$.data.spotStayPlans[0].suggestedStartTime").exists())
                 .andExpect(jsonPath("$.data.spotStayPlans[0].suggestedEndTime").exists())
                 .andExpect(jsonPath("$.data.spotStayPlans[0].dayIndex").isNumber());
+    }
+
+    @Test
+    void shouldRegisterLoginAndReadCurrentUser() throws Exception {
+        String registerBody = """
+                {
+                  "username": "traveler_register",
+                  "nickname": "旅行用户",
+                  "password": "secret123"
+                }
+                """;
+
+        String registerResponse = mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content(registerBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.user.username").value("traveler_register"))
+                .andExpect(jsonPath("$.data.user.userType").value("normal"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String registerToken = JsonPath.read(registerResponse, "$.data.token");
+
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + registerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.username").value("traveler_register"));
+
+        String loginBody = """
+                {
+                  "username": "traveler_register",
+                  "password": "secret123"
+                }
+                """;
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isString())
+                .andExpect(jsonPath("$.data.user.lastLoginAt").exists());
+    }
+
+    @Test
+    void shouldRejectCurrentUserWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldCreateUpdateListAndDeleteUser() throws Exception {
+        String createBody = """
+                {
+                  "username": "admin_crud",
+                  "nickname": "后台用户",
+                  "userType": "admin",
+                  "password": "secret123",
+                  "email": "admin_crud@example.com"
+                }
+                """;
+
+        String createResponse = mockMvc.perform(post("/api/users")
+                        .contentType("application/json")
+                        .content(createBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.username").value("admin_crud"))
+                .andExpect(jsonPath("$.data.userType").value("admin"))
+                .andExpect(jsonPath("$.data.passwordHash").doesNotExist())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Integer userId = JsonPath.read(createResponse, "$.data.id");
+
+        String updateBody = """
+                {
+                  "nickname": "后台管理员",
+                  "userType": "member",
+                  "status": 1
+                }
+                """;
+        mockMvc.perform(put("/api/users/{userId}", userId)
+                        .contentType("application/json")
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value("后台管理员"))
+                .andExpect(jsonPath("$.data.userType").value("member"));
+
+        mockMvc.perform(get("/api/users").param("pageNum", "1").param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.paged").value(true));
+
+        mockMvc.perform(delete("/api/users/{userId}", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/users/{userId}", userId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 }

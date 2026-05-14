@@ -14,3 +14,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   global-config:
     banner: false
+
+trailmap:
+  auth:
+    token-secret: trailmap-test-secret
