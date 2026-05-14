@@ -156,6 +156,12 @@
   min-height: 74px;
 }
 
+.fieldHint {
+  color: #7b8ba3;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .infoCard {
   min-width: 0;
   display: grid;
@@ -197,6 +203,7 @@
 
 .field :global(.ant-input-number),
 .field :global(.ant-select),
+.field :global(.ant-select-auto-complete),
 .field :global(.ant-input),
 .field :global(.ant-picker) {
   width: 100%;

@@ -238,10 +238,13 @@ export interface SchedulePlanConfig {
   intensity: ItineraryIntensity;
   lunchMode: LocationArrangeMode;
   lunchPlaceName: string;
+  lunchLocation?: RouteLocation;
   restMode: LocationArrangeMode;
   restPlaceName: string;
+  restLocation?: RouteLocation;
   hotelMode: LocationArrangeMode;
   hotelName: string;
+  hotelLocation?: RouteLocation;
   returnToHotel: boolean;
   preferenceTags: SchedulePreferenceCode[];
 }

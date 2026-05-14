@@ -46,6 +46,7 @@ import type {
   ItineraryItemDto,
   LocationArrangeMode,
   PlanMode,
+  PoiCalibrationCandidateDto,
   RouteLocation,
   RouteSegmentDto,
   RoutePlanResponseDto,
@@ -92,10 +93,13 @@ const defaultScheduleConfig: SchedulePlanConfig = {
   intensity: "standard",
   lunchMode: "recommended",
   lunchPlaceName: "",
+  lunchLocation: undefined,
   restMode: "none",
   restPlaceName: "",
+  restLocation: undefined,
   hotelMode: "none",
   hotelName: "",
+  hotelLocation: undefined,
   returnToHotel: false,
   preferenceTags: [],
 };
@@ -144,6 +148,15 @@ export function MapWorkbenchPage() {
   const cityDetailQuery = useCityDetailQuery(activeCityId);
   const tagsQuery = useCityTagsQuery(activeCityId);
   const debouncedStartPoint = useDebouncedValue(startPoint, 300);
+  const debouncedHotelKeyword = useDebouncedValue(scheduleConfig.hotelName, 300);
+  const debouncedLunchKeyword = useDebouncedValue(
+    scheduleConfig.lunchPlaceName,
+    300,
+  );
+  const debouncedRestKeyword = useDebouncedValue(
+    scheduleConfig.restPlaceName,
+    300,
+  );
   const spotsQuery = useCitySpotsQuery(
     activeCityId,
     activeFilter,
@@ -197,6 +210,10 @@ export function MapWorkbenchPage() {
   const tripSpots = tripSpotIds
     .map((spotId) => spots.find((spot) => spot.id === spotId))
     .filter((spot): spot is TravelSpot => Boolean(spot));
+  const tripCenterPoint = useMemo(
+    () => resolveTripCenterPoint(tripSpots, city?.center),
+    [city?.center, tripSpots],
+  );
   const isInitialLoading =
     citiesQuery.isLoading ||
     (activeCityId != null &&
@@ -223,6 +240,45 @@ export function MapWorkbenchPage() {
         ),
       })),
     [poiCandidatesQuery.data],
+  );
+  const hotelPoiCandidatesQuery = usePoiCandidatesQuery(
+    city ? normalizeCityName(city.name) : undefined,
+    debouncedHotelKeyword,
+    scheduleConfig.hotelMode === "manual",
+  );
+  const lunchPoiCandidatesQuery = usePoiCandidatesQuery(
+    city ? normalizeCityName(city.name) : undefined,
+    debouncedLunchKeyword,
+    scheduleConfig.lunchMode === "manual",
+  );
+  const restPoiCandidatesQuery = usePoiCandidatesQuery(
+    city ? normalizeCityName(city.name) : undefined,
+    debouncedRestKeyword,
+    scheduleConfig.restMode === "manual",
+  );
+  const hotelOptions = useMemo(
+    () =>
+      buildManualLocationOptions(
+        hotelPoiCandidatesQuery.data,
+        tripCenterPoint,
+      ),
+    [hotelPoiCandidatesQuery.data, tripCenterPoint],
+  );
+  const lunchOptions = useMemo(
+    () =>
+      buildManualLocationOptions(
+        lunchPoiCandidatesQuery.data,
+        tripCenterPoint,
+      ),
+    [lunchPoiCandidatesQuery.data, tripCenterPoint],
+  );
+  const restOptions = useMemo(
+    () =>
+      buildManualLocationOptions(
+        restPoiCandidatesQuery.data,
+        tripCenterPoint,
+      ),
+    [restPoiCandidatesQuery.data, tripCenterPoint],
   );
   // 只有在完整行程模式下且有编排结果时才展示时间轴，其他情况都展示完整路线，避免用户混淆。
   const showingScheduleResult =
@@ -370,6 +426,8 @@ export function MapWorkbenchPage() {
           config.lunchMode,
           config.lunchPlaceName,
           "午餐地点",
+          config.lunchLocation,
+          tripCenterPoint,
         )
       : undefined;
     const restLocation = config
@@ -378,6 +436,8 @@ export function MapWorkbenchPage() {
           config.restMode,
           config.restPlaceName,
           "休息地点",
+          config.restLocation,
+          tripCenterPoint,
         )
       : undefined;
     const hotelLocation = config
@@ -386,6 +446,8 @@ export function MapWorkbenchPage() {
           config.hotelMode,
           config.hotelName,
           "酒店地点",
+          config.hotelLocation,
+          tripCenterPoint,
         )
       : undefined;
     const result = await routePlanMutation.mutateAsync({
@@ -460,6 +522,8 @@ export function MapWorkbenchPage() {
     mode: LocationArrangeMode,
     placeName: string,
     label: string,
+    selectedLocation?: RouteLocation,
+    referencePoint?: GeoPoint,
   ): Promise<RouteLocation | undefined> {
     if (mode !== "manual") {
       return undefined;
@@ -470,11 +534,15 @@ export function MapWorkbenchPage() {
       throw new Error(`${label}不能为空`);
     }
 
+    if (selectedLocation && selectedLocation.name === keyword) {
+      return selectedLocation;
+    }
+
     const candidates = await fetchPoiCalibrationCandidates(
       normalizeCityName(cityName),
       keyword,
     );
-    const firstCandidate = candidates[0];
+    const firstCandidate = pickBestPoiCandidate(candidates, referencePoint);
     const position =
       firstCandidate?.naviLocation ?? firstCandidate?.location ?? undefined;
     if (!firstCandidate || !position) {
@@ -495,6 +563,35 @@ export function MapWorkbenchPage() {
     setStartPoint(value);
     setStartPointPosition(position);
     setStartPointPicking(false);
+  }
+
+  // 用户改写手动地点名称后，清除旧坐标，避免名称和地点对象不一致。
+  function handleManualScheduleFieldChange(
+    field: "hotelName" | "lunchPlaceName" | "restPlaceName",
+    locationField: "hotelLocation" | "lunchLocation" | "restLocation",
+    nextValue: string,
+  ) {
+    setScheduleConfig((current) => ({
+      ...current,
+      [field]: nextValue,
+      [locationField]:
+        current[locationField]?.name === nextValue
+          ? current[locationField]
+          : undefined,
+    }));
+  }
+
+  // 选中联想结果时同步保存名称、坐标和地址，提交时优先使用该精确地点。
+  function handleSelectManualScheduleLocation(
+    field: "hotelName" | "lunchPlaceName" | "restPlaceName",
+    locationField: "hotelLocation" | "lunchLocation" | "restLocation",
+    location: RouteLocation,
+  ) {
+    setScheduleConfig((current) => ({
+      ...current,
+      [field]: location.name,
+      [locationField]: location,
+    }));
   }
 
   // 地图点击选点会回填起点名称和坐标；名称优先使用百度前端反查结果。
@@ -800,6 +897,47 @@ export function MapWorkbenchPage() {
           currentStep={scheduleConfigStep}
           onChange={setScheduleConfig}
           onRemoveSpot={handleRemoveTripSpot}
+          hotelOptions={hotelOptions}
+          lunchOptions={lunchOptions}
+          restOptions={restOptions}
+          onHotelNameChange={(value) =>
+            handleManualScheduleFieldChange("hotelName", "hotelLocation", value)
+          }
+          onLunchPlaceNameChange={(value) =>
+            handleManualScheduleFieldChange(
+              "lunchPlaceName",
+              "lunchLocation",
+              value,
+            )
+          }
+          onRestPlaceNameChange={(value) =>
+            handleManualScheduleFieldChange(
+              "restPlaceName",
+              "restLocation",
+              value,
+            )
+          }
+          onHotelSelect={(location) =>
+            handleSelectManualScheduleLocation(
+              "hotelName",
+              "hotelLocation",
+              location,
+            )
+          }
+          onLunchSelect={(location) =>
+            handleSelectManualScheduleLocation(
+              "lunchPlaceName",
+              "lunchLocation",
+              location,
+            )
+          }
+          onRestSelect={(location) =>
+            handleSelectManualScheduleLocation(
+              "restPlaceName",
+              "restLocation",
+              location,
+            )
+          }
         />
       </Modal>
 
@@ -834,6 +972,47 @@ export function MapWorkbenchPage() {
           currentStep={0}
           onChange={setScheduleConfig}
           onRemoveSpot={handleRemoveTripSpot}
+          hotelOptions={hotelOptions}
+          lunchOptions={lunchOptions}
+          restOptions={restOptions}
+          onHotelNameChange={(value) =>
+            handleManualScheduleFieldChange("hotelName", "hotelLocation", value)
+          }
+          onLunchPlaceNameChange={(value) =>
+            handleManualScheduleFieldChange(
+              "lunchPlaceName",
+              "lunchLocation",
+              value,
+            )
+          }
+          onRestPlaceNameChange={(value) =>
+            handleManualScheduleFieldChange(
+              "restPlaceName",
+              "restLocation",
+              value,
+            )
+          }
+          onHotelSelect={(location) =>
+            handleSelectManualScheduleLocation(
+              "hotelName",
+              "hotelLocation",
+              location,
+            )
+          }
+          onLunchSelect={(location) =>
+            handleSelectManualScheduleLocation(
+              "lunchPlaceName",
+              "lunchLocation",
+              location,
+            )
+          }
+          onRestSelect={(location) =>
+            handleSelectManualScheduleLocation(
+              "restPlaceName",
+              "restLocation",
+              location,
+            )
+          }
         />
       </Drawer>
     </main>
@@ -1138,4 +1317,95 @@ function normalizeCityName(cityName: string) {
     return cityName;
   }
   return `${cityName}市`;
+}
+
+// 手动地点联想的“靠近已选景点优先”逻辑入口：
+// 1. 先保留百度返回的原始候选集合；
+// 2. 再按当前景点池的中心点做近距离排序；
+// 3. 最终只改变候选展示顺序，不改用户原始检索词。
+function buildManualLocationOptions(
+  candidates: PoiCalibrationCandidateDto[] | undefined,
+  referencePoint?: GeoPoint,
+) {
+  return sortPoiCandidatesByDistance(candidates ?? [], referencePoint).map(
+    (candidate) => {
+      const position = candidate.naviLocation ?? candidate.location;
+      return {
+        value: candidate.name,
+        location: {
+          name: candidate.name,
+          position: position!,
+          address: candidate.address,
+        } satisfies RouteLocation,
+        label: (
+          <div className={styles.startPointOption}>
+            <strong>{candidate.name}</strong>
+            <span>{candidate.address || `${candidate.city}${candidate.area}`}</span>
+          </div>
+        ),
+      };
+    },
+  );
+}
+
+function pickBestPoiCandidate(
+  candidates: PoiCalibrationCandidateDto[],
+  referencePoint?: GeoPoint,
+) {
+  return sortPoiCandidatesByDistance(candidates, referencePoint)[0];
+}
+
+// 这里是真正的“优先靠近已选景点”排序逻辑：
+// - referencePoint 来自当前已选景点的几何中心点；
+// - 如果没有景点池或没有可用中心点，则保持百度原始返回顺序；
+// - 如果有中心点，则按候选点到中心点的距离从近到远排序。
+function sortPoiCandidatesByDistance(
+  candidates: PoiCalibrationCandidateDto[],
+  referencePoint?: GeoPoint,
+) {
+  const validCandidates = candidates.filter(
+    (candidate) => candidate.naviLocation ?? candidate.location,
+  );
+  if (!referencePoint) {
+    return validCandidates;
+  }
+
+  return [...validCandidates].sort((left, right) => {
+    const leftPosition = left.naviLocation ?? left.location;
+    const rightPosition = right.naviLocation ?? right.location;
+    return (
+      calculateGeoDistance(referencePoint, leftPosition!) -
+      calculateGeoDistance(referencePoint, rightPosition!)
+    );
+  });
+}
+
+// 已选景点越分散，越需要一个中心参考点来给联想结果做近距离优先排序。
+// 当前实现是把所有已选景点坐标做平均，得到一个简化的“行程重心”。
+function resolveTripCenterPoint(
+  tripSpots: TravelSpot[],
+  fallbackPoint?: GeoPoint,
+) {
+  if (!tripSpots.length) {
+    return fallbackPoint;
+  }
+
+  const totals = tripSpots.reduce(
+    (result, spot) => ({
+      lng: result.lng + spot.position.lng,
+      lat: result.lat + spot.position.lat,
+    }),
+    { lng: 0, lat: 0 },
+  );
+
+  return {
+    lng: totals.lng / tripSpots.length,
+    lat: totals.lat / tripSpots.length,
+  } satisfies GeoPoint;
+}
+
+function calculateGeoDistance(left: GeoPoint, right: GeoPoint) {
+  const lngDelta = left.lng - right.lng;
+  const latDelta = left.lat - right.lat;
+  return lngDelta * lngDelta + latDelta * latDelta;
 }
