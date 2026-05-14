@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS app_user (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL,
     nickname VARCHAR(50) NOT NULL,
+    user_type VARCHAR(30) NOT NULL DEFAULT 'normal',
     password_hash VARCHAR(255) NOT NULL,
     avatar_url VARCHAR(255),
     phone VARCHAR(20),

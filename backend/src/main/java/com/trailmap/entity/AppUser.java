@@ -16,6 +16,7 @@ public class AppUser {
     private Long id;
     private String username;
     private String nickname;
+    private String userType;
     private String passwordHash;
     private String avatarUrl;
     private String phone;
@@ -47,6 +48,14 @@ public class AppUser {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getUserType() {
+        return userType;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
     }
 
     public String getPasswordHash() {
