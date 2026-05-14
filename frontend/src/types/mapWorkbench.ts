@@ -227,7 +227,9 @@ export interface RoutePlanRequestDto {
 
 // 完整行程配置：规划前弹窗和结果页设置抽屉共用这一套前端状态。
 export interface SchedulePlanConfig {
+  tripStartDate: string;
   tripDays: number;
+  travelerCount: number;
   dailyStartTime: string;
   dailyEndTime: string;
   includeLunchBreak: boolean;

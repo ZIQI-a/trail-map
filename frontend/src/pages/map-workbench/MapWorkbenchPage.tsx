@@ -75,7 +75,9 @@ const planModes = [
 ];
 
 const defaultScheduleConfig: SchedulePlanConfig = {
+  tripStartDate: "",
   tripDays: 2,
+  travelerCount: 2,
   dailyStartTime: "09:00",
   dailyEndTime: "18:00",
   includeLunchBreak: true,
@@ -113,6 +115,7 @@ export function MapWorkbenchPage() {
   );
   const [scheduleConfigModalOpen, setScheduleConfigModalOpen] = useState(false);
   const [scheduleSettingsOpen, setScheduleSettingsOpen] = useState(false);
+  const [scheduleConfigStep, setScheduleConfigStep] = useState(0);
   const [selectedScheduleDay, setSelectedScheduleDay] = useState(1);
   const [mapFocusTarget, setMapFocusTarget] = useState<MapFocusTarget>();
   const [dragOverTripDock, setDragOverTripDock] = useState(false);
@@ -327,6 +330,7 @@ export function MapWorkbenchPage() {
   // 完整行程模式先弹出详细配置，确认后再真正调用后端编排接口。
   async function handleSubmitSchedulePlan() {
     setScheduleConfigModalOpen(false);
+    setScheduleConfigStep(0);
     await submitRoutePlan(scheduleConfig);
   }
 
@@ -725,21 +729,44 @@ export function MapWorkbenchPage() {
       <Modal
         title="完整行程配置"
         open={scheduleConfigModalOpen}
-        width={720}
-        okText="生成完整行程"
+        width={860}
+        okText={scheduleConfigStep === 2 ? "生成完整行程" : "下一步"}
         cancelText="取消"
         confirmLoading={routePlanMutation.isPending}
-        onOk={handleSubmitSchedulePlan}
-        onCancel={() => setScheduleConfigModalOpen(false)}
+        onOk={() => {
+          if (scheduleConfigStep < 2) {
+            setScheduleConfigStep((currentStep) => currentStep + 1);
+            return;
+          }
+          void handleSubmitSchedulePlan();
+        }}
+        onCancel={() => {
+          setScheduleConfigModalOpen(false);
+          setScheduleConfigStep(0);
+        }}
+        footer={(_, { OkBtn, CancelBtn }) => (
+          <div className={styles.scheduleModalFooter}>
+            <CancelBtn />
+            {scheduleConfigStep > 0 ? (
+              <Button onClick={() => setScheduleConfigStep((currentStep) => currentStep - 1)}>
+                上一步
+              </Button>
+            ) : null}
+            <OkBtn />
+          </div>
+        )}
       >
         <div className={styles.scheduleDialogIntro}>
-          <strong>先补齐核心偏好，再生成完整行程。</strong>
+          <strong>生成完整行程</strong>
           <span>
-            当前版本会把天数、作息、强度和午餐时段真正带进后端编排；酒店和偏好先做页面预留。
+            按行程信息、偏好设置、生成确认三步完成配置。
           </span>
         </div>
         <SchedulePlanFormFields
           value={scheduleConfig}
+          cityName={city.name}
+          tripSpots={tripSpots}
+          currentStep={scheduleConfigStep}
           onChange={setScheduleConfig}
         />
       </Modal>
@@ -771,6 +798,9 @@ export function MapWorkbenchPage() {
         </div>
         <SchedulePlanFormFields
           value={scheduleConfig}
+          cityName={city.name}
+          tripSpots={tripSpots}
+          currentStep={0}
           onChange={setScheduleConfig}
         />
       </Drawer>

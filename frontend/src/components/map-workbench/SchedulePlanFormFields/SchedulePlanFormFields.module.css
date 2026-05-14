@@ -1,33 +1,99 @@
 .formShell {
   display: grid;
-  gap: 16px;
+  gap: 18px;
+}
+
+.stepRail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
+  padding: 0 96px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #7b8ba3;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stepItem::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  max-width: 110px;
+  background: #dbe5f2;
+}
+
+.stepItem:last-child::after {
+  display: none;
+}
+
+.stepItem span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #64758d;
+  background: #f0f4fa;
+}
+
+.stepItem[data-active="true"] {
+  color: #2d6bff;
+}
+
+.stepItem[data-active="true"] span,
+.stepItem[data-done="true"] span {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2d6bff, #5a91ff);
+}
+
+.stepContent {
+  display: grid;
+  gap: 14px;
+}
+
+.group,
+.summaryBox,
+.switchCard {
+  border: 1px solid #e2ebf7;
+  background: #ffffff;
 }
 
 .group {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   padding: 14px;
-  border: 1px solid #e4ecf7;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff, #f7fbff);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgb(31 73 125 / 5%);
 }
 
 .groupHeader {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .groupHeader strong,
 .groupHeader span,
 .field span,
 .switchCard strong,
-.switchCard span {
+.switchCard span,
+.summaryBox span,
+.summaryBox strong {
   margin: 0;
 }
 
 .groupHeader strong {
   color: #163157;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .groupHeader span {
@@ -36,10 +102,41 @@
   line-height: 1.45;
 }
 
-.grid {
+.basicGrid,
+.preferenceGrid,
+.confirmGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.summaryBox {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.summaryBox :global(.anticon) {
+  color: #2d6bff;
+  font-size: 16px;
+}
+
+.summaryBox span {
+  color: #7a8ba2;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.summaryBox strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #183055;
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field {
@@ -53,13 +150,92 @@
   gap: 6px;
   color: #345273;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .field :global(.ant-input-number),
 .field :global(.ant-select),
 .field :global(.ant-input) {
   width: 100%;
+}
+
+.selectedSpotList {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.selectedSpotCard {
+  flex: 0 0 116px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid #e0e9f6;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.selectedSpotCard span {
+  width: 48px;
+  height: 42px;
+  border-radius: 9px;
+  background: #dbe8f8 center / cover;
+}
+
+.selectedSpotCard strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #1f395d;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.modeRow {
+  display: grid;
+  gap: 8px;
+}
+
+.modeRow > span {
+  color: #5f7189;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.chipGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.chip,
+.chipActive {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.chip {
+  color: #50657f;
+  background: #f2f5f9;
+}
+
+.chipActive {
+  color: #2d6bff;
+  border-color: #9fbfff;
+  background: #eef5ff;
 }
 
 .switchRow {
@@ -74,9 +250,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid #e2ebf7;
-  border-radius: 16px;
-  background: #ffffff;
+  border-radius: 13px;
 }
 
 .switchCard strong {
@@ -93,8 +267,32 @@
   line-height: 1.45;
 }
 
-@media (max-width: 720px) {
-  .grid,
+.confirmSpotLine {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  color: #5f7189;
+  background: #f8fbff;
+}
+
+.confirmSpotLine strong {
+  color: #183055;
+}
+
+.confirmSpotLine span {
+  line-height: 1.6;
+}
+
+@media (max-width: 820px) {
+  .stepRail {
+    padding: 0;
+  }
+
+  .basicGrid,
+  .preferenceGrid,
+  .confirmGrid,
+  .twoColumn,
   .switchRow {
     grid-template-columns: 1fr;
   }
