@@ -16,7 +16,10 @@ import {
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
-import { RoutePlanDrawer, type RouteTimelineFocusTarget } from "../../components/map-workbench/RoutePlanDrawer";
+import {
+  RoutePlanDrawer,
+  type RouteTimelineFocusTarget,
+} from "../../components/map-workbench/RoutePlanDrawer";
 import { SchedulePlanFormFields } from "../../components/map-workbench/SchedulePlanFormFields";
 import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
 import {
@@ -74,8 +77,12 @@ const planModes = [
   { label: "完整行程", value: "schedule" as const },
 ];
 
+const defaultTripStartDate = formatDateOffset(1);
+const defaultTripEndDate = formatDateOffset(2);
+
 const defaultScheduleConfig: SchedulePlanConfig = {
-  tripStartDate: "",
+  tripStartDate: defaultTripStartDate,
+  tripEndDate: defaultTripEndDate,
   tripDays: 2,
   travelerCount: 2,
   dailyStartTime: "09:00",
@@ -237,7 +244,12 @@ export function MapWorkbenchPage() {
     return resolveScheduleMapSegments(routePlanResult, activeScheduleDay);
   }, [activeScheduleDay, routePlanResult, showingScheduleResult]);
   const mapRouteOverlays = useMemo(
-    () => buildMapRouteOverlays(routePlanResult, visibleRouteSegments, activeScheduleDay),
+    () =>
+      buildMapRouteOverlays(
+        routePlanResult,
+        visibleRouteSegments,
+        activeScheduleDay,
+      ),
     [activeScheduleDay, routePlanResult, visibleRouteSegments],
   );
   const mapItineraryMarkers = useMemo(
@@ -267,11 +279,16 @@ export function MapWorkbenchPage() {
   function handleReorderTripSpot(fromIndex: number, toIndex: number) {
     setPlannerAssistError(undefined);
     setRoutePlanResult(undefined);
-    setTripSpotIds((currentIds) => reorderByIndex(currentIds, fromIndex, toIndex));
+    setTripSpotIds((currentIds) =>
+      reorderByIndex(currentIds, fromIndex, toIndex),
+    );
   }
 
   // 左侧推荐景点拖拽时只写入景点 id，底部行程栏负责接收并复用加入行程逻辑。
-  function handleDragRecommendSpot(event: DragEvent<HTMLButtonElement>, spot: TravelSpot) {
+  function handleDragRecommendSpot(
+    event: DragEvent<HTMLButtonElement>,
+    spot: TravelSpot,
+  ) {
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData("application/trailmap-spot-id", String(spot.id));
     event.dataTransfer.setData("text/plain", String(spot.id));
@@ -288,7 +305,9 @@ export function MapWorkbenchPage() {
   }
 
   function handleDropRecommendSpot(event: DragEvent<HTMLElement>) {
-    const spotIdText = event.dataTransfer.getData("application/trailmap-spot-id");
+    const spotIdText = event.dataTransfer.getData(
+      "application/trailmap-spot-id",
+    );
     if (!spotIdText) {
       return;
     }
@@ -479,13 +498,16 @@ export function MapWorkbenchPage() {
   }
 
   // 地图点击选点会回填起点名称和坐标；名称优先使用百度前端反查结果。
-  const handlePickMapStartPoint = useCallback((target: { name: string; position: GeoPoint }) => {
-    setRoutePlanResult(undefined);
-    setPlannerAssistError(undefined);
-    setStartPoint(target.name);
-    setStartPointPosition(target.position);
-    setStartPointPicking(false);
-  }, []);
+  const handlePickMapStartPoint = useCallback(
+    (target: { name: string; position: GeoPoint }) => {
+      setRoutePlanResult(undefined);
+      setPlannerAssistError(undefined);
+      setStartPoint(target.name);
+      setStartPointPosition(target.position);
+      setStartPointPicking(false);
+    },
+    [],
+  );
 
   // 浏览器当前位置会先从 WGS-84 转为 GCJ-02，再作为路线规划起点提交。
   function handleUseCurrentLocation() {
@@ -649,8 +671,16 @@ export function MapWorkbenchPage() {
               tripSpots={tripSpots}
               tags={tags}
               startPoint={startPoint.trim() || `${city.name}市中心`}
-              startPosition={visibleRouteSegments?.[0]?.fromPosition ?? startPointPosition ?? city.center}
-              scheduleStartTime={showingScheduleResult ? scheduleConfig.dailyStartTime : undefined}
+              startPosition={
+                visibleRouteSegments?.[0]?.fromPosition ??
+                startPointPosition ??
+                city.center
+              }
+              scheduleStartTime={
+                showingScheduleResult
+                  ? scheduleConfig.dailyStartTime
+                  : undefined
+              }
               selectedDayIndex={activeScheduleDay?.dayIndex}
               onFocusLocation={handleFocusRouteTimelineLocation}
               onClose={() => setRoutePlanResult(undefined)}
@@ -748,7 +778,11 @@ export function MapWorkbenchPage() {
           <div className={styles.scheduleModalFooter}>
             <CancelBtn />
             {scheduleConfigStep > 0 ? (
-              <Button onClick={() => setScheduleConfigStep((currentStep) => currentStep - 1)}>
+              <Button
+                onClick={() =>
+                  setScheduleConfigStep((currentStep) => currentStep - 1)
+                }
+              >
                 上一步
               </Button>
             ) : null}
@@ -757,10 +791,7 @@ export function MapWorkbenchPage() {
         )}
       >
         <div className={styles.scheduleDialogIntro}>
-          <strong>生成完整行程</strong>
-          <span>
-            按行程信息、偏好设置、生成确认三步完成配置。
-          </span>
+          <span>按行程信息、偏好设置、生成确认三步完成配置。</span>
         </div>
         <SchedulePlanFormFields
           value={scheduleConfig}
@@ -768,6 +799,7 @@ export function MapWorkbenchPage() {
           tripSpots={tripSpots}
           currentStep={scheduleConfigStep}
           onChange={setScheduleConfig}
+          onRemoveSpot={handleRemoveTripSpot}
         />
       </Modal>
 
@@ -791,7 +823,6 @@ export function MapWorkbenchPage() {
         }
       >
         <div className={styles.scheduleDialogIntro}>
-          <strong>这里专门用来调整完整行程。</strong>
           <span>
             右侧主区域保留当天详细行程，设置项收进抽屉里，避免和时间轴抢视线。
           </span>
@@ -802,6 +833,7 @@ export function MapWorkbenchPage() {
           tripSpots={tripSpots}
           currentStep={0}
           onChange={setScheduleConfig}
+          onRemoveSpot={handleRemoveTripSpot}
         />
       </Drawer>
     </main>
@@ -832,23 +864,29 @@ interface MapItineraryMarker {
 function buildMapRouteOverlays(
   routePlanResult?: RoutePlanResponseDto,
   visibleRouteSegments?: RouteSegmentDto[],
-  activeDay?: RoutePlanResponseDto['itineraryDays'][number],
+  activeDay?: RoutePlanResponseDto["itineraryDays"][number],
 ): MapRouteOverlay[] | undefined {
   if (!routePlanResult) {
     return undefined;
   }
 
-  const auxiliaryItemMap = activeDay ? buildMapAuxiliaryItemMap(activeDay.items) : new Map<string, ItineraryItemDto>();
-  const overlays: MapRouteOverlay[] = (visibleRouteSegments ?? routePlanResult.segments)
+  const auxiliaryItemMap = activeDay
+    ? buildMapAuxiliaryItemMap(activeDay.items)
+    : new Map<string, ItineraryItemDto>();
+  const overlays: MapRouteOverlay[] = (
+    visibleRouteSegments ?? routePlanResult.segments
+  )
     .filter((segment) => segment.polyline.length >= 2)
     .map((segment, index) => {
       const auxiliarySegment = isMapAuxiliarySegment(segment, auxiliaryItemMap);
       return {
         key: `segment-${segment.segmentIndex}`,
         polyline: segment.polyline,
-        color: auxiliarySegment ? getMapAuxiliarySegmentColor(segment, auxiliaryItemMap) : getRouteColor(index),
-        lineStyle: auxiliarySegment ? "dashed" as const : "solid" as const,
-        kind: auxiliarySegment ? "guide" as const : "route" as const,
+        color: auxiliarySegment
+          ? getMapAuxiliarySegmentColor(segment, auxiliaryItemMap)
+          : getRouteColor(index),
+        lineStyle: auxiliarySegment ? ("dashed" as const) : ("solid" as const),
+        kind: auxiliarySegment ? ("guide" as const) : ("route" as const),
       };
     });
 
@@ -865,15 +903,30 @@ function buildMapAuxiliaryItemMap(items: ItineraryItemDto[]) {
   return itemMap;
 }
 
-function isMapAuxiliaryItem(item: ItineraryItemDto): item is ItineraryItemDto & { itemType: "lunch" | "rest" | "hotel" } {
-  return item.itemType === "lunch" || item.itemType === "rest" || item.itemType === "hotel";
+function isMapAuxiliaryItem(
+  item: ItineraryItemDto,
+): item is ItineraryItemDto & { itemType: "lunch" | "rest" | "hotel" } {
+  return (
+    item.itemType === "lunch" ||
+    item.itemType === "rest" ||
+    item.itemType === "hotel"
+  );
 }
 
-function isMapAuxiliarySegment(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
-  return auxiliaryItemMap.has(normalizeMapPlaceName(segment.fromName)) || auxiliaryItemMap.has(normalizeMapPlaceName(segment.toName));
+function isMapAuxiliarySegment(
+  segment: RouteSegmentDto,
+  auxiliaryItemMap: Map<string, ItineraryItemDto>,
+) {
+  return (
+    auxiliaryItemMap.has(normalizeMapPlaceName(segment.fromName)) ||
+    auxiliaryItemMap.has(normalizeMapPlaceName(segment.toName))
+  );
 }
 
-function getMapAuxiliarySegmentColor(segment: RouteSegmentDto, auxiliaryItemMap: Map<string, ItineraryItemDto>) {
+function getMapAuxiliarySegmentColor(
+  segment: RouteSegmentDto,
+  auxiliaryItemMap: Map<string, ItineraryItemDto>,
+) {
   const targetItem =
     auxiliaryItemMap.get(normalizeMapPlaceName(segment.toName)) ??
     auxiliaryItemMap.get(normalizeMapPlaceName(segment.fromName));
@@ -885,7 +938,10 @@ function getMapAuxiliarySegmentColor(segment: RouteSegmentDto, auxiliaryItemMap:
   return "#7a8ca4";
 }
 
-function resolveScheduleMapSegments(routePlanResult: RoutePlanResponseDto, activeDay: RoutePlanResponseDto['itineraryDays'][number]) {
+function resolveScheduleMapSegments(
+  routePlanResult: RoutePlanResponseDto,
+  activeDay: RoutePlanResponseDto["itineraryDays"][number],
+) {
   if (activeDay.segments?.length) {
     return activeDay.segments;
   }
@@ -898,7 +954,9 @@ function resolveScheduleMapSegments(routePlanResult: RoutePlanResponseDto, activ
 
   dayTargetNames.forEach((targetName) => {
     const matchedIndex = routePlanResult.segments.findIndex(
-      (segment, index) => index >= searchStartIndex && normalizeMapPlaceName(segment.toName) === targetName,
+      (segment, index) =>
+        index >= searchStartIndex &&
+        normalizeMapPlaceName(segment.toName) === targetName,
     );
     if (matchedIndex >= 0) {
       matchedSegments.push(routePlanResult.segments[matchedIndex]);
@@ -936,7 +994,13 @@ function buildMapItineraryMarkers(
 }
 
 function getRouteColor(index: number) {
-  const ROUTE_SEGMENT_COLORS = ['#2d6bff', '#20a95a', '#f08b2f', '#7a5af8', '#ef5da8'];
+  const ROUTE_SEGMENT_COLORS = [
+    "#2d6bff",
+    "#20a95a",
+    "#f08b2f",
+    "#7a5af8",
+    "#ef5da8",
+  ];
   return ROUTE_SEGMENT_COLORS[index % ROUTE_SEGMENT_COLORS.length];
 }
 
@@ -956,7 +1020,6 @@ function reorderByIndex<T>(items: T[], fromIndex: number, toIndex: number) {
   nextItems.splice(toIndex, 0, movedItem);
   return nextItems;
 }
-
 
 function mapCity(city?: TravelCity | TravelCityDto) {
   if (!city) {
@@ -1054,6 +1117,15 @@ function formatDistanceText(
   const latDelta = point.lat - city.center.lat;
   const distance = Math.sqrt(lngDelta * lngDelta + latDelta * latDelta) * 111;
   return `${distance.toFixed(1)}km`;
+}
+
+function formatDateOffset(offsetDays: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // 地点检索通常更偏好完整城市名，这里给常见城市补一个“市”后缀。

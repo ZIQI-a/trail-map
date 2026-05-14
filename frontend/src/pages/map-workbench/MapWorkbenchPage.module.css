@@ -135,16 +135,6 @@
   margin-bottom: 16px;
 }
 
-.scheduleDialogIntro strong,
-.scheduleDialogIntro span {
-  margin: 0;
-}
-
-.scheduleDialogIntro strong {
-  color: #183055;
-  font-size: 14px;
-}
-
 .scheduleDialogIntro span {
   color: #7487a2;
   font-size: 12px;

@@ -68,8 +68,8 @@
 .group {
   display: grid;
   gap: 14px;
-  padding: 14px;
-  border-radius: 16px;
+  padding: 16px;
+  border-radius: 14px;
   box-shadow: 0 10px 24px rgb(31 73 125 / 5%);
 }
 
@@ -102,11 +102,17 @@
   line-height: 1.45;
 }
 
+.selectedHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .basicGrid,
 .preferenceGrid,
 .confirmGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -115,7 +121,7 @@
   display: grid;
   gap: 6px;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .summaryBox :global(.anticon) {
@@ -142,6 +148,7 @@
 .field {
   display: grid;
   gap: 8px;
+  min-height: 74px;
 }
 
 .label {
@@ -166,8 +173,17 @@
   padding-bottom: 2px;
 }
 
+.selectedSpotListExpanded {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  max-height: 184px;
+  overflow: auto;
+  padding: 2px 4px 4px 0;
+}
+
 .selectedSpotCard {
-  flex: 0 0 116px;
+  position: relative;
+  flex: 0 0 118px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
@@ -176,6 +192,46 @@
   border: 1px solid #e0e9f6;
   border-radius: 12px;
   background: #f8fbff;
+}
+
+.selectedSpotListExpanded .selectedSpotCard {
+  flex: initial;
+}
+
+.removeSpotButton {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d9e5f4;
+  border-radius: 999px;
+  color: #5f7189;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgb(31 73 125 / 12%);
+}
+
+.removeSpotButton:hover {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.viewAllButton {
+  padding: 0;
+  border: 0;
+  color: #5f7189;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.viewAllButton:hover {
+  color: #2d6bff;
 }
 
 .selectedSpotCard span {
@@ -198,11 +254,18 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  align-items: stretch;
+}
+
+.twoColumn .group {
+  min-height: 248px;
+  align-content: start;
 }
 
 .modeRow {
   display: grid;
   gap: 8px;
+  min-height: 58px;
 }
 
 .modeRow > span {
@@ -251,6 +314,7 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 13px;
+  min-height: 66px;
 }
 
 .switchCard strong {
@@ -263,6 +327,55 @@
   display: block;
   margin-top: 3px;
   color: #778aa3;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.locationSlot {
+  min-height: 74px;
+}
+
+.recommendBox {
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dbe7f6;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
+}
+
+.recommendBox[data-muted="true"] {
+  background: #f7f9fc;
+}
+
+.recommendBox :global(.anticon) {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #2d6bff;
+  background: #eaf2ff;
+}
+
+.recommendBox[data-muted="true"] :global(.anticon) {
+  color: #90a0b5;
+  background: #edf1f6;
+}
+
+.recommendBox strong {
+  display: block;
+  color: #1b385f;
+  font-size: 13px;
+}
+
+.recommendBox span {
+  display: block;
+  margin-top: 4px;
+  color: #72859e;
   font-size: 11px;
   line-height: 1.45;
 }
