@@ -116,6 +116,11 @@
   gap: 12px;
 }
 
+.basicGrid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 0.9fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
 .summaryBox {
   min-width: 0;
   display: grid;
@@ -151,6 +156,36 @@
   min-height: 74px;
 }
 
+.infoCard {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 86px;
+  padding: 12px;
+  border: 1px solid #e2ebf7;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+}
+
+.summaryCard strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #183055;
+  font-size: 16px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dateField {
+  min-height: 86px;
+}
+
+.dateRangePicker {
+  width: 100%;
+}
+
 .label {
   display: inline-flex;
   align-items: center;
@@ -162,8 +197,25 @@
 
 .field :global(.ant-input-number),
 .field :global(.ant-select),
-.field :global(.ant-input) {
+.field :global(.ant-input),
+.field :global(.ant-picker) {
   width: 100%;
+}
+
+.infoCard :global(.ant-input-number),
+.infoCard :global(.ant-input),
+.infoCard :global(.ant-picker) {
+  width: 100%;
+}
+
+.infoCard :global(.ant-input-number),
+.infoCard :global(.ant-picker) {
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+.infoCard :global(.ant-picker .ant-picker-input > input) {
+  font-size: 12px;
 }
 
 .selectedSpotList {

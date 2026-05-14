@@ -9,8 +9,10 @@ import {
   SmileOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { Input, InputNumber, Select, Switch } from "antd";
+import { DatePicker, Input, InputNumber, Select, Switch } from "antd";
 import { useState, type ReactNode } from "react";
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 import type {
   ItineraryIntensity,
   LocationArrangeMode,
@@ -19,6 +21,8 @@ import type {
   TravelSpot,
 } from "../../../types/mapWorkbench";
 import styles from "./SchedulePlanFormFields.module.css";
+
+const { RangePicker } = DatePicker;
 
 interface SchedulePlanFormFieldsProps {
   value: SchedulePlanConfig;
@@ -129,43 +133,34 @@ function TripInfoStep({
         </header>
 
         <div className={styles.basicGrid}>
-          <SummaryBox
-            icon={<EnvironmentOutlined />}
-            label="目的地"
-            value={cityName}
-          />
-          <label className={styles.field}>
+          <div className={`${styles.infoCard} ${styles.summaryCard}`}>
+            <span className={styles.label}>
+              <EnvironmentOutlined />
+              目的地
+            </span>
+            <strong>{cityName}</strong>
+          </div>
+          <label className={`${styles.field} ${styles.infoCard} ${styles.dateField}`}>
             <span className={styles.label}>
               <CalendarOutlined />
-              出发日期
+              出行日期
             </span>
-            <Input
-              type="date"
-              value={value.tripStartDate}
-              onChange={(event) =>
-                onChange(syncTripDateRange(value, "start", event.target.value))
-              }
+            <RangePicker
+              className={styles.dateRangePicker}
+              value={resolveDateRangeValue(value.tripStartDate, value.tripEndDate)}
+              format="YYYY-MM-DD"
+              allowClear={false}
+              onChange={(dates) => onChange(syncTripDateRangeByPicker(value, dates))}
             />
           </label>
-          <label className={styles.field}>
+          <div className={`${styles.infoCard} ${styles.summaryCard}`}>
             <span className={styles.label}>
-              <CalendarOutlined />
-              结束日期
+              <ApartmentOutlined />
+              行程天数
             </span>
-            <Input
-              type="date"
-              value={value.tripEndDate}
-              onChange={(nextValue) =>
-                onChange(syncTripDateRange(value, "end", nextValue.target.value))
-              }
-            />
-          </label>
-          <SummaryBox
-            icon={<CalendarOutlined />}
-            label="行程天数"
-            value={`${value.tripDays} 天`}
-          />
-          <label className={styles.field}>
+            <strong>{value.tripDays} 天</strong>
+          </div>
+          <label className={`${styles.field} ${styles.infoCard}`}>
             <span className={styles.label}>
               <TeamOutlined />
               出行人数
@@ -622,37 +617,39 @@ function getModeLabel(mode: LocationArrangeMode, manualName: string) {
   );
 }
 
-function syncTripDateRange(
+function resolveDateRangeValue(
+  tripStartDate: string,
+  tripEndDate: string,
+): [Dayjs, Dayjs] | null {
+  if (!tripStartDate || !tripEndDate) {
+    return null;
+  }
+
+  const startDate = dayjs(tripStartDate, "YYYY-MM-DD", true);
+  const endDate = dayjs(tripEndDate, "YYYY-MM-DD", true);
+  if (!startDate.isValid() || !endDate.isValid()) {
+    return null;
+  }
+
+  return [startDate, endDate];
+}
+
+function syncTripDateRangeByPicker(
   value: SchedulePlanConfig,
-  changedSide: "start" | "end",
-  nextDate: string,
+  dates: [Dayjs | null, Dayjs | null] | null,
 ): SchedulePlanConfig {
-  const nextStartDate = changedSide === "start" ? nextDate : value.tripStartDate;
-  let nextEndDate = changedSide === "end" ? nextDate : value.tripEndDate;
-
-  if (!nextStartDate) {
-    return {
-      ...value,
-      tripStartDate: nextStartDate,
-      tripEndDate: nextEndDate,
-      tripDays: 1,
-    };
+  if (!dates?.[0] || !dates?.[1]) {
+    return value;
   }
 
-  if (!nextEndDate || compareDate(nextEndDate, nextStartDate) < 0) {
-    nextEndDate = nextStartDate;
-  }
-
+  const nextStartDate = dates[0].format("YYYY-MM-DD");
+  const nextEndDate = dates[1].format("YYYY-MM-DD");
   return {
     ...value,
     tripStartDate: nextStartDate,
     tripEndDate: nextEndDate,
     tripDays: calculateTripDays(nextStartDate, nextEndDate),
   };
-}
-
-function compareDate(firstDate: string, secondDate: string) {
-  return new Date(firstDate).getTime() - new Date(secondDate).getTime();
 }
 
 function calculateTripDays(startDate: string, endDate: string) {
