@@ -18,10 +18,13 @@ interface BMapGLMap {
   addControl(control: unknown): void;
   addOverlay(overlay: unknown): void;
   clearOverlays(): void;
+  getZoom(): number;
   panTo(point: BMapGLPointLike): void;
   setViewport(points: BMapGLPointLike[]): void;
   addEventListener(eventName: 'click', handler: BMapGLMapClickHandler): void;
   removeEventListener(eventName: 'click', handler: BMapGLMapClickHandler): void;
+  addEventListener(eventName: 'zoomend', handler: BMapGLEventHandler): void;
+  removeEventListener(eventName: 'zoomend', handler: BMapGLEventHandler): void;
 }
 
 interface BMapGLMarker {

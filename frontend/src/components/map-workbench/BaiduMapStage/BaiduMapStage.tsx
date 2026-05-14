@@ -73,6 +73,7 @@ export function BaiduMapStage({
   const containerId = useId().replace(/:/g, "-");
   const mapRef = useRef<BMapGLMap | null>(null);
   const routeViewportSignatureRef = useRef<string | undefined>(undefined);
+  const currentZoomRef = useRef(city.mapZoom);
   const [sdkError, setSdkError] = useState<string>();
   const [sdkReady, setSdkReady] = useState(false);
   const selectedSpotSummary = useMemo(
@@ -99,7 +100,11 @@ export function BaiduMapStage({
         map.enableScrollWheelZoom(true);
         map.addControl(new BMapGL.NavigationControl());
         map.addControl(new BMapGL.ScaleControl());
+        map.addEventListener("zoomend", () => {
+          currentZoomRef.current = map.getZoom();
+        });
         mapRef.current = map;
+        currentZoomRef.current = city.mapZoom;
         setSdkReady(true);
       })
       .catch((error) => {
@@ -205,6 +210,22 @@ export function BaiduMapStage({
       });
       map.addOverlay(casingLine);
       map.addOverlay(routeLine);
+      // 沿着路线追加一组轻量箭头，帮助用户快速判断路线方向，而不改变主线本身的样式。
+      const arrowMarkers = buildRouteArrowMarkers(
+        displayPolyline,
+        resolveRouteArrowIntervalMeters(currentZoomRef.current, overlay.kind),
+      );
+      arrowMarkers.forEach((arrowMarker, arrowIndex) => {
+        map.addOverlay(
+          new window.BMapGL!.Marker(createBaiduPoint(arrowMarker.position), {
+            icon: createRouteArrowIcon(
+              arrowMarker.angleDeg,
+              overlay.kind,
+              `${overlay.key}-${arrowIndex}`,
+            ),
+          }),
+        );
+      });
 
       // 每条路线补充轻量端点标识，帮助用户区分当前路段从哪里出发、到哪里结束。
       const firstPoint = displayPolyline[0];
@@ -235,6 +256,12 @@ export function BaiduMapStage({
     if (routeViewportPoints.length >= 2 && routeViewportSignature !== routeViewportSignatureRef.current) {
       routeViewportSignatureRef.current = routeViewportSignature;
       map.setViewport(routeViewportPoints);
+      return;
+    }
+
+    // 只要当前存在路线结果，后续缩放和重绘都不应再被“选中景点自动聚焦”抢回去。
+    // 否则用户滚轮缩放地图时，会因为当前默认有选中景点而被强制拉回景点视角。
+    if (routeViewportPoints.length >= 2) {
       return;
     }
 
@@ -537,4 +564,139 @@ function createRouteEndpointIcon(
       anchor: new window.BMapGL!.Size(size / 2, size / 2),
     },
   );
+}
+
+interface RouteArrowMarker {
+  position: GeoPoint;
+  angleDeg: number;
+}
+
+function buildRouteArrowMarkers(
+  polyline: GeoPoint[],
+  intervalMeters: number,
+): RouteArrowMarker[] {
+  if (polyline.length < 2) {
+    return [];
+  }
+
+  const totalLength = calculatePolylineLength(polyline);
+  if (totalLength < Math.max(220, intervalMeters * 0.8)) {
+    const middleIndex = Math.floor((polyline.length - 1) / 2);
+    return [
+      {
+        position: interpolatePoint(polyline[middleIndex], polyline[middleIndex + 1] ?? polyline[middleIndex], 0.5),
+        angleDeg: calculateBearing(polyline[middleIndex], polyline[middleIndex + 1] ?? polyline[middleIndex]),
+      },
+    ];
+  }
+
+  const markers: RouteArrowMarker[] = [];
+  let nextDistance = Math.min(intervalMeters, totalLength / 2);
+  let walkedDistance = 0;
+
+  for (let index = 1; index < polyline.length && nextDistance < totalLength; index += 1) {
+    const fromPoint = polyline[index - 1];
+    const toPoint = polyline[index];
+    const segmentDistance = calculatePointDistanceMeters(fromPoint, toPoint);
+    if (segmentDistance <= 0) {
+      continue;
+    }
+
+    while (walkedDistance + segmentDistance >= nextDistance && nextDistance < totalLength) {
+      const ratio = (nextDistance - walkedDistance) / segmentDistance;
+      markers.push({
+        position: interpolatePoint(fromPoint, toPoint, ratio),
+        angleDeg: calculateBearing(fromPoint, toPoint),
+      });
+      nextDistance += intervalMeters;
+    }
+
+    walkedDistance += segmentDistance;
+  }
+
+  return markers.slice(0, 8);
+}
+
+function createRouteArrowIcon(
+  angleDeg: number,
+  kind: MapRouteOverlay["kind"],
+  cacheKey: string,
+) {
+  const arrowSize = kind === "guide" ? 12 : 14;
+  const strokeWidth = kind === "guide" ? 1.8 : 2;
+  const shadowOpacity = kind === "guide" ? 0.22 : 0.28;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${arrowSize}" height="${arrowSize}" viewBox="0 0 16 16">
+      <g transform="rotate(${angleDeg}, 8, 8)">
+        <path d="M5.5 4.5L9.5 8L5.5 11.5" fill="none" stroke="rgba(0,0,0,${shadowOpacity})" stroke-width="${strokeWidth + 1}" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M5.5 4.5L9.5 8L5.5 11.5" fill="none" stroke="#ffffff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </svg>
+  `;
+
+  return new window.BMapGL!.Icon(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}#${encodeURIComponent(cacheKey)}`,
+    new window.BMapGL!.Size(arrowSize, arrowSize),
+    {
+      anchor: new window.BMapGL!.Size(
+        Math.round(arrowSize / 2),
+        Math.round(arrowSize / 2),
+      ),
+    },
+  );
+}
+
+function resolveRouteArrowIntervalMeters(
+  currentZoom: number,
+  kind: MapRouteOverlay["kind"],
+) {
+  const baseInterval = kind === "guide" ? 420 : 520;
+  if (currentZoom >= 16) {
+    return Math.round(baseInterval * 0.7);
+  }
+  if (currentZoom >= 14) {
+    return baseInterval;
+  }
+  if (currentZoom >= 12) {
+    return Math.round(baseInterval * 1.45);
+  }
+  return Math.round(baseInterval * 2.1);
+}
+
+function calculatePolylineLength(polyline: GeoPoint[]) {
+  let totalDistance = 0;
+  for (let index = 1; index < polyline.length; index += 1) {
+    totalDistance += calculatePointDistanceMeters(polyline[index - 1], polyline[index]);
+  }
+  return totalDistance;
+}
+
+function calculatePointDistanceMeters(fromPoint: GeoPoint, toPoint: GeoPoint) {
+  const earthRadius = 6371000;
+  const lat1 = toRadians(fromPoint.lat);
+  const lat2 = toRadians(toPoint.lat);
+  const deltaLat = lat2 - lat1;
+  const deltaLng = toRadians(toPoint.lng - fromPoint.lng);
+  const sinLat = Math.sin(deltaLat / 2);
+  const sinLng = Math.sin(deltaLng / 2);
+  const a = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadius * c;
+}
+
+function interpolatePoint(fromPoint: GeoPoint, toPoint: GeoPoint, ratio: number): GeoPoint {
+  return {
+    lng: fromPoint.lng + (toPoint.lng - fromPoint.lng) * ratio,
+    lat: fromPoint.lat + (toPoint.lat - fromPoint.lat) * ratio,
+  };
+}
+
+function calculateBearing(fromPoint: GeoPoint, toPoint: GeoPoint) {
+  const deltaLng = toPoint.lng - fromPoint.lng;
+  const deltaLat = toPoint.lat - fromPoint.lat;
+  return (Math.atan2(deltaLat, deltaLng) * 180) / Math.PI;
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
 }

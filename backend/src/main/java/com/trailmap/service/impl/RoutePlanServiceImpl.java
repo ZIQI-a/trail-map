@@ -507,7 +507,8 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 List.copyOf(daySegments));
     }
 
-    private List<RouteSegmentResponse> buildDaySegments(RouteStop dayStartStop, List<ItineraryItemResponse> items, String transportType) {
+    private List<RouteSegmentResponse> buildDaySegments(RouteStop dayStartStop, List<ItineraryItemResponse> items,
+            String transportType) {
         List<RouteSegmentResponse> daySegments = new ArrayList<>();
         List<ItineraryItemResponse> positionedItems = items.stream()
                 .filter(item -> item.position() != null)
@@ -669,7 +670,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             String recommendKeyword,
             int radiusMeters,
             String fallbackNote) {
-            String normalizedMode = normalizeLocationMode(mode);
+        String normalizedMode = normalizeLocationMode(mode);
         if (LOCATION_MODE_MANUAL.equals(normalizedMode) && manualLocation != null) {
             return new ItineraryItemResponse(
                     sequence,
@@ -752,7 +753,7 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             return "未配置百度地图服务端 AK，暂以时间块占位";
         }
 
-        return "附近未检索到合适地点或第三方检索失败，暂以时间块占位";
+        return "啊偶，没有找到吃的，手动找找看";
     }
 
     /**
