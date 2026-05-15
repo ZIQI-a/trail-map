@@ -239,7 +239,21 @@ class TrailMapApplicationTests {
     }
 
     @Test
+    void shouldRejectUserManagementWithoutAdminRole() throws Exception {
+        String normalUserToken = registerAndLogin("normal_only_user", "普通用户");
+
+        mockMvc.perform(get("/api/users")
+                        .header("Authorization", "Bearer " + normalUserToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
     void shouldCreateUpdateListAndDeleteUser() throws Exception {
+        String adminToken = promoteRegisteredUserToAdminAndLogin(
+                "admin_operator",
+                "管理员用户");
         String createBody = """
                 {
                   "username": "admin_crud",
@@ -251,6 +265,7 @@ class TrailMapApplicationTests {
                 """;
 
         String createResponse = mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType("application/json")
                         .content(createBody))
                 .andExpect(status().isOk())
@@ -271,23 +286,77 @@ class TrailMapApplicationTests {
                 }
                 """;
         mockMvc.perform(put("/api/users/{userId}", userId)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType("application/json")
                         .content(updateBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.nickname").value("后台管理员"))
                 .andExpect(jsonPath("$.data.userType").value("member"));
 
-        mockMvc.perform(get("/api/users").param("pageNum", "1").param("pageSize", "10"))
+        mockMvc.perform(get("/api/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("pageNum", "1")
+                        .param("pageSize", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.paged").value(true));
 
-        mockMvc.perform(delete("/api/users/{userId}", userId))
+        mockMvc.perform(delete("/api/users/{userId}", userId)
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        mockMvc.perform(get("/api/users/{userId}", userId))
+        mockMvc.perform(get("/api/users/{userId}", userId)
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    /**
+     * 测试里复用正常注册流程拿 token，避免手写不一致的密码哈希。
+     */
+    private String registerAndLogin(String username, String nickname) throws Exception {
+        String registerBody = """
+                {
+                  "username": "%s",
+                  "nickname": "%s",
+                  "password": "secret123"
+                }
+                """.formatted(username, nickname);
+
+        String registerResponse = mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content(registerBody))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return JsonPath.read(registerResponse, "$.data.token");
+    }
+
+    /**
+     * 当前正式注册入口只允许 normal 用户，测试通过数据库提升角色来模拟已存在管理员账号。
+     */
+    private String promoteRegisteredUserToAdminAndLogin(String username, String nickname) throws Exception {
+        registerAndLogin(username, nickname);
+        jdbcTemplate.update(
+                "update app_user set user_type = 'admin', updated_at = CURRENT_TIMESTAMP where username = ?",
+                username);
+
+        String loginBody = """
+                {
+                  "username": "%s",
+                  "password": "secret123"
+                }
+                """.formatted(username);
+        String loginResponse = mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.user.userType").value("admin"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return JsonPath.read(loginResponse, "$.data.token");
     }
 }
