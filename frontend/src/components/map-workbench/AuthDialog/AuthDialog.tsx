@@ -153,34 +153,37 @@ export function AuthDialog({
             </button>
           </div>
 
-          {error ? <Alert type="error" showIcon message={error} /> : null}
+        {error ? <Alert type="error" showIcon message={error} /> : null}
 
-          <div className={styles.formGrid}>
-            <Input
-              size="large"
-              value={username}
-              prefix={<UserOutlined />}
-              placeholder="手机号 / 邮箱 / 用户名"
+        <div
+          className={styles.formGrid}
+          data-mode={mode}
+        >
+          <Input
+            size="large"
+            value={username}
+            prefix={<UserOutlined />}
+            placeholder="手机号 / 邮箱 / 用户名"
               autoComplete="username"
               onChange={(event) => setUsername(event.target.value)}
               onPressEnter={handleSubmit}
             />
 
-            {mode === "register" ? (
-              <Input
-                size="large"
-                value={nickname}
-                prefix={<LoginOutlined />}
-                placeholder="请输入昵称"
-                autoComplete="nickname"
-                onChange={(event) => setNickname(event.target.value)}
-                onPressEnter={handleSubmit}
-              />
-            ) : null}
-
-            <Input.Password
+          {mode === "register" ? (
+            <Input
               size="large"
-              value={password}
+              value={nickname}
+              prefix={<LoginOutlined />}
+              placeholder="请输入昵称"
+              autoComplete="nickname"
+              onChange={(event) => setNickname(event.target.value)}
+              onPressEnter={handleSubmit}
+            />
+          ) : null}
+
+          <Input.Password
+            size="large"
+            value={password}
               prefix={<LockOutlined />}
               placeholder="密码"
               autoComplete={

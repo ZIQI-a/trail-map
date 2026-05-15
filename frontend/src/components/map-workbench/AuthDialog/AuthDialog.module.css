@@ -1,4 +1,5 @@
 .dialogModal :global(.ant-modal-content) {
+  height: 578px;
   padding: 0;
   overflow: hidden;
   border: 1px solid rgb(224 236 249 / 88%);
@@ -22,7 +23,8 @@
 .dialogShell {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.18fr);
-  min-height: 520px;
+  height: 100%;
+  min-height: 0;
 }
 
 .visualPanel {
@@ -201,11 +203,16 @@
   font-size: 15px;
   font-weight: 900;
   cursor: pointer;
-  transition: color 160ms ease;
+  transition: color 180ms ease, transform 180ms ease;
 }
 
 .tabButton {
   color: #8d9cb1;
+}
+
+.tabButton:hover,
+.tabActive:hover {
+  transform: translateY(-1px);
 }
 
 .tabActive {
@@ -221,11 +228,23 @@
   height: 3px;
   border-radius: 999px;
   background: linear-gradient(90deg, #2d6bff, #3aa5ff);
+  animation: tabUnderlineIn 220ms ease-out;
 }
 
 .formGrid {
   display: grid;
   gap: 10px;
+  min-height: 152px;
+  align-content: start;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.formGrid[data-mode="login"] {
+  opacity: 0.98;
+}
+
+.formGrid[data-mode="register"] {
+  opacity: 1;
 }
 
 .formPanel :global(.ant-alert) {
@@ -374,9 +393,25 @@
   font-weight: 800;
 }
 
+@keyframes tabUnderlineIn {
+  from {
+    opacity: 0;
+    transform: scaleX(0.6);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 @media (max-width: 980px) {
   .dialogModal :global(.ant-modal) {
     max-width: calc(100vw - 24px);
+  }
+
+  .dialogModal :global(.ant-modal-content) {
+    height: auto;
   }
 
   .dialogShell {
