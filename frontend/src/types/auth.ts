@@ -27,3 +27,13 @@ export interface LoginRequestDto {
 export interface RegisterRequestDto extends LoginRequestDto {
   nickname: string;
 }
+
+// 管理员修改用户时复用后端更新接口字段，密码重置后续再单独扩展。
+export interface UserUpdateRequestDto {
+  nickname?: string;
+  userType?: AppUserDto["userType"];
+  avatarUrl?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  status?: number;
+}

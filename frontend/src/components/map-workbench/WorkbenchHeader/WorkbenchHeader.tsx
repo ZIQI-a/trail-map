@@ -3,6 +3,7 @@ import {
   BankOutlined,
   CameraOutlined,
   CompassOutlined,
+  DashboardOutlined,
   EnvironmentOutlined,
   HeartOutlined,
   HomeOutlined,
@@ -39,6 +40,7 @@ interface WorkbenchHeaderProps {
   onSearchKeywordChange: (keyword: string) => void;
   onActiveFilterChange: (filter: ActiveSpotFilter) => void;
   onAuthClick: () => void;
+  onAdminClick: () => void;
   onLogout: () => void;
 }
 
@@ -61,6 +63,7 @@ export function WorkbenchHeader({
   onSearchKeywordChange,
   onActiveFilterChange,
   onAuthClick,
+  onAdminClick,
   onLogout,
 }: WorkbenchHeaderProps) {
   const filterOptions: Array<{ label: string; icon: ReactNode; value: ActiveSpotFilter }> = [
@@ -115,6 +118,16 @@ export function WorkbenchHeader({
                     label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
                     disabled: true,
                   },
+                  ...(currentUser.userType === "admin"
+                    ? [
+                        {
+                          key: "admin",
+                          label: "后台管理",
+                          icon: <DashboardOutlined />,
+                          onClick: onAdminClick,
+                        },
+                      ]
+                    : []),
                   {
                     key: "logout",
                     label: "退出登录",
