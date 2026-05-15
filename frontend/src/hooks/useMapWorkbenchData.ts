@@ -1,6 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
 import { fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
+import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto } from '../types/mapWorkbench';
 
 // 地图工作台查询集合，集中管理城市、标签、列表和详情请求。
@@ -77,5 +79,27 @@ export function usePoiCandidatesQuery(
 export function useRoutePlanMutation() {
   return useMutation({
     mutationFn: (payload: RoutePlanRequestDto) => fetchRoutePlan(payload),
+  });
+}
+
+// 当前用户查询：只有本地存在 token 时才触发。
+export function useCurrentUserQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: fetchCurrentUser,
+    enabled,
+    retry: false,
+  });
+}
+
+export function useLoginMutation() {
+  return useMutation({
+    mutationFn: (payload: LoginRequestDto) => loginUser(payload),
+  });
+}
+
+export function useRegisterMutation() {
+  return useMutation({
+    mutationFn: (payload: RegisterRequestDto) => registerUser(payload),
   });
 }

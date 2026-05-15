@@ -132,6 +132,39 @@
   box-shadow: 0 8px 18px rgb(31 73 125 / 12%);
 }
 
+.userButton,
+.loginButton {
+  min-width: 0;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px 2px 3px;
+  border: 1px solid #dbe6f4;
+  border-radius: 999px;
+  color: #1f426d;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgb(31 73 125 / 7%);
+}
+
+.userButton span,
+.loginButton span {
+  max-width: 86px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userButton:hover,
+.loginButton:hover {
+  color: #155bd4;
+  border-color: #b9ccef;
+  background: #f2f7ff;
+}
+
 .filterRail {
   display: flex;
   justify-content: center;

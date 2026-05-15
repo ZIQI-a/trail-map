@@ -14,6 +14,8 @@ import {
   Spin,
 } from "antd";
 import { useCallback, useMemo, useState, type DragEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { AuthDialog } from "../../components/map-workbench/AuthDialog";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
 import {
@@ -36,11 +38,16 @@ import {
   useCityDetailQuery,
   useCitySpotsQuery,
   useCityTagsQuery,
+  useCurrentUserQuery,
+  useLoginMutation,
   usePoiCandidatesQuery,
+  useRegisterMutation,
   useRoutePlanMutation,
   useSpotDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { clearAuthToken, getAuthToken, setAuthToken } from "../../lib/authToken";
+import type { LoginRequestDto, RegisterRequestDto } from "../../types/auth";
 import type {
   GeoPoint,
   ItineraryItemDto,
@@ -106,6 +113,10 @@ const defaultScheduleConfig: SchedulePlanConfig = {
 
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
+  const queryClient = useQueryClient();
+  const [authToken, setAuthTokenState] = useState(() => getAuthToken());
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authError, setAuthError] = useState<string>();
   const [searchKeyword, setSearchKeyword] = useState("");
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>("all");
   const [activeRecommendTab, setActiveRecommendTab] =
@@ -134,6 +145,9 @@ export function MapWorkbenchPage() {
     useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+  const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const cities = useMemo(
     () =>
       (citiesQuery.data?.list ?? [])
@@ -312,6 +326,42 @@ export function MapWorkbenchPage() {
     () => buildMapItineraryMarkers(activeScheduleDay?.items),
     [activeScheduleDay?.items],
   );
+
+  async function handleLogin(payload: LoginRequestDto) {
+    setAuthError(undefined);
+    try {
+      const result = await loginMutation.mutateAsync(payload);
+      handleAuthSuccess(result.token);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "登录失败");
+    }
+  }
+
+  async function handleRegister(payload: RegisterRequestDto) {
+    setAuthError(undefined);
+    try {
+      const result = await registerMutation.mutateAsync(payload);
+      handleAuthSuccess(result.token);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "注册失败");
+    }
+  }
+
+  // 登录成功后先保存 token，再刷新当前用户查询，让 header 展示真实用户资料。
+  function handleAuthSuccess(token: string) {
+    setAuthToken(token);
+    setAuthTokenState(token);
+    setAuthDialogOpen(false);
+    setAuthError(undefined);
+    void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+  }
+
+  function handleLogout() {
+    clearAuthToken();
+    setAuthTokenState(null);
+    setAuthError(undefined);
+    queryClient.removeQueries({ queryKey: ["auth", "me"] });
+  }
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
   function handleAddToTrip(spotId: number) {
@@ -686,9 +736,15 @@ export function MapWorkbenchPage() {
         tags={tags}
         searchKeyword={searchKeyword}
         activeFilter={activeFilter}
+        currentUser={currentUserQuery.data}
         onCityChange={handleCityChange}
         onSearchKeywordChange={setSearchKeyword}
         onActiveFilterChange={setActiveFilter}
+        onAuthClick={() => {
+          setAuthError(undefined);
+          setAuthDialogOpen(true);
+        }}
+        onLogout={handleLogout}
       />
 
       <section className={styles.mapWorkspace} aria-label="地图工作台主体">
@@ -1015,6 +1071,18 @@ export function MapWorkbenchPage() {
           }
         />
       </Drawer>
+
+      <AuthDialog
+        open={authDialogOpen}
+        loading={loginMutation.isPending || registerMutation.isPending}
+        error={authError}
+        onClose={() => {
+          setAuthDialogOpen(false);
+          setAuthError(undefined);
+        }}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
     </main>
   );
 }

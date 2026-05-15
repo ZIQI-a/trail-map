@@ -6,6 +6,7 @@ import {
   EnvironmentOutlined,
   HeartOutlined,
   HomeOutlined,
+  LogoutOutlined,
   PictureOutlined,
   SearchOutlined,
   SmileOutlined,
@@ -14,8 +15,9 @@ import {
   TeamOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Input, Select } from "antd";
+import { Avatar, Button, Dropdown, Input, Select } from "antd";
 import type { ReactNode } from "react";
+import type { AppUserDto } from "../../../types/auth";
 import type {
   SpotTag,
   SpotTagCode,
@@ -32,9 +34,12 @@ interface WorkbenchHeaderProps {
   tags: SpotTag[];
   searchKeyword: string;
   activeFilter: ActiveSpotFilter;
+  currentUser?: AppUserDto;
   onCityChange: (cityId: number) => void;
   onSearchKeywordChange: (keyword: string) => void;
   onActiveFilterChange: (filter: ActiveSpotFilter) => void;
+  onAuthClick: () => void;
+  onLogout: () => void;
 }
 
 const quickActions = [
@@ -51,9 +56,12 @@ export function WorkbenchHeader({
   tags,
   searchKeyword,
   activeFilter,
+  currentUser,
   onCityChange,
   onSearchKeywordChange,
   onActiveFilterChange,
+  onAuthClick,
+  onLogout,
 }: WorkbenchHeaderProps) {
   const filterOptions: Array<{ label: string; icon: ReactNode; value: ActiveSpotFilter }> = [
     { label: "全部", icon: <AimOutlined />, value: "all" },
@@ -97,7 +105,41 @@ export function WorkbenchHeader({
               {action.label}
             </Button>
           ))}
-          <Avatar className={styles.userAvatar} size={36} icon={<SmileOutlined />} />
+          {currentUser ? (
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "profile",
+                    label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
+                    disabled: true,
+                  },
+                  {
+                    key: "logout",
+                    label: "退出登录",
+                    icon: <LogoutOutlined />,
+                    onClick: onLogout,
+                  },
+                ],
+              }}
+            >
+              <button className={styles.userButton} type="button">
+                <Avatar
+                  className={styles.userAvatar}
+                  size={36}
+                  src={currentUser.avatarUrl || undefined}
+                  icon={<SmileOutlined />}
+                />
+                <span>{currentUser.nickname}</span>
+              </button>
+            </Dropdown>
+          ) : (
+            <button className={styles.loginButton} type="button" onClick={onAuthClick}>
+              <Avatar className={styles.userAvatar} size={34} icon={<SmileOutlined />} />
+              <span>登录</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -119,6 +161,17 @@ export function WorkbenchHeader({
       </nav>
     </header>
   );
+}
+
+function getUserTypeLabel(userType: AppUserDto["userType"]) {
+  switch (userType) {
+    case "admin":
+      return "管理员";
+    case "member":
+      return "会员";
+    default:
+      return "普通用户";
+  }
 }
 
 function onActiveSpotFilterChange(
