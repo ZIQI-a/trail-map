@@ -1,65 +1,93 @@
 import {
-  AlertOutlined,
-  CheckCircleOutlined,
-  RiseOutlined,
   SearchOutlined,
-  TeamOutlined,
   UserOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
-import { Alert, Avatar, Button, Card, Input, Select, Statistic, Switch, Table, Tag } from "antd";
+import {
+  Alert,
+  Avatar,
+  Button,
+  Card,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo } from "react";
-import { roleOptions, statusOptions, userCardConfigs } from "../../../admin/config";
+import { useEffect, useMemo } from "react";
+import { roleOptions, statusOptions } from "../../../admin/config";
 import type { AdminStatusFilter } from "../../../admin/types";
-import type { AppUserDto } from "../../../types/auth";
+import type { AppUserDto, UserUpdateRequestDto } from "../../../types/auth";
 import { formatAdminDateTime, getAdminUserRoleMeta } from "../../../utils/admin/format";
 import sectionStyles from "./AdminSections.module.css";
 
-type OverviewStats = {
-  totalUsers: number;
-  enabledUsers: number;
-};
-
 type AdminUsersSectionProps = {
   currentUserId?: number;
+  editingUser: AppUserDto | null;
   filteredUsers: AppUserDto[];
   isLoading: boolean;
   isUpdating: boolean;
-  overviewStats: OverviewStats;
   searchKeyword: string;
   roleFilter: "all" | AppUserDto["userType"];
   statusFilter: AdminStatusFilter;
   tableError?: Error | null;
-  users: AppUserDto[];
+  onCloseEditModal: () => void;
+  onOpenEditModal: (user: AppUserDto) => void;
   onResetFilters: () => void;
   onRoleFilterChange: (value: "all" | AppUserDto["userType"]) => void;
   onSearchChange: (value: string) => void;
   onStatusFilterChange: (value: AdminStatusFilter) => void;
   onToggleStatus: (user: AppUserDto) => void;
-  onUpdateRole: (user: AppUserDto, nextRole: AppUserDto["userType"]) => void;
+  onSubmitEdit: (user: AppUserDto, payload: UserUpdateRequestDto) => void;
 };
 
-// 用户管理模块直接在表格中展示主要字段，避免当前阶段再引入详情侧栏。
+type AdminUserEditFormValues = {
+  nickname: string;
+  phone?: string;
+  email?: string;
+  avatarUrl?: string;
+  userType: AppUserDto["userType"];
+};
+
+// 用户管理模块聚焦列表筛选与基础操作，角色和资料编辑统一收敛到弹窗中。
 export function AdminUsersSection({
   currentUserId,
+  editingUser,
   filteredUsers,
   isLoading,
   isUpdating,
-  overviewStats,
   roleFilter,
   searchKeyword,
   statusFilter,
   tableError,
-  users,
+  onCloseEditModal,
+  onOpenEditModal,
   onResetFilters,
   onRoleFilterChange,
   onSearchChange,
   onStatusFilterChange,
   onToggleStatus,
-  onUpdateRole,
+  onSubmitEdit,
 }: AdminUsersSectionProps) {
-  const activeUsers = users.filter((user) => Boolean(user.lastLoginAt)).length;
-  const disabledUsers = users.filter((user) => user.status !== 1).length;
+  const [form] = Form.useForm<AdminUserEditFormValues>();
+
+  // 编辑对象变化时同步表单初始值，避免切换用户后残留上一次输入。
+  useEffect(() => {
+    if (!editingUser) {
+      form.resetFields();
+      return;
+    }
+    form.setFieldsValue({
+      nickname: editingUser.nickname,
+      phone: editingUser.phone ?? undefined,
+      email: editingUser.email ?? undefined,
+      avatarUrl: editingUser.avatarUrl ?? undefined,
+      userType: editingUser.userType,
+    });
+  }, [editingUser, form]);
 
   const columns = useMemo<ColumnsType<AppUserDto>>(
     () => [
@@ -100,19 +128,12 @@ export function AdminUsersSection({
         title: "角色",
         dataIndex: "userType",
         key: "userType",
-        width: 140,
-        render: (userType, user) => {
+        width: 120,
+        render: (userType) => {
           const roleMeta = getAdminUserRoleMeta(userType);
           return (
             <div className={sectionStyles.roleCell}>
               <Tag color={roleMeta.tagColor}>{roleMeta.label}</Tag>
-              <Select
-                className={sectionStyles.inlineSelect}
-                value={userType}
-                options={roleOptions}
-                disabled={currentUserId === user.id}
-                onChange={(nextRole) => onUpdateRole(user, nextRole as AppUserDto["userType"])}
-              />
             </div>
           );
         },
@@ -121,18 +142,12 @@ export function AdminUsersSection({
         title: "账号状态",
         dataIndex: "status",
         key: "status",
-        width: 140,
-        render: (status, user) => (
+        width: 110,
+        render: (status) => (
           <div className={sectionStyles.statusCell}>
             <Tag color={status === 1 ? "success" : "error"}>
               {status === 1 ? "正常" : "停用"}
             </Tag>
-            <Switch
-              size="small"
-              checked={status === 1}
-              disabled={currentUserId === user.id}
-              onChange={() => onToggleStatus(user)}
-            />
           </div>
         ),
       },
@@ -150,23 +165,34 @@ export function AdminUsersSection({
         width: 168,
         render: (value) => formatAdminDateTime(value),
       },
+      {
+        title: "操作",
+        key: "actions",
+        fixed: "right",
+        width: 180,
+        render: (_, user) => (
+          <Space size="small">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => onOpenEditModal(user)}
+            >
+              编辑
+            </Button>
+            <Button
+              type="link"
+              danger={user.status === 1}
+              disabled={currentUserId === user.id}
+              onClick={() => onToggleStatus(user)}
+            >
+              {user.status === 1 ? "停用" : "启用"}
+            </Button>
+          </Space>
+        ),
+      },
     ],
-    [currentUserId, onToggleStatus, onUpdateRole],
+    [currentUserId, onOpenEditModal, onToggleStatus],
   );
-
-  const userStatValueMap = {
-    totalUsers: overviewStats.totalUsers,
-    activeUsers,
-    enabledUsers: overviewStats.enabledUsers,
-    disabledUsers,
-  };
-
-  const userStatIconMap = {
-    totalUsers: <TeamOutlined />,
-    activeUsers: <RiseOutlined />,
-    enabledUsers: <CheckCircleOutlined />,
-    disabledUsers: <AlertOutlined />,
-  };
 
   return (
     <section className={sectionStyles.contentGridSingle}>
@@ -199,18 +225,6 @@ export function AdminUsersSection({
           <Button onClick={onResetFilters}>重置</Button>
         </div>
 
-        <div className={sectionStyles.statGrid}>
-          {userCardConfigs.map((item) => (
-            <Card className={sectionStyles.statCard} key={item.key}>
-              <Statistic
-                title={item.title}
-                value={userStatValueMap[item.key]}
-                prefix={userStatIconMap[item.key]}
-              />
-            </Card>
-          ))}
-        </div>
-
         <Card className={sectionStyles.tableCard} bodyStyle={{ padding: 0 }}>
           {tableError ? (
             <div className={sectionStyles.tableState}>
@@ -229,10 +243,64 @@ export function AdminUsersSection({
               columns={columns}
               dataSource={filteredUsers}
               pagination={false}
-              scroll={{ x: 1100 }}
+              scroll={{ x: 1280 }}
             />
           )}
         </Card>
+
+        <Modal
+          title="编辑用户"
+          open={Boolean(editingUser)}
+          confirmLoading={isUpdating}
+          destroyOnHidden
+          onCancel={onCloseEditModal}
+          onOk={() => {
+            void form.validateFields().then((values) => {
+              if (!editingUser) {
+                return;
+              }
+              onSubmitEdit(editingUser, {
+                nickname: values.nickname.trim(),
+                phone: values.phone?.trim() || null,
+                email: values.email?.trim() || null,
+                avatarUrl: values.avatarUrl?.trim() || null,
+                userType: values.userType,
+              });
+            });
+          }}
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item label="用户名">
+              <Input value={editingUser?.username} disabled />
+            </Form.Item>
+            <Form.Item
+              label="昵称"
+              name="nickname"
+              rules={[{ required: true, message: "请输入昵称" }]}
+            >
+              <Input maxLength={30} placeholder="请输入用户昵称" />
+            </Form.Item>
+            <Form.Item label="角色" name="userType" rules={[{ required: true, message: "请选择角色" }]}>
+              <Select
+                options={roleOptions}
+                disabled={currentUserId === editingUser?.id}
+              />
+            </Form.Item>
+            <Form.Item label="手机号" name="phone">
+              <Input maxLength={20} placeholder="请输入手机号" />
+            </Form.Item>
+            <Form.Item
+              label="邮箱"
+              name="email"
+              rules={[{ type: "email", message: "邮箱格式不正确" }]}
+            >
+              <Input maxLength={60} placeholder="请输入邮箱" />
+            </Form.Item>
+            <Form.Item label="头像地址" name="avatarUrl">
+              <Input placeholder="请输入头像 URL" />
+            </Form.Item>
+          </Form>
+        </Modal>
       </div>
     </section>
   );

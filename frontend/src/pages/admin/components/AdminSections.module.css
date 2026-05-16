@@ -133,8 +133,7 @@
 }
 
 .filterInput :global(.ant-input-affix-wrapper),
-.filterSelect :global(.ant-select-selector),
-.inlineSelect :global(.ant-select-selector) {
+.filterSelect :global(.ant-select-selector) {
   min-height: 40px !important;
   border-radius: 12px !important;
 }

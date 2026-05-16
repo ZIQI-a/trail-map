@@ -21,6 +21,7 @@ export function AdminPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | AppUserDto["userType"]>("all");
   const [statusFilter, setStatusFilter] = useState<AdminStatusFilter>("all");
+  const [editingUser, setEditingUser] = useState<AppUserDto | null>(null);
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const usersQuery = useAdminUsersQuery(
     1,
@@ -88,21 +89,33 @@ export function AdminPage() {
     [overviewStats.adminUsers, users],
   );
 
-  // 统一更新用户状态与角色，避免页面和表格各自散写 mutation。
+  // 统一更新用户资料、角色与状态，避免页面和表格各自散写 mutation。
   async function handleUpdateUser(
     user: AppUserDto,
-    patch: Partial<Pick<AppUserDto, "userType" | "status">>,
+    patch: {
+      nickname?: string;
+      userType?: AppUserDto["userType"];
+      avatarUrl?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      status?: number;
+    },
   ) {
     try {
       await userUpdateMutation.mutateAsync({
         userId: user.id,
         data: {
+          nickname: patch.nickname,
           userType: patch.userType,
+          avatarUrl: patch.avatarUrl,
+          phone: patch.phone,
+          email: patch.email,
           status: patch.status,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      setEditingUser(null);
       messageApi.success("用户信息已更新");
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : "用户更新失败");
@@ -186,18 +199,16 @@ export function AdminPage() {
         ) : (
           <AdminUsersSection
             currentUserId={currentAdmin.id}
+            editingUser={editingUser}
             filteredUsers={filteredUsers}
             isLoading={usersQuery.isLoading}
             isUpdating={userUpdateMutation.isPending}
-            overviewStats={{
-              totalUsers: overviewStats.totalUsers,
-              enabledUsers: overviewStats.enabledUsers,
-            }}
             roleFilter={roleFilter}
             searchKeyword={searchKeyword}
             statusFilter={statusFilter}
             tableError={usersQuery.error instanceof Error ? usersQuery.error : null}
-            users={users}
+            onCloseEditModal={() => setEditingUser(null)}
+            onOpenEditModal={setEditingUser}
             onResetFilters={() => {
               setSearchKeyword("");
               setRoleFilter("all");
@@ -211,11 +222,7 @@ export function AdminPage() {
                 status: user.status === 1 ? 2 : 1,
               })
             }
-            onUpdateRole={(user, nextRole) =>
-              void handleUpdateUser(user, {
-                userType: nextRole,
-              })
-            }
+            onSubmitEdit={(user, payload) => void handleUpdateUser(user, payload)}
           />
         )}
       </section>
