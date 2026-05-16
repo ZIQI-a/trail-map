@@ -1,0 +1,221 @@
+.contentGridSingle {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding: 24px;
+}
+
+.mainColumn {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.pageHeading h1 {
+  margin: 0;
+  color: #1f2d3d;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.pageHeading p {
+  margin: 8px 0 0;
+  color: #79889d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.statCard,
+.panelCard,
+.tableCard {
+  border: 1px solid #e8edf5;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgb(20 41 76 / 5%);
+}
+
+.statCard :global(.ant-card-body) {
+  padding: 18px 20px;
+}
+
+.statCard :global(.ant-statistic) {
+  margin-bottom: 8px;
+}
+
+.cardTrend {
+  color: #6f8199;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dualSection {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 18px;
+}
+
+.panelCard :global(.ant-card-head) {
+  min-height: 56px;
+  border-bottom-color: #edf2f7;
+}
+
+.panelCard :global(.ant-card-head-title) {
+  color: #1f2d3d;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.todoList,
+.recentList {
+  display: grid;
+  gap: 10px;
+}
+
+.todoItem,
+.recentUserStatic {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f3f8;
+}
+
+.todoItem:last-child,
+.recentUserStatic:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.todoIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #ff7b2f;
+  background: #fff4ea;
+  font-size: 18px;
+}
+
+.todoItem strong,
+.recentUserStatic strong {
+  display: block;
+  color: #223244;
+  font-size: 14px;
+}
+
+.todoItem p,
+.recentUserStatic span {
+  margin: 4px 0 0;
+  color: #8392a7;
+  font-size: 12px;
+}
+
+.todoItem em {
+  color: #ff5a4f;
+  font-style: normal;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.filterBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) 180px 180px auto;
+  gap: 12px;
+}
+
+.filterInput :global(.ant-input-affix-wrapper),
+.filterSelect :global(.ant-select-selector),
+.inlineSelect :global(.ant-select-selector) {
+  min-height: 40px !important;
+  border-radius: 12px !important;
+}
+
+.tableCard :global(.ant-card-body) {
+  padding: 0;
+}
+
+.userTable :global(.ant-table) {
+  border-radius: 18px;
+}
+
+.userTable :global(.ant-table-thead > tr > th) {
+  color: #7a8ca5;
+  font-size: 12px;
+  font-weight: 800;
+  background: #fbfcfe;
+}
+
+.userTable :global(.ant-table-tbody > tr:hover > td) {
+  background: #fbfdff !important;
+}
+
+.userCell {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.userIdentity {
+  display: grid;
+  gap: 3px;
+}
+
+.userIdentity strong {
+  color: #223244;
+  font-size: 14px;
+}
+
+.userIdentity span,
+.statusCell,
+.roleCell {
+  color: #79889d;
+  font-size: 12px;
+}
+
+.roleCell {
+  display: grid;
+  gap: 8px;
+}
+
+.statusCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tableState {
+  padding: 24px;
+}
+
+@media (max-width: 1180px) {
+  .statGrid,
+  .dualSection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filterBar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .contentGridSingle {
+    padding: 16px;
+  }
+
+  .statGrid,
+  .dualSection,
+  .filterBar {
+    grid-template-columns: 1fr;
+  }
+}

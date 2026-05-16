@@ -1,6 +1,6 @@
 import { ConfigProvider } from "antd";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { AdminConsolePage } from "./pages/admin-console";
+import { AdminPage } from "./pages/admin";
 import { MapWorkbenchPage } from "./pages/map-workbench";
 
 // App 是前端应用根组件，当前挂载阶段 2 的地图工作台页面。
@@ -28,7 +28,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
-          <Route path="/admin" element={<AdminConsolePage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>

@@ -1,0 +1,32 @@
+.consoleShell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  background: #f5f7fb;
+}
+
+.stateShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  padding: 28px;
+  background: #f5f7fb;
+}
+
+.stateShell p {
+  margin: 0;
+  color: #6f8199;
+}
+
+.workspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .consoleShell {
+    grid-template-columns: 1fr;
+  }
+}
