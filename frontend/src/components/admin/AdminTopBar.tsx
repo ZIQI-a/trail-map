@@ -34,7 +34,9 @@ export function AdminTopBar({
         {topBarIcon}
         <span>首页</span>
         <em>/</em>
-        <strong>{activeSection === "overview" ? "数据概览" : "用户管理"}</strong>
+        <strong>
+          {activeSection === "overview" ? "数据概览" : "用户管理"}
+        </strong>
       </div>
 
       <div className={styles.topBarActions}>
@@ -62,7 +64,7 @@ export function AdminTopBar({
             <strong>{currentUser.nickname}</strong>
             <span>@{currentUser.username}</span>
           </div>
-          <Tag color="blue">ADMIN</Tag>
+          <Tag color="blue">管理员</Tag>
         </div>
       </div>
     </header>

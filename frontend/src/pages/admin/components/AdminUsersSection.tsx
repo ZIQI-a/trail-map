@@ -1,14 +1,11 @@
-import {
-  SearchOutlined,
-  UserOutlined,
-  EditOutlined,
-} from "@ant-design/icons";
+import { SearchOutlined, UserOutlined, EditOutlined } from "@ant-design/icons";
 import {
   Alert,
   Avatar,
   Button,
   Card,
   Form,
+  Grid,
   Input,
   Modal,
   Select,
@@ -21,7 +18,10 @@ import { useEffect, useMemo } from "react";
 import { roleOptions, statusOptions } from "../../../admin/config";
 import type { AdminStatusFilter } from "../../../admin/types";
 import type { AppUserDto, UserUpdateRequestDto } from "../../../types/auth";
-import { formatAdminDateTime, getAdminUserRoleMeta } from "../../../utils/admin/format";
+import {
+  formatAdminDateTime,
+  getAdminUserRoleMeta,
+} from "../../../utils/admin/format";
 import sectionStyles from "./AdminSections.module.css";
 
 type AdminUsersSectionProps = {
@@ -73,6 +73,9 @@ export function AdminUsersSection({
   onSubmitEdit,
 }: AdminUsersSectionProps) {
   const [form] = Form.useForm<AdminUserEditFormValues>();
+  const screens = Grid.useBreakpoint();
+  const isMediumScreen = Boolean(screens.md);
+  const isLargeScreen = Boolean(screens.lg);
 
   // 编辑对象变化时同步表单初始值，避免切换用户后残留上一次输入。
   useEffect(() => {
@@ -95,7 +98,7 @@ export function AdminUsersSection({
         title: "用户",
         dataIndex: "username",
         key: "username",
-        width: 220,
+        width: isMediumScreen ? 220 : 200,
         render: (_, user) => (
           <div className={sectionStyles.userCell}>
             <Avatar
@@ -106,6 +109,11 @@ export function AdminUsersSection({
             <div className={sectionStyles.userIdentity}>
               <strong>{user.nickname}</strong>
               <span>@{user.username}</span>
+              {!isLargeScreen ? (
+                <em className={sectionStyles.userMobileMeta}>
+                  {user.phone || user.email || "未填写联系方式"}
+                </em>
+              ) : null}
             </div>
           </div>
         ),
@@ -115,6 +123,8 @@ export function AdminUsersSection({
         dataIndex: "phone",
         key: "phone",
         width: 140,
+        responsive: ["lg"],
+        ellipsis: true,
         render: (value) => value || "--",
       },
       {
@@ -122,13 +132,15 @@ export function AdminUsersSection({
         dataIndex: "email",
         key: "email",
         width: 220,
+        responsive: ["xl"],
+        ellipsis: true,
         render: (value) => value || "--",
       },
       {
         title: "角色",
         dataIndex: "userType",
         key: "userType",
-        width: 120,
+        width: 96,
         render: (userType) => {
           const roleMeta = getAdminUserRoleMeta(userType);
           return (
@@ -142,7 +154,7 @@ export function AdminUsersSection({
         title: "账号状态",
         dataIndex: "status",
         key: "status",
-        width: 110,
+        width: 96,
         render: (status) => (
           <div className={sectionStyles.statusCell}>
             <Tag color={status === 1 ? "success" : "error"}>
@@ -156,6 +168,7 @@ export function AdminUsersSection({
         dataIndex: "createdAt",
         key: "createdAt",
         width: 168,
+        responsive: ["xl"],
         render: (value) => formatAdminDateTime(value),
       },
       {
@@ -163,15 +176,15 @@ export function AdminUsersSection({
         dataIndex: "lastLoginAt",
         key: "lastLoginAt",
         width: 168,
+        responsive: ["lg"],
         render: (value) => formatAdminDateTime(value),
       },
       {
         title: "操作",
         key: "actions",
-        fixed: "right",
-        width: 180,
+        width: isMediumScreen ? 172 : 136,
         render: (_, user) => (
-          <Space size="small">
+          <Space size="small" wrap>
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -191,7 +204,13 @@ export function AdminUsersSection({
         ),
       },
     ],
-    [currentUserId, onOpenEditModal, onToggleStatus],
+    [
+      currentUserId,
+      isLargeScreen,
+      isMediumScreen,
+      onOpenEditModal,
+      onToggleStatus,
+    ],
   );
 
   return (
@@ -214,13 +233,17 @@ export function AdminUsersSection({
             className={sectionStyles.filterSelect}
             value={roleFilter}
             options={[{ label: "全部角色", value: "all" }, ...roleOptions]}
-            onChange={(value) => onRoleFilterChange(value as "all" | AppUserDto["userType"])}
+            onChange={(value) =>
+              onRoleFilterChange(value as "all" | AppUserDto["userType"])
+            }
           />
           <Select
             className={sectionStyles.filterSelect}
             value={statusFilter}
             options={statusOptions}
-            onChange={(value) => onStatusFilterChange(value as AdminStatusFilter)}
+            onChange={(value) =>
+              onStatusFilterChange(value as AdminStatusFilter)
+            }
           />
           <Button onClick={onResetFilters}>重置</Button>
         </div>
@@ -243,7 +266,8 @@ export function AdminUsersSection({
               columns={columns}
               dataSource={filteredUsers}
               pagination={false}
-              scroll={{ x: 1280 }}
+              tableLayout="fixed"
+              scroll={isMediumScreen ? undefined : { x: 640 }}
             />
           )}
         </Card>
@@ -251,6 +275,8 @@ export function AdminUsersSection({
         <Modal
           title="编辑用户"
           open={Boolean(editingUser)}
+          okText="保存"
+          cancelText="取消"
           confirmLoading={isUpdating}
           destroyOnHidden
           onCancel={onCloseEditModal}
@@ -280,7 +306,11 @@ export function AdminUsersSection({
             >
               <Input maxLength={30} placeholder="请输入用户昵称" />
             </Form.Item>
-            <Form.Item label="角色" name="userType" rules={[{ required: true, message: "请选择角色" }]}>
+            <Form.Item
+              label="角色"
+              name="userType"
+              rules={[{ required: true, message: "请选择角色" }]}
+            >
               <Select
                 options={roleOptions}
                 disabled={currentUserId === editingUser?.id}

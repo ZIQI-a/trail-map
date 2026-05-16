@@ -1,7 +1,9 @@
 .consoleShell {
+  width: 100%;
   min-height: 100vh;
   display: grid;
   grid-template-columns: 216px minmax(0, 1fr);
+  overflow-x: hidden;
   background: #f5f7fb;
 }
 
@@ -23,6 +25,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
+  overflow-x: hidden;
 }
 
 @media (max-width: 900px) {

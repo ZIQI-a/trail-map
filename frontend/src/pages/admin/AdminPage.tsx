@@ -156,7 +156,7 @@ export function AdminPage() {
           type="error"
           showIcon
           message="当前账号无权进入后台管理"
-          description="管理员后台仅对 admin 角色开放，请使用管理员账号登录。"
+          description="管理员后台仅对管理员角色开放，请使用管理员账号登录。"
         />
         <Button onClick={() => navigate("/")}>返回地图工作台</Button>
       </main>

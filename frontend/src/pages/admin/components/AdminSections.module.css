@@ -4,6 +4,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   padding: 24px;
+  overflow-x: hidden;
 }
 
 .mainColumn {
@@ -11,6 +12,7 @@
   display: grid;
   align-content: start;
   gap: 18px;
+  overflow-x: hidden;
 }
 
 .pageHeading h1 {
@@ -140,10 +142,19 @@
 
 .tableCard :global(.ant-card-body) {
   padding: 0;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .userTable :global(.ant-table) {
+  width: 100%;
   border-radius: 18px;
+}
+
+.userTable :global(.ant-spin-nested-loading),
+.userTable :global(.ant-spin-container),
+.userTable :global(.ant-table-container) {
+  min-width: 0;
 }
 
 .userTable :global(.ant-table-thead > tr > th) {
@@ -151,6 +162,10 @@
   font-size: 12px;
   font-weight: 800;
   background: #fbfcfe;
+}
+
+.userTable :global(.ant-table-cell) {
+  word-break: break-word;
 }
 
 .userTable :global(.ant-table-tbody > tr:hover > td) {
@@ -181,6 +196,16 @@
   font-size: 12px;
 }
 
+.userMobileMeta {
+  display: none;
+  margin: 0;
+  color: #8c9ab0;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
 .roleCell {
   display: grid;
   gap: 8px;
@@ -203,7 +228,7 @@
   }
 
   .filterBar {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 180px)) auto;
   }
 }
 
@@ -216,5 +241,21 @@
   .dualSection,
   .filterBar {
     grid-template-columns: 1fr;
+  }
+
+  .userCell {
+    align-items: start;
+  }
+
+  .userMobileMeta {
+    display: block;
+  }
+
+  .userTable :global(.ant-table-cell) {
+    padding: 12px 10px !important;
+  }
+
+  .userTable :global(.ant-btn-link) {
+    padding-inline: 0;
   }
 }
