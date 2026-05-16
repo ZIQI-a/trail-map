@@ -122,7 +122,7 @@ export function AdminUsersSection({
         title: "手机号",
         dataIndex: "phone",
         key: "phone",
-        width: 140,
+        width: 132,
         responsive: ["lg"],
         ellipsis: true,
         render: (value) => value || "--",
@@ -131,7 +131,7 @@ export function AdminUsersSection({
         title: "邮箱",
         dataIndex: "email",
         key: "email",
-        width: 220,
+        width: 200,
         responsive: ["xl"],
         ellipsis: true,
         render: (value) => value || "--",
@@ -167,7 +167,7 @@ export function AdminUsersSection({
         title: "注册时间",
         dataIndex: "createdAt",
         key: "createdAt",
-        width: 168,
+        width: 160,
         responsive: ["xl"],
         render: (value) => formatAdminDateTime(value),
       },
@@ -175,14 +175,14 @@ export function AdminUsersSection({
         title: "最近登录",
         dataIndex: "lastLoginAt",
         key: "lastLoginAt",
-        width: 168,
+        width: 160,
         responsive: ["lg"],
         render: (value) => formatAdminDateTime(value),
       },
       {
         title: "操作",
         key: "actions",
-        width: isMediumScreen ? 172 : 136,
+        width: isMediumScreen ? 156 : 132,
         render: (_, user) => (
           <Space size="small" wrap>
             <Button
@@ -267,7 +267,7 @@ export function AdminUsersSection({
               dataSource={filteredUsers}
               pagination={false}
               tableLayout="fixed"
-              scroll={isMediumScreen ? undefined : { x: 640 }}
+              scroll={{ x: 1160 }}
             />
           )}
         </Card>

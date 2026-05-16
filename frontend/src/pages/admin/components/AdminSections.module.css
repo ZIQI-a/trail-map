@@ -4,7 +4,6 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   padding: 24px;
-  overflow-x: hidden;
 }
 
 .mainColumn {
@@ -12,7 +11,6 @@
   display: grid;
   align-content: start;
   gap: 18px;
-  overflow-x: hidden;
 }
 
 .pageHeading h1 {
@@ -38,6 +36,8 @@
 .statCard,
 .panelCard,
 .tableCard {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid #e8edf5;
   border-radius: 18px;
   box-shadow: 0 8px 24px rgb(20 41 76 / 5%);
@@ -146,6 +146,11 @@
   overflow-x: auto;
 }
 
+.userTable {
+  width: 100%;
+  min-width: 0;
+}
+
 .userTable :global(.ant-table) {
   width: 100%;
   border-radius: 18px;
@@ -153,8 +158,10 @@
 
 .userTable :global(.ant-spin-nested-loading),
 .userTable :global(.ant-spin-container),
-.userTable :global(.ant-table-container) {
+.userTable :global(.ant-table-container),
+.userTable :global(.ant-table-content) {
   min-width: 0;
+  max-width: 100%;
 }
 
 .userTable :global(.ant-table-thead > tr > th) {
