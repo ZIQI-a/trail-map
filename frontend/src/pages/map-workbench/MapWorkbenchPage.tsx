@@ -14,7 +14,6 @@ import {
   Spin,
 } from "antd";
 import { useCallback, useMemo, useState, type DragEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthDialog } from "../../components/map-workbench/AuthDialog";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
@@ -114,7 +113,6 @@ const defaultScheduleConfig: SchedulePlanConfig = {
 
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [authToken, setAuthTokenState] = useState(() => getAuthToken());
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
@@ -746,7 +744,7 @@ export function MapWorkbenchPage() {
           setAuthError(undefined);
           setAuthDialogOpen(true);
         }}
-        onAdminClick={() => navigate("/admin")}
+        onAdminClick={() => window.open("/admin", "_blank", "noopener,noreferrer")}
         onLogout={handleLogout}
       />
 
