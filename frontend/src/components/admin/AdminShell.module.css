@@ -32,7 +32,6 @@
   display: block;
   filter: brightness(0) invert(1);
   transform-origin: left center;
-  transition: width 180ms ease, transform 180ms ease;
 }
 
 .brandArea span {
@@ -100,6 +99,18 @@
   color: #ffffff;
   background: linear-gradient(135deg, #2573ff, #3d8cff);
   box-shadow: 0 14px 24px rgb(17 78 185 / 32%);
+}
+
+.sideMenuLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sideMenuItem :global(.anticon),
+.sideMenuItemActive :global(.anticon) {
+  font-size: 18px;
 }
 
 .sideFooter {
@@ -307,8 +318,7 @@
     border-radius: 12px;
   }
 
-  .sideMenuItem span,
-  .sideMenuItemActive span {
+  .sideMenuLabel {
     display: none;
   }
 

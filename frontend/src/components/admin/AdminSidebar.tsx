@@ -51,7 +51,9 @@ export function AdminSidebar({
                 onClick={() => onChangeSection(item.key)}
               >
                 {item.icon}
-                {!collapsed ? <span>{item.label}</span> : null}
+                {!collapsed ? (
+                  <span className={styles.sideMenuLabel}>{item.label}</span>
+                ) : null}
               </button>
             </Tooltip>
           );
