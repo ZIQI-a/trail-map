@@ -9,6 +9,7 @@ import {
   useAdminCityCreateMutation,
   useAdminCityDeleteMutation,
   useAdminCityUpdateMutation,
+  useAdminOverviewQuery,
   useAdminSpotCreateMutation,
   useAdminSpotDeleteMutation,
   useAdminSpotUpdateMutation,
@@ -47,15 +48,17 @@ export function AdminPage() {
   const screens = Grid.useBreakpoint();
   const lastLargeScreenRef = useRef<boolean | undefined>(undefined);
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
+  const adminDataEnabled = Boolean(authToken) && currentUserQuery.data?.userType === "admin";
+  const overviewQuery = useAdminOverviewQuery(adminDataEnabled);
   const usersQuery = useAdminUsersQuery(
     1,
     20,
-    Boolean(authToken) && currentUserQuery.data?.userType === "admin",
+    adminDataEnabled,
   );
   const citiesQuery = useAdminCitiesQuery(
     1,
     100,
-    Boolean(authToken) && currentUserQuery.data?.userType === "admin",
+    adminDataEnabled,
   );
   const spotsQuery = useAdminSpotsQuery(
     1,
@@ -66,7 +69,7 @@ export function AdminPage() {
       type: spotTypeFilter === "all" ? undefined : spotTypeFilter,
       status: spotStatusFilter === "all" ? undefined : spotStatusFilter === "enabled" ? 1 : 0,
     },
-    Boolean(authToken) && currentUserQuery.data?.userType === "admin",
+    adminDataEnabled,
   );
   const userUpdateMutation = useAdminUserUpdateMutation();
   const cityCreateMutation = useAdminCityCreateMutation();
@@ -98,45 +101,6 @@ export function AdminPage() {
       }),
     [roleFilter, searchKeyword, statusFilter, users],
   );
-  const overviewStats = useMemo(
-    () => ({
-      totalUsers: users.length,
-      enabledUsers: users.filter((user) => user.status === 1).length,
-      adminUsers: users.filter((user) => user.userType === "admin").length,
-      memberUsers: users.filter((user) => user.userType === "member").length,
-    }),
-    [users],
-  );
-  const recentUsers = useMemo(
-    () =>
-      [...users]
-        .sort((left, right) =>
-          (right.createdAt ?? "").localeCompare(left.createdAt ?? ""),
-        )
-        .slice(0, 5),
-    [users],
-  );
-  const statusSummary = useMemo(
-    () => [
-      {
-        label: "待关注账号",
-        description: "已停用或长期未登录用户",
-        value: users.filter((user) => user.status !== 1).length,
-      },
-      {
-        label: "管理员账号",
-        description: "当前具备后台访问权限的用户",
-        value: overviewStats.adminUsers,
-      },
-      {
-        label: "活跃注册",
-        description: "最近登录时间不为空的用户",
-        value: users.filter((user) => Boolean(user.lastLoginAt)).length,
-      },
-    ],
-    [overviewStats.adminUsers, users],
-  );
-
   // 屏幕较小时自动收起侧边栏，保证右侧主内容区域的可用宽度。
   useEffect(() => {
     if (lastLargeScreenRef.current === screens.lg) {
@@ -317,11 +281,12 @@ export function AdminPage() {
         <AdminTopBar
           activeSection={activeSection}
           currentUser={currentAdmin}
-          isRefreshing={usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
+          isRefreshing={overviewQuery.isFetching || usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
           searchKeyword={searchKeyword}
           onLogout={handleLogout}
           onRefresh={() =>
             void Promise.all([
+              queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
               queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
               queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
               queryClient.invalidateQueries({ queryKey: ["admin", "spots"] }),
@@ -332,9 +297,11 @@ export function AdminPage() {
 
         {activeSection === "overview" ? (
           <AdminOverviewSection
-            overviewStats={overviewStats}
-            recentUsers={recentUsers}
-            statusSummary={statusSummary}
+            overview={overviewQuery.data}
+            isLoading={overviewQuery.isLoading}
+            overviewError={overviewQuery.error instanceof Error ? overviewQuery.error : null}
+            onOpenCities={() => setActiveSection("cities")}
+            onOpenSpots={() => setActiveSection("spots")}
             onOpenUsers={() => setActiveSection("users")}
           />
         ) : activeSection === "users" ? (

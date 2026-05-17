@@ -1,3 +1,4 @@
+import type { AppUserDto } from "./auth";
 import type { GeoPoint, PageResponse, SpotType, TravelCityDto } from "./mapWorkbench";
 
 // 管理端城市表单：当前复用城市基础资料字段，便于后台做简单维护。
@@ -91,3 +92,44 @@ export interface AdminSpotFormDto {
 
 export type AdminCityListDto = PageResponse<AdminCityDto>;
 export type AdminSpotListDto = PageResponse<AdminSpotDto>;
+
+export interface AdminOverviewDimensionDto {
+  code: string;
+  label: string;
+  value: number;
+}
+
+export interface AdminOverviewMetricDto {
+  totalUsers: number;
+  normalUsers: number;
+  memberUsers: number;
+  enabledUsers: number;
+  disabledUsers: number;
+  totalCities: number;
+  enabledCities: number;
+  disabledCities: number;
+  totalSpots: number;
+  enabledSpots: number;
+  disabledSpots: number;
+  missingCoverSpots: number;
+  missingScoreSpots: number;
+}
+
+export interface AdminOverviewRecentSpotDto {
+  id: number;
+  name: string;
+  cityName: string;
+  type: SpotType;
+  status: number;
+  updatedAt: string;
+}
+
+export interface AdminOverviewDto {
+  metrics: AdminOverviewMetricDto;
+  userRoleDistribution: AdminOverviewDimensionDto[];
+  spotTypeDistribution: AdminOverviewDimensionDto[];
+  citySpotRanking: AdminOverviewDimensionDto[];
+  dataStatusDistribution: AdminOverviewDimensionDto[];
+  recentUsers: AppUserDto[];
+  recentSpots: AdminOverviewRecentSpotDto[];
+}

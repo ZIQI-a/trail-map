@@ -1,7 +1,12 @@
 import { request } from "../lib/http";
 import type { AppUserDto, UserUpdateRequestDto } from "../types/auth";
 import type { PageResponse } from "../types/mapWorkbench";
-import type { AdminCityDto, AdminCityFormDto, AdminSpotDto, AdminSpotFormDto } from "../types/admin";
+import type { AdminCityDto, AdminCityFormDto, AdminOverviewDto, AdminSpotDto, AdminSpotFormDto } from "../types/admin";
+
+// 管理端数据概览：由后端聚合用户、城市和景点统计，避免首页拉全量数据自行计算。
+export function fetchAdminOverview() {
+  return request<AdminOverviewDto>("/api/admin/overview");
+}
 
 // 管理员用户列表查询：后台页当前优先一次拉全量，再由前端分页和筛选。
 export function fetchAdminUsers(pageNum?: number, pageSize?: number) {

@@ -1,7 +1,11 @@
 import { ConfigProvider } from "antd";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { AdminPage } from "./pages/admin";
 import { MapWorkbenchPage } from "./pages/map-workbench";
+
+const AdminPage = lazy(() =>
+  import("./pages/admin").then((module) => ({ default: module.AdminPage })),
+);
 
 // App 是前端应用根组件，当前挂载阶段 2 的地图工作台页面。
 function App() {
@@ -28,7 +32,14 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={null}>
+                <AdminPage />
+              </Suspense>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>

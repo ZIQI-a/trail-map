@@ -9,6 +9,17 @@
   overflow: hidden;
 }
 
+.overviewShell {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 24px;
+  overflow: auto;
+}
+
 .mainColumn {
   min-height: 0;
   min-width: 0;
@@ -38,6 +49,92 @@
   gap: 16px;
 }
 
+.overviewMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.overviewMetricCard {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #e8edf5;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgb(20 41 76 / 5%);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.overviewMetricCard:hover {
+  transform: translateY(-2px);
+  border-color: #cfe0f7;
+  box-shadow: 0 14px 34px rgb(20 41 76 / 9%);
+}
+
+.overviewMetricCard :global(.ant-statistic-title) {
+  margin-bottom: 4px;
+  color: #7b8ca4;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.overviewMetricCard :global(.ant-statistic-content) {
+  color: #1f2d3d;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.overviewMetricCard em {
+  grid-column: 2;
+  color: #7d8da3;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.overviewMetricIcon {
+  width: 48px;
+  height: 48px;
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  font-size: 22px;
+}
+
+.overviewMetricCardBlue .overviewMetricIcon {
+  color: #2266e8;
+  background: #eaf2ff;
+}
+
+.overviewMetricCardGreen .overviewMetricIcon {
+  color: #0f9f8f;
+  background: #e8faf7;
+}
+
+.overviewMetricCardOrange .overviewMetricIcon {
+  color: #e87515;
+  background: #fff3e6;
+}
+
+.overviewMetricCardRed .overviewMetricIcon {
+  color: #e84b4b;
+  background: #ffecec;
+}
+
+.overviewChartGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+  gap: 18px;
+}
+
+.overviewChartCard,
 .statCard,
 .panelCard,
 .tableCard {
@@ -46,6 +143,26 @@
   border: 1px solid #e8edf5;
   border-radius: 18px;
   box-shadow: 0 8px 24px rgb(20 41 76 / 5%);
+}
+
+.overviewChartCard :global(.ant-card-head),
+.overviewChartCard :global(.ant-card-body) {
+  min-width: 0;
+}
+
+.overviewChartCard :global(.ant-card-head) {
+  min-height: 54px;
+  border-bottom-color: #edf2f7;
+}
+
+.overviewChartCard :global(.ant-card-head-title) {
+  color: #1f2d3d;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.overviewChartCard :global(.ant-card-body) {
+  padding: 8px 12px 12px;
 }
 
 .statCard :global(.ant-card-body) {
@@ -68,6 +185,13 @@
   gap: 18px;
 }
 
+.overviewBottomGrid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
 .panelCard :global(.ant-card-head) {
   min-height: 56px;
   border-bottom-color: #edf2f7;
@@ -86,7 +210,8 @@
 }
 
 .todoItem,
-.recentUserStatic {
+.recentUserStatic,
+.recentSpotStatic {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
@@ -96,7 +221,8 @@
 }
 
 .todoItem:last-child,
-.recentUserStatic:last-child {
+.recentUserStatic:last-child,
+.recentSpotStatic:last-child {
   padding-bottom: 0;
   border-bottom: 0;
 }
@@ -113,17 +239,30 @@
 }
 
 .todoItem strong,
-.recentUserStatic strong {
+.recentUserStatic strong,
+.recentSpotStatic strong {
   display: block;
   color: #223244;
   font-size: 14px;
 }
 
 .todoItem p,
-.recentUserStatic span {
+.recentUserStatic span,
+.recentSpotStatic span {
   margin: 4px 0 0;
   color: #8392a7;
   font-size: 12px;
+}
+
+.recentSpotIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #2266e8;
+  background: #edf4ff;
+  font-size: 18px;
 }
 
 .todoItem em {
@@ -285,7 +424,10 @@
 
 @media (max-width: 1180px) {
   .statGrid,
-  .dualSection {
+  .dualSection,
+  .overviewMetricGrid,
+  .overviewChartGrid,
+  .overviewBottomGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -295,15 +437,35 @@
 }
 
 @media (max-width: 900px) {
-  .contentGridSingle {
+  .contentGridSingle,
+  .overviewShell {
     padding: 16px;
   }
 
   .statGrid,
   .dualSection,
+  .overviewMetricGrid,
+  .overviewChartGrid,
+  .overviewBottomGrid,
   .formGridTwo,
   .switchGrid {
     grid-template-columns: 1fr;
+  }
+
+  .overviewMetricCard {
+    grid-template-columns: 42px minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .overviewMetricIcon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    font-size: 20px;
+  }
+
+  .overviewMetricCard :global(.ant-statistic-content) {
+    font-size: 24px;
   }
 
   .filterToolbar,

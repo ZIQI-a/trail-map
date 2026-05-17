@@ -5,6 +5,7 @@ import {
   deleteAdminCity,
   deleteAdminSpot,
   fetchAdminCities,
+  fetchAdminOverview,
   fetchAdminSpots,
   fetchAdminUsers,
   updateAdminCity,
@@ -13,6 +14,14 @@ import {
 } from "../api/admin";
 import type { AdminCityFormDto, AdminSpotFormDto } from "../types/admin";
 import type { UserUpdateRequestDto } from "../types/auth";
+
+export function useAdminOverviewQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "overview"],
+    queryFn: fetchAdminOverview,
+    enabled,
+  });
+}
 
 // 管理后台查询：当前主数据源是用户列表，后续可继续扩展景点、路线和反馈管理。
 export function useAdminUsersQuery(pageNum?: number, pageSize?: number, enabled = true) {
