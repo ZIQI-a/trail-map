@@ -36,10 +36,27 @@ public class AppUserServiceImpl implements AppUserService {
     }
 
     @Override
-    public PageResponse<AppUserResponse> listUsers(PageQuery pageQuery) {
+    public PageResponse<AppUserResponse> listUsers(PageQuery pageQuery, String keyword, String userType, Integer status) {
         LambdaQueryWrapper<AppUser> queryWrapper = new LambdaQueryWrapper<AppUser>()
                 .ne(AppUser::getStatus, STATUS_DELETED)
                 .orderByDesc(AppUser::getCreatedAt);
+        if (StringUtils.hasText(keyword)) {
+            String normalizedKeyword = keyword.trim();
+            queryWrapper.and(wrapper -> wrapper
+                    .like(AppUser::getUsername, normalizedKeyword)
+                    .or()
+                    .like(AppUser::getNickname, normalizedKeyword)
+                    .or()
+                    .like(AppUser::getPhone, normalizedKeyword)
+                    .or()
+                    .like(AppUser::getEmail, normalizedKeyword));
+        }
+        if (StringUtils.hasText(userType)) {
+            queryWrapper.eq(AppUser::getUserType, normalizeUserType(userType));
+        }
+        if (status != null) {
+            queryWrapper.eq(AppUser::getStatus, status);
+        }
 
         if (!pageQuery.isPaged()) {
             return PageResponse.unpaged(appUserMapper.selectList(queryWrapper).stream()

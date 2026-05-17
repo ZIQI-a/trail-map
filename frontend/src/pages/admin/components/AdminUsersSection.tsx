@@ -21,7 +21,7 @@ import {
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { roleOptions, statusOptions } from "../../../admin/config";
 import type { AdminStatusFilter } from "../../../admin/types";
 import type { AppUserDto, UserUpdateRequestDto } from "../../../types/auth";
@@ -34,15 +34,19 @@ import sectionStyles from "./AdminSections.module.css";
 type AdminUsersSectionProps = {
   currentUserId?: number;
   editingUser: AppUserDto | null;
-  filteredUsers: AppUserDto[];
   isLoading: boolean;
   isUpdating: boolean;
+  pageNum: number;
+  pageSize: number;
   searchKeyword: string;
   roleFilter: "all" | AppUserDto["userType"];
   statusFilter: AdminStatusFilter;
   tableError?: Error | null;
+  total: number;
+  users: AppUserDto[];
   onCloseEditModal: () => void;
   onOpenEditModal: (user: AppUserDto) => void;
+  onPageChange: (pageNum: number, pageSize: number) => void;
   onResetFilters: () => void;
   onRoleFilterChange: (value: "all" | AppUserDto["userType"]) => void;
   onSearchChange: (value: string) => void;
@@ -156,15 +160,19 @@ function AdminUserEditModal({
 export function AdminUsersSection({
   currentUserId,
   editingUser,
-  filteredUsers,
   isLoading,
   isUpdating,
+  pageNum,
+  pageSize,
   roleFilter,
   searchKeyword,
   statusFilter,
   tableError,
+  total,
+  users,
   onCloseEditModal,
   onOpenEditModal,
+  onPageChange,
   onResetFilters,
   onRoleFilterChange,
   onSearchChange,
@@ -172,8 +180,6 @@ export function AdminUsersSection({
   onToggleStatus,
   onSubmitEdit,
 }: AdminUsersSectionProps) {
-  const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const screens = Grid.useBreakpoint();
   const isMediumScreen = Boolean(screens.md);
   const isLargeScreen = Boolean(screens.lg);
@@ -302,19 +308,6 @@ export function AdminUsersSection({
     ],
   );
 
-  const pagedUsers = useMemo(() => {
-    const maxPage = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
-    const safePageNum = Math.min(pageNum, maxPage);
-    const startIndex = (safePageNum - 1) * pageSize;
-    return filteredUsers.slice(startIndex, startIndex + pageSize);
-  }, [filteredUsers, pageNum, pageSize]);
-
-  const totalUserPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / pageSize),
-  );
-  const currentUserPage = Math.min(pageNum, totalUserPages);
-
   return (
     <section className={sectionStyles.contentGridSingle}>
       <div className={sectionStyles.mainColumn}>
@@ -370,7 +363,7 @@ export function AdminUsersSection({
               className={sectionStyles.userTable}
               loading={isLoading || isUpdating}
               columns={columns}
-              dataSource={pagedUsers}
+              dataSource={users}
               pagination={false}
               tableLayout="fixed"
               scroll={{ x: 1160 }}
@@ -380,19 +373,15 @@ export function AdminUsersSection({
 
         <div className={sectionStyles.paginationBar}>
           <Pagination
-            current={currentUserPage}
+            current={pageNum}
             pageSize={pageSize}
-            total={filteredUsers.length}
+            total={total}
             showSizeChanger
             pageSizeOptions={["5", "10", "20", "50", "100"]}
             showTotal={(total) => `共 ${total} 条`}
-            onChange={(nextPage, nextPageSize) => {
-              setPageNum(nextPage);
-              setPageSize(nextPageSize);
-            }}
+            onChange={onPageChange}
             onShowSizeChange={(_, nextPageSize) => {
-              setPageNum(1);
-              setPageSize(nextPageSize);
+              onPageChange(1, nextPageSize);
             }}
           />
         </div>

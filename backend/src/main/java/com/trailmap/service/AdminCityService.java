@@ -11,7 +11,7 @@ import com.trailmap.model.response.PageResponse;
  */
 public interface AdminCityService {
 
-    PageResponse<AdminCityResponse> listCities(PageQuery pageQuery);
+    PageResponse<AdminCityResponse> listCities(PageQuery pageQuery, String keyword);
 
     AdminCityResponse getCity(Long cityId);
 

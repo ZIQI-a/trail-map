@@ -47,8 +47,11 @@ public class UserController {
     @Operation(summary = "获取用户列表")
     public ApiResponse<PageResponse<AppUserResponse>> listUsers(
             @RequestParam(required = false) @Positive(message = "页号必须大于 0") @Parameter(description = "页号，非必传") Integer pageNum,
-            @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") @Parameter(description = "每页大小，非必传") Integer pageSize) {
-        return ApiResponse.success(appUserService.listUsers(new PageQuery(pageNum, pageSize)));
+            @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") @Parameter(description = "每页大小，非必传") Integer pageSize,
+            @RequestParam(required = false) @Parameter(description = "关键词，支持用户名、昵称、手机号和邮箱") String keyword,
+            @RequestParam(required = false) @Parameter(description = "用户类型，例如 normal、member、admin") String userType,
+            @RequestParam(required = false) @Parameter(description = "状态，1 启用，2 停用") Integer status) {
+        return ApiResponse.success(appUserService.listUsers(new PageQuery(pageNum, pageSize), keyword, userType, status));
     }
 
     /**

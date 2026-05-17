@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { AdminSpotDto, AdminSpotFormDto } from "../../../types/admin";
 import type { SpotType, TravelCityDto } from "../../../types/mapWorkbench";
 import sectionStyles from "./AdminSections.module.css";
@@ -12,17 +12,21 @@ type AdminSpotsSectionProps = {
   isLoading: boolean;
   isSubmitting: boolean;
   keyword: string;
+  pageNum: number;
+  pageSize: number;
   selectedCityId?: number;
   selectedStatus: "all" | "enabled" | "disabled";
   selectedType: "all" | SpotType;
   spots: AdminSpotDto[];
   tableError?: Error | null;
+  total: number;
   onCityFilterChange: (value?: number) => void;
   onCloseEditModal: () => void;
   onDeleteSpot: (spot: AdminSpotDto) => void;
   onKeywordChange: (value: string) => void;
   onOpenCreateModal: () => void;
   onOpenEditModal: (spot: AdminSpotDto) => void;
+  onPageChange: (pageNum: number, pageSize: number) => void;
   onStatusFilterChange: (value: "all" | "enabled" | "disabled") => void;
   onToggleStatus: (spot: AdminSpotDto) => void;
   onSubmitCreate: (payload: AdminSpotFormDto) => void;
@@ -240,26 +244,27 @@ export function AdminSpotsSection({
   isLoading,
   isSubmitting,
   keyword,
+  pageNum,
+  pageSize,
   selectedCityId,
   selectedStatus,
   selectedType,
   spots,
   tableError,
+  total,
   onCityFilterChange,
   onCloseEditModal,
   onDeleteSpot,
   onKeywordChange,
   onOpenCreateModal,
   onOpenEditModal,
+  onPageChange,
   onStatusFilterChange,
   onToggleStatus,
   onSubmitCreate,
   onSubmitEdit,
   onTypeFilterChange,
 }: AdminSpotsSectionProps) {
-  const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
   const columns = useMemo<ColumnsType<AdminSpotDto>>(
     () => [
       {
@@ -338,16 +343,6 @@ export function AdminSpotsSection({
     ],
     [onDeleteSpot, onOpenEditModal, onToggleStatus],
   );
-
-  const pagedSpots = useMemo(() => {
-    const maxPage = Math.max(1, Math.ceil(spots.length / pageSize));
-    const safePageNum = Math.min(pageNum, maxPage);
-    const startIndex = (safePageNum - 1) * pageSize;
-    return spots.slice(startIndex, startIndex + pageSize);
-  }, [pageNum, pageSize, spots]);
-
-  const totalSpotPages = Math.max(1, Math.ceil(spots.length / pageSize));
-  const currentSpotPage = Math.min(pageNum, totalSpotPages);
 
   return (
     <section className={sectionStyles.contentGridSingle}>
@@ -428,7 +423,7 @@ export function AdminSpotsSection({
               className={sectionStyles.userTable}
               loading={isLoading || isSubmitting}
               columns={columns}
-              dataSource={pagedSpots}
+              dataSource={spots}
               pagination={false}
               tableLayout="fixed"
               scroll={{ x: 960 }}
@@ -438,19 +433,15 @@ export function AdminSpotsSection({
 
         <div className={sectionStyles.paginationBar}>
           <Pagination
-            current={currentSpotPage}
+            current={pageNum}
             pageSize={pageSize}
-            total={spots.length}
+            total={total}
             showSizeChanger
             pageSizeOptions={["5", "10", "20", "50", "100"]}
             showTotal={(total) => `共 ${total} 条`}
-            onChange={(nextPage, nextPageSize) => {
-              setPageNum(nextPage);
-              setPageSize(nextPageSize);
-            }}
+            onChange={onPageChange}
             onShowSizeChange={(_, nextPageSize) => {
-              setPageNum(1);
-              setPageSize(nextPageSize);
+              onPageChange(1, nextPageSize);
             }}
           />
         </div>

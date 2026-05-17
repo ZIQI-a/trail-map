@@ -47,9 +47,10 @@ public class AdminCityController {
     @Operation(summary = "管理端获取城市列表")
     public ApiResponse<PageResponse<AdminCityResponse>> listCities(
             @RequestParam(required = false) @Positive(message = "页号必须大于 0") @Parameter(description = "页号，非必传") Integer pageNum,
-            @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") @Parameter(description = "每页大小，非必传") Integer pageSize
+            @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") @Parameter(description = "每页大小，非必传") Integer pageSize,
+            @RequestParam(required = false) @Parameter(description = "关键词，支持城市名称、省份和城市编码") String keyword
     ) {
-        return ApiResponse.success(adminCityService.listCities(new PageQuery(pageNum, pageSize)));
+        return ApiResponse.success(adminCityService.listCities(new PageQuery(pageNum, pageSize), keyword));
     }
 
     /**

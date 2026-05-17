@@ -8,14 +8,27 @@ export function fetchAdminOverview() {
   return request<AdminOverviewDto>("/api/admin/overview");
 }
 
-// 管理员用户列表查询：后台页当前优先一次拉全量，再由前端分页和筛选。
-export function fetchAdminUsers(pageNum?: number, pageSize?: number) {
+// 管理员用户列表查询：分页、搜索和筛选均交给后端处理。
+export function fetchAdminUsers(
+  pageNum?: number,
+  pageSize?: number,
+  params?: { keyword?: string; userType?: string; status?: number },
+) {
   const searchParams = new URLSearchParams();
   if (pageNum) {
     searchParams.set("pageNum", String(pageNum));
   }
   if (pageSize) {
     searchParams.set("pageSize", String(pageSize));
+  }
+  if (params?.keyword) {
+    searchParams.set("keyword", params.keyword);
+  }
+  if (params?.userType) {
+    searchParams.set("userType", params.userType);
+  }
+  if (params?.status !== undefined) {
+    searchParams.set("status", String(params.status));
   }
   const queryString = searchParams.toString();
   return request<PageResponse<AppUserDto>>(`/api/users${queryString ? `?${queryString}` : ""}`);
@@ -32,14 +45,21 @@ export function updateAdminUser(
   });
 }
 
-// 管理员城市列表查询：后台页当前优先一次拉全量，再由前端分页和筛选。
-export function fetchAdminCities(pageNum?: number, pageSize?: number) {
+// 管理员城市列表查询：分页和关键词筛选均交给后端处理。
+export function fetchAdminCities(
+  pageNum?: number,
+  pageSize?: number,
+  params?: { keyword?: string },
+) {
   const searchParams = new URLSearchParams();
   if (pageNum) {
     searchParams.set("pageNum", String(pageNum));
   }
   if (pageSize) {
     searchParams.set("pageSize", String(pageSize));
+  }
+  if (params?.keyword) {
+    searchParams.set("keyword", params.keyword);
   }
   const queryString = searchParams.toString();
   return request<PageResponse<AdminCityDto>>(`/api/admin/cities${queryString ? `?${queryString}` : ""}`);

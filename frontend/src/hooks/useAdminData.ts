@@ -24,10 +24,15 @@ export function useAdminOverviewQuery(enabled = true) {
 }
 
 // 管理后台查询：当前主数据源是用户列表，后续可继续扩展景点、路线和反馈管理。
-export function useAdminUsersQuery(pageNum?: number, pageSize?: number, enabled = true) {
+export function useAdminUsersQuery(
+  pageNum?: number,
+  pageSize?: number,
+  params?: { keyword?: string; userType?: string; status?: number },
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ["admin", "users", pageNum, pageSize],
-    queryFn: () => fetchAdminUsers(pageNum, pageSize),
+    queryKey: ["admin", "users", pageNum, pageSize, params],
+    queryFn: () => fetchAdminUsers(pageNum, pageSize, params),
     enabled,
     placeholderData: (previousData) => previousData,
   });
@@ -40,10 +45,15 @@ export function useAdminUserUpdateMutation() {
   });
 }
 
-export function useAdminCitiesQuery(pageNum?: number, pageSize?: number, enabled = true) {
+export function useAdminCitiesQuery(
+  pageNum?: number,
+  pageSize?: number,
+  params?: { keyword?: string },
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ["admin", "cities", pageNum, pageSize],
-    queryFn: () => fetchAdminCities(pageNum, pageSize),
+    queryKey: ["admin", "cities", pageNum, pageSize, params],
+    queryFn: () => fetchAdminCities(pageNum, pageSize, params),
     enabled,
     placeholderData: (previousData) => previousData,
   });

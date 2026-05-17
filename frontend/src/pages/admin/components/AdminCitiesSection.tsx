@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { AdminCityDto, AdminCityFormDto } from "../../../types/admin";
 import sectionStyles from "./AdminSections.module.css";
 
@@ -11,11 +11,15 @@ type AdminCitiesSectionProps = {
   isLoading: boolean;
   isSubmitting: boolean;
   keyword: string;
+  pageNum: number;
+  pageSize: number;
   tableError?: Error | null;
+  total: number;
   onCloseEditModal: () => void;
   onDeleteCity: (city: AdminCityDto) => void;
   onOpenCreateModal: () => void;
   onOpenEditModal: (city: AdminCityDto) => void;
+  onPageChange: (pageNum: number, pageSize: number) => void;
   onSearchChange: (value: string) => void;
   onToggleStatus: (city: AdminCityDto) => void;
   onSubmitCreate: (payload: AdminCityFormDto) => void;
@@ -137,45 +141,20 @@ export function AdminCitiesSection({
   isLoading,
   isSubmitting,
   keyword,
+  pageNum,
+  pageSize,
   tableError,
+  total,
   onCloseEditModal,
   onDeleteCity,
   onOpenCreateModal,
   onOpenEditModal,
+  onPageChange,
   onSearchChange,
   onToggleStatus,
   onSubmitCreate,
   onSubmitEdit,
 }: AdminCitiesSectionProps) {
-  const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const filteredCities = useMemo(
-    () =>
-      cities.filter((city) => {
-        const normalizedKeyword = keyword.trim().toLowerCase();
-        if (!normalizedKeyword) {
-          return true;
-        }
-        return (
-          city.name.toLowerCase().includes(normalizedKeyword) ||
-          city.provinceName.toLowerCase().includes(normalizedKeyword) ||
-          city.cityCode.toLowerCase().includes(normalizedKeyword)
-        );
-      }),
-    [cities, keyword],
-  );
-
-  const pagedCities = useMemo(() => {
-    const maxPage = Math.max(1, Math.ceil(filteredCities.length / pageSize));
-    const safePageNum = Math.min(pageNum, maxPage);
-    const startIndex = (safePageNum - 1) * pageSize;
-    return filteredCities.slice(startIndex, startIndex + pageSize);
-  }, [filteredCities, pageNum, pageSize]);
-
-  const totalCityPages = Math.max(1, Math.ceil(filteredCities.length / pageSize));
-  const currentCityPage = Math.min(pageNum, totalCityPages);
-
   const columns = useMemo<ColumnsType<AdminCityDto>>(
     () => [
       {
@@ -305,7 +284,7 @@ export function AdminCitiesSection({
               className={sectionStyles.userTable}
               loading={isLoading || isSubmitting}
               columns={columns}
-              dataSource={pagedCities}
+              dataSource={cities}
               pagination={false}
               tableLayout="fixed"
               scroll={{ x: 1030 }}
@@ -315,19 +294,15 @@ export function AdminCitiesSection({
 
         <div className={sectionStyles.paginationBar}>
           <Pagination
-            current={currentCityPage}
+            current={pageNum}
             pageSize={pageSize}
-            total={filteredCities.length}
+            total={total}
             showSizeChanger
             pageSizeOptions={["5", "10", "20", "50", "100"]}
             showTotal={(total) => `共 ${total} 条`}
-            onChange={(nextPage, nextPageSize) => {
-              setPageNum(nextPage);
-              setPageSize(nextPageSize);
-            }}
+            onChange={onPageChange}
             onShowSizeChange={(_, nextPageSize) => {
-              setPageNum(1);
-              setPageSize(nextPageSize);
+              onPageChange(1, nextPageSize);
             }}
           />
         </div>

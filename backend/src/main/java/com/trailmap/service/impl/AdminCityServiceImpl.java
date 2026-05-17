@@ -34,10 +34,19 @@ public class AdminCityServiceImpl implements AdminCityService {
     }
 
     @Override
-    public PageResponse<AdminCityResponse> listCities(PageQuery pageQuery) {
+    public PageResponse<AdminCityResponse> listCities(PageQuery pageQuery, String keyword) {
         LambdaQueryWrapper<City> queryWrapper = new LambdaQueryWrapper<City>()
                 .orderByAsc(City::getSortOrder)
                 .orderByAsc(City::getId);
+        if (StringUtils.hasText(keyword)) {
+            String normalizedKeyword = keyword.trim();
+            queryWrapper.and(wrapper -> wrapper
+                    .like(City::getCityName, normalizedKeyword)
+                    .or()
+                    .like(City::getProvinceName, normalizedKeyword)
+                    .or()
+                    .like(City::getCityCode, normalizedKeyword));
+        }
 
         if (!pageQuery.isPaged()) {
             return PageResponse.unpaged(cityMapper.selectList(queryWrapper).stream()

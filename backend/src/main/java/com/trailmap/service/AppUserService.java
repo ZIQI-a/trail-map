@@ -11,7 +11,7 @@ import com.trailmap.model.response.PageResponse;
  */
 public interface AppUserService {
 
-    PageResponse<AppUserResponse> listUsers(PageQuery pageQuery);
+    PageResponse<AppUserResponse> listUsers(PageQuery pageQuery, String keyword, String userType, Integer status);
 
     AppUserResponse getUser(Long userId);
 

@@ -44,6 +44,12 @@ export function AdminPage() {
   const [spotCityFilter, setSpotCityFilter] = useState<number | undefined>(undefined);
   const [spotTypeFilter, setSpotTypeFilter] = useState<"all" | AdminSpotDto["type"]>("all");
   const [spotStatusFilter, setSpotStatusFilter] = useState<"all" | "enabled" | "disabled">("all");
+  const [userPageNum, setUserPageNum] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+  const [cityPageNum, setCityPageNum] = useState(1);
+  const [cityPageSize, setCityPageSize] = useState(10);
+  const [spotPageNum, setSpotPageNum] = useState(1);
+  const [spotPageSize, setSpotPageSize] = useState(10);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const screens = Grid.useBreakpoint();
   const lastLargeScreenRef = useRef<boolean | undefined>(undefined);
@@ -54,18 +60,26 @@ export function AdminPage() {
   const citiesQueryEnabled = adminDataEnabled && (activeSection === "cities" || activeSection === "spots");
   const spotsQueryEnabled = adminDataEnabled && activeSection === "spots";
   const usersQuery = useAdminUsersQuery(
-    1,
-    20,
+    userPageNum,
+    userPageSize,
+    {
+      keyword: searchKeyword || undefined,
+      userType: roleFilter === "all" ? undefined : roleFilter,
+      status: statusFilter === "all" ? undefined : statusFilter === "enabled" ? 1 : 2,
+    },
     usersQueryEnabled,
   );
   const citiesQuery = useAdminCitiesQuery(
-    1,
-    100,
+    cityPageNum,
+    cityPageSize,
+    {
+      keyword: cityKeyword || undefined,
+    },
     citiesQueryEnabled,
   );
   const spotsQuery = useAdminSpotsQuery(
-    1,
-    100,
+    spotPageNum,
+    spotPageSize,
     {
       cityId: spotCityFilter,
       keyword: spotKeyword || undefined,
@@ -86,24 +100,6 @@ export function AdminPage() {
   const users = useMemo(() => usersQuery.data?.list ?? [], [usersQuery.data?.list]);
   const cities = useMemo(() => citiesQuery.data?.list ?? [], [citiesQuery.data?.list]);
   const spots = useMemo(() => spotsQuery.data?.list ?? [], [spotsQuery.data?.list]);
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) => {
-        const keyword = searchKeyword.trim().toLowerCase();
-        const matchesKeyword =
-          !keyword ||
-          user.username.toLowerCase().includes(keyword) ||
-          user.nickname.toLowerCase().includes(keyword) ||
-          (user.phone ?? "").includes(keyword) ||
-          (user.email ?? "").toLowerCase().includes(keyword);
-        const matchesRole = roleFilter === "all" || user.userType === roleFilter;
-        const matchesStatus =
-          statusFilter === "all" ||
-          (statusFilter === "enabled" ? user.status === 1 : user.status !== 1);
-        return matchesKeyword && matchesRole && matchesStatus;
-      }),
-    [roleFilter, searchKeyword, statusFilter, users],
-  );
   // 屏幕较小时自动收起侧边栏，保证右侧主内容区域的可用宽度。
   useEffect(() => {
     if (lastLargeScreenRef.current === screens.lg) {
@@ -333,23 +329,40 @@ export function AdminPage() {
           <AdminUsersSection
             currentUserId={currentAdmin.id}
             editingUser={editingUser}
-            filteredUsers={filteredUsers}
             isLoading={usersQuery.isLoading}
             isUpdating={userUpdateMutation.isPending}
+            pageNum={usersQuery.data?.pageNum ?? userPageNum}
+            pageSize={usersQuery.data?.pageSize ?? userPageSize}
             roleFilter={roleFilter}
             searchKeyword={searchKeyword}
             statusFilter={statusFilter}
             tableError={usersQuery.error instanceof Error ? usersQuery.error : null}
+            total={usersQuery.data?.total ?? 0}
+            users={users}
             onCloseEditModal={() => setEditingUser(null)}
             onOpenEditModal={setEditingUser}
             onResetFilters={() => {
               setSearchKeyword("");
               setRoleFilter("all");
               setStatusFilter("all");
+              setUserPageNum(1);
             }}
-            onRoleFilterChange={setRoleFilter}
-            onSearchChange={setSearchKeyword}
-            onStatusFilterChange={setStatusFilter}
+            onPageChange={(nextPageNum, nextPageSize) => {
+              setUserPageNum(nextPageNum);
+              setUserPageSize(nextPageSize);
+            }}
+            onRoleFilterChange={(value) => {
+              setRoleFilter(value);
+              setUserPageNum(1);
+            }}
+            onSearchChange={(value) => {
+              setSearchKeyword(value);
+              setUserPageNum(1);
+            }}
+            onStatusFilterChange={(value) => {
+              setStatusFilter(value);
+              setUserPageNum(1);
+            }}
             onToggleStatus={(user) =>
               void handleUpdateUser(user, {
                 status: user.status === 1 ? 2 : 1,
@@ -364,9 +377,16 @@ export function AdminPage() {
             isLoading={citiesQuery.isLoading}
             isSubmitting={cityCreateMutation.isPending || cityUpdateMutation.isPending || cityDeleteMutation.isPending}
             keyword={cityKeyword}
+            pageNum={citiesQuery.data?.pageNum ?? cityPageNum}
+            pageSize={citiesQuery.data?.pageSize ?? cityPageSize}
             tableError={citiesQuery.error instanceof Error ? citiesQuery.error : null}
+            total={citiesQuery.data?.total ?? 0}
             onCloseEditModal={() => setEditingCity(null)}
             onDeleteCity={(city) => void handleDeleteCity(city.id)}
+            onPageChange={(nextPageNum, nextPageSize) => {
+              setCityPageNum(nextPageNum);
+              setCityPageSize(nextPageSize);
+            }}
             onOpenCreateModal={() =>
               setEditingCity({
                 id: 0,
@@ -384,7 +404,10 @@ export function AdminPage() {
               })
             }
             onOpenEditModal={setEditingCity}
-            onSearchChange={setCityKeyword}
+            onSearchChange={(value) => {
+              setCityKeyword(value);
+              setCityPageNum(1);
+            }}
             onToggleStatus={(city) => void handleToggleCityStatus(city)}
             onSubmitCreate={(payload) => void handleSubmitCity(payload)}
             onSubmitEdit={(city, payload) => void handleSubmitCity(payload, city.id)}
@@ -396,15 +419,24 @@ export function AdminPage() {
             isLoading={spotsQuery.isLoading}
             isSubmitting={spotCreateMutation.isPending || spotUpdateMutation.isPending || spotDeleteMutation.isPending}
             keyword={spotKeyword}
+            pageNum={spotsQuery.data?.pageNum ?? spotPageNum}
+            pageSize={spotsQuery.data?.pageSize ?? spotPageSize}
             selectedCityId={spotCityFilter}
             selectedStatus={spotStatusFilter}
             selectedType={spotTypeFilter}
             spots={spots}
             tableError={spotsQuery.error instanceof Error ? spotsQuery.error : null}
-            onCityFilterChange={setSpotCityFilter}
+            total={spotsQuery.data?.total ?? 0}
+            onCityFilterChange={(value) => {
+              setSpotCityFilter(value);
+              setSpotPageNum(1);
+            }}
             onCloseEditModal={() => setEditingSpot(null)}
             onDeleteSpot={(spot) => void handleDeleteSpot(spot.id)}
-            onKeywordChange={setSpotKeyword}
+            onKeywordChange={(value) => {
+              setSpotKeyword(value);
+              setSpotPageNum(1);
+            }}
             onOpenCreateModal={() =>
               setEditingSpot({
                 id: 0,
@@ -441,11 +473,21 @@ export function AdminPage() {
               })
             }
             onOpenEditModal={setEditingSpot}
-            onStatusFilterChange={setSpotStatusFilter}
+            onPageChange={(nextPageNum, nextPageSize) => {
+              setSpotPageNum(nextPageNum);
+              setSpotPageSize(nextPageSize);
+            }}
+            onStatusFilterChange={(value) => {
+              setSpotStatusFilter(value);
+              setSpotPageNum(1);
+            }}
             onToggleStatus={(spot) => void handleToggleSpotStatus(spot)}
             onSubmitCreate={(payload) => void handleSubmitSpot(payload)}
             onSubmitEdit={(spot, payload) => void handleSubmitSpot(payload, spot.id)}
-            onTypeFilterChange={setSpotTypeFilter}
+            onTypeFilterChange={(value) => {
+              setSpotTypeFilter(value);
+              setSpotPageNum(1);
+            }}
           />
         )}
       </section>
