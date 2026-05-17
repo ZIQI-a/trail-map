@@ -1,16 +1,21 @@
 .contentGridSingle {
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   padding: 24px;
+  overflow: hidden;
 }
 
 .mainColumn {
+  min-height: 0;
   min-width: 0;
   display: grid;
-  align-content: start;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 18px;
+  overflow: hidden;
 }
 
 .pageHeading h1 {
@@ -141,9 +146,11 @@
 }
 
 .tableCard :global(.ant-card-body) {
+  height: 100%;
   padding: 0;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: auto;
 }
 
 .userTable {
@@ -231,6 +238,7 @@
 .paginationBar {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .formGridTwo {

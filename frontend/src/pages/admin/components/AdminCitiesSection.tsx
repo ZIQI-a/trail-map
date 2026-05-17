@@ -200,7 +200,7 @@ export function AdminCitiesSection({
           </Button>
         </div>
 
-        <Card className={sectionStyles.tableCard} bodyStyle={{ padding: 0 }}>
+        <Card className={sectionStyles.tableCard} styles={{ body: { padding: 0 } }}>
           {tableError ? (
             <div className={sectionStyles.tableState}>
               <Alert
@@ -249,9 +249,9 @@ export function AdminCitiesSection({
           okText={isCreateMode ? "创建" : "保存"}
           cancelText="取消"
           confirmLoading={isSubmitting}
-          destroyOnHidden
           width={720}
           onCancel={onCloseEditModal}
+          afterClose={() => form.resetFields()}
           onOk={() => {
             void form.validateFields().then((values) => {
               if (!editingCity) {

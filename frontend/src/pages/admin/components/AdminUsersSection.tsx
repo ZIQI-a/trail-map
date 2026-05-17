@@ -273,7 +273,7 @@ export function AdminUsersSection({
           <Button onClick={onResetFilters}>重置</Button>
         </div>
 
-        <Card className={sectionStyles.tableCard} bodyStyle={{ padding: 0 }}>
+        <Card className={sectionStyles.tableCard} styles={{ body: { padding: 0 } }}>
           {tableError ? (
             <div className={sectionStyles.tableState}>
               <Alert
@@ -322,8 +322,8 @@ export function AdminUsersSection({
           okText="保存"
           cancelText="取消"
           confirmLoading={isUpdating}
-          destroyOnHidden
           onCancel={onCloseEditModal}
+          afterClose={() => form.resetFields()}
           onOk={() => {
             void form.validateFields().then((values) => {
               if (!editingUser) {
