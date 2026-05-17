@@ -1,4 +1,4 @@
-import { Alert, Button, Empty, Grid, Spin, message } from "antd";
+import { Grid, Spin, message } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminSidebar } from "../../components/admin/AdminSidebar";
@@ -22,6 +22,7 @@ import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import { queryClient } from "../../lib/queryClient";
 import type { AdminCityDto, AdminCityFormDto, AdminSpotDto, AdminSpotFormDto } from "../../types/admin";
 import type { AppUserDto } from "../../types/auth";
+import { NotFoundPage } from "../not-found";
 import { AdminOverviewSection } from "./components/AdminOverviewSection";
 import { AdminCitiesSection } from "./components/AdminCitiesSection";
 import { AdminSpotsSection } from "./components/AdminSpotsSection";
@@ -261,14 +262,7 @@ export function AdminPage() {
   }
 
   if (!authToken) {
-    return (
-      <main className={styles.stateShell}>
-        <Empty description="请先登录后再进入后台管理" />
-        <Button type="primary" onClick={() => navigate("/")}>
-          返回地图工作台
-        </Button>
-      </main>
-    );
+    return <NotFoundPage />;
   }
 
   if (currentUserQuery.isLoading) {
@@ -281,17 +275,7 @@ export function AdminPage() {
   }
 
   if (currentUserQuery.error || currentUser?.userType !== "admin") {
-    return (
-      <main className={styles.stateShell}>
-        <Alert
-          type="error"
-          showIcon
-          message="当前账号无权进入后台管理"
-          description="管理员后台仅对管理员角色开放，请使用管理员账号登录。"
-        />
-        <Button onClick={() => navigate("/")}>返回地图工作台</Button>
-      </main>
-    );
+    return <NotFoundPage />;
   }
 
   const currentAdmin = currentUser;

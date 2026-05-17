@@ -3,6 +3,7 @@ import zhCN from "antd/locale/zh_CN";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MapWorkbenchPage } from "./pages/map-workbench";
+import { NotFoundPage } from "./pages/not-found";
 
 const AdminPage = lazy(() =>
   import("./pages/admin").then((module) => ({ default: module.AdminPage })),
@@ -42,6 +43,7 @@ function App() {
               </Suspense>
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
