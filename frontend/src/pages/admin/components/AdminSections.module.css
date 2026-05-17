@@ -133,10 +133,40 @@
   font-weight: 900;
 }
 
-.filterBar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1.3fr) 180px 180px auto;
+.filterToolbar {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  min-width: 0;
+  flex: 1 1 720px;
+  display: flex;
+  align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.filterInput {
+  min-width: 220px;
+  flex: 1 1 260px;
+}
+
+.filterSelect {
+  min-width: 160px;
+  flex: 0 1 180px;
 }
 
 .filterInput :global(.ant-input-affix-wrapper),
@@ -259,8 +289,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .filterBar {
-    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 180px)) auto;
+  .filterGroup {
+    flex-basis: 100%;
   }
 }
 
@@ -271,10 +301,28 @@
 
   .statGrid,
   .dualSection,
-  .filterBar,
   .formGridTwo,
   .switchGrid {
     grid-template-columns: 1fr;
+  }
+
+  .filterToolbar,
+  .filterGroup,
+  .filterActions {
+    width: 100%;
+  }
+
+  .filterGroup,
+  .filterActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterInput,
+  .filterSelect {
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 auto;
   }
 
   .userCell {

@@ -357,43 +357,59 @@ export function AdminSpotsSection({
           <p>维护景点基础信息、地图坐标、标签属性和上下线状态。</p>
         </div>
 
-        <div className={sectionStyles.filterBar}>
-          <Input
-            className={sectionStyles.filterInput}
-            prefix={<SearchOutlined />}
-            placeholder="搜索景点名称 / 摘要 / 地址"
-            value={keyword}
-            onChange={(event) => onKeywordChange(event.target.value)}
-          />
-          <Select
-            className={sectionStyles.filterSelect}
-            value={selectedCityId}
-            placeholder="全部城市"
-            options={[
-              { label: "全部城市", value: 0 },
-              ...cities.map((city) => ({ label: city.name, value: city.id })),
-            ]}
-            onChange={(value) => onCityFilterChange(value === 0 ? undefined : value)}
-          />
-          <Select
-            className={sectionStyles.filterSelect}
-            value={selectedType}
-            options={[{ label: "全部类型", value: "all" }, ...spotTypeOptions]}
-            onChange={(value) => onTypeFilterChange(value as "all" | SpotType)}
-          />
-          <Select
-            className={sectionStyles.filterSelect}
-            value={selectedStatus}
-            options={[
-              { label: "全部状态", value: "all" },
-              { label: "启用", value: "enabled" },
-              { label: "停用", value: "disabled" },
-            ]}
-            onChange={(value) => onStatusFilterChange(value as "all" | "enabled" | "disabled")}
-          />
-          <Button type="primary" icon={<PlusOutlined />} onClick={onOpenCreateModal}>
-            新增景点
-          </Button>
+        <div className={sectionStyles.filterToolbar}>
+          <div className={sectionStyles.filterGroup}>
+            <Input
+              className={sectionStyles.filterInput}
+              prefix={<SearchOutlined />}
+              placeholder="搜索景点名称 / 摘要 / 地址"
+              value={keyword}
+              onChange={(event) => onKeywordChange(event.target.value)}
+            />
+            <Select
+              className={sectionStyles.filterSelect}
+              value={selectedCityId}
+              placeholder="全部城市"
+              options={[
+                { label: "全部城市", value: 0 },
+                ...cities.map((city) => ({ label: city.name, value: city.id })),
+              ]}
+              onChange={(value) =>
+                onCityFilterChange(value === 0 ? undefined : value)
+              }
+            />
+            <Select
+              className={sectionStyles.filterSelect}
+              value={selectedType}
+              options={[{ label: "全部类型", value: "all" }, ...spotTypeOptions]}
+              onChange={(value) =>
+                onTypeFilterChange(value as "all" | SpotType)
+              }
+            />
+            <Select
+              className={sectionStyles.filterSelect}
+              value={selectedStatus}
+              options={[
+                { label: "全部状态", value: "all" },
+                { label: "启用", value: "enabled" },
+                { label: "停用", value: "disabled" },
+              ]}
+              onChange={(value) =>
+                onStatusFilterChange(
+                  value as "all" | "enabled" | "disabled",
+                )
+              }
+            />
+          </div>
+          <div className={sectionStyles.filterActions}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onOpenCreateModal}
+            >
+              新增景点
+            </Button>
+          </div>
         </div>
 
         <Card className={sectionStyles.tableCard} styles={{ body: { padding: 0 } }}>

@@ -268,19 +268,25 @@ export function AdminCitiesSection({
           <p>维护城市基础资料、地图中心点和推荐展示信息。</p>
         </div>
 
-        <div className={sectionStyles.filterBar}>
-          <Input
-            className={sectionStyles.filterInput}
-            prefix={<SearchOutlined />}
-            placeholder="搜索城市名称 / 省份 / 城市编码"
-            value={keyword}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-          <div />
-          <div />
-          <Button type="primary" icon={<PlusOutlined />} onClick={onOpenCreateModal}>
-            新增城市
-          </Button>
+        <div className={sectionStyles.filterToolbar}>
+          <div className={sectionStyles.filterGroup}>
+            <Input
+              className={sectionStyles.filterInput}
+              prefix={<SearchOutlined />}
+              placeholder="搜索城市名称 / 省份 / 城市编码"
+              value={keyword}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+          </div>
+          <div className={sectionStyles.filterActions}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onOpenCreateModal}
+            >
+              新增城市
+            </Button>
+          </div>
         </div>
 
         <Card className={sectionStyles.tableCard} styles={{ body: { padding: 0 } }}>

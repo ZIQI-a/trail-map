@@ -323,31 +323,35 @@ export function AdminUsersSection({
           <p>统一查看注册用户、角色类型、账号状态与最近登录情况。</p>
         </div>
 
-        <div className={sectionStyles.filterBar}>
-          <Input
-            className={sectionStyles.filterInput}
-            prefix={<SearchOutlined />}
-            placeholder="昵称 / 用户名 / 手机号 / 邮箱"
-            value={searchKeyword}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-          <Select
-            className={sectionStyles.filterSelect}
-            value={roleFilter}
-            options={[{ label: "全部角色", value: "all" }, ...roleOptions]}
-            onChange={(value) =>
-              onRoleFilterChange(value as "all" | AppUserDto["userType"])
-            }
-          />
-          <Select
-            className={sectionStyles.filterSelect}
-            value={statusFilter}
-            options={statusOptions}
-            onChange={(value) =>
-              onStatusFilterChange(value as AdminStatusFilter)
-            }
-          />
-          <Button onClick={onResetFilters}>重置</Button>
+        <div className={sectionStyles.filterToolbar}>
+          <div className={sectionStyles.filterGroup}>
+            <Input
+              className={sectionStyles.filterInput}
+              prefix={<SearchOutlined />}
+              placeholder="昵称 / 用户名 / 手机号 / 邮箱"
+              value={searchKeyword}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+            <Select
+              className={sectionStyles.filterSelect}
+              value={roleFilter}
+              options={[{ label: "全部角色", value: "all" }, ...roleOptions]}
+              onChange={(value) =>
+                onRoleFilterChange(value as "all" | AppUserDto["userType"])
+              }
+            />
+            <Select
+              className={sectionStyles.filterSelect}
+              value={statusFilter}
+              options={statusOptions}
+              onChange={(value) =>
+                onStatusFilterChange(value as AdminStatusFilter)
+              }
+            />
+          </div>
+          <div className={sectionStyles.filterActions}>
+            <Button onClick={onResetFilters}>重置筛选</Button>
+          </div>
         </div>
 
         <Card className={sectionStyles.tableCard} styles={{ body: { padding: 0 } }}>
