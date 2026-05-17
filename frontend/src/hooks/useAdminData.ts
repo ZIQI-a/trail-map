@@ -15,7 +15,7 @@ import type { AdminCityFormDto, AdminSpotFormDto } from "../types/admin";
 import type { UserUpdateRequestDto } from "../types/auth";
 
 // 管理后台查询：当前主数据源是用户列表，后续可继续扩展景点、路线和反馈管理。
-export function useAdminUsersQuery(pageNum = 1, pageSize = 20, enabled = true) {
+export function useAdminUsersQuery(pageNum?: number, pageSize?: number, enabled = true) {
   return useQuery({
     queryKey: ["admin", "users", pageNum, pageSize],
     queryFn: () => fetchAdminUsers(pageNum, pageSize),
@@ -31,7 +31,7 @@ export function useAdminUserUpdateMutation() {
   });
 }
 
-export function useAdminCitiesQuery(pageNum = 1, pageSize = 50, enabled = true) {
+export function useAdminCitiesQuery(pageNum?: number, pageSize?: number, enabled = true) {
   return useQuery({
     queryKey: ["admin", "cities", pageNum, pageSize],
     queryFn: () => fetchAdminCities(pageNum, pageSize),
@@ -60,8 +60,8 @@ export function useAdminCityDeleteMutation() {
 }
 
 export function useAdminSpotsQuery(
-  pageNum = 1,
-  pageSize = 50,
+  pageNum?: number,
+  pageSize?: number,
   params?: { cityId?: number; keyword?: string; type?: string; status?: number },
   enabled = true,
 ) {

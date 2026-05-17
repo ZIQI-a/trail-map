@@ -195,6 +195,15 @@ export function AdminPage() {
     }
   }
 
+  async function handleToggleCityStatus(city: AdminCityDto) {
+    await handleSubmitCity(
+      {
+        status: city.status === 1 ? 0 : 1,
+      },
+      city.id,
+    );
+  }
+
   // 管理端景点新增、编辑共用提交逻辑，避免页面层散落字段转换。
   async function handleSubmitSpot(payload: Partial<AdminSpotFormDto>, spotId?: number) {
     try {
@@ -221,6 +230,15 @@ export function AdminPage() {
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : "景点删除失败");
     }
+  }
+
+  async function handleToggleSpotStatus(spot: AdminSpotDto) {
+    await handleSubmitSpot(
+      {
+        status: spot.status === 1 ? 0 : 1,
+      },
+      spot.id,
+    );
   }
 
   // 退出登录时同时清理认证态缓存，防止后台页残留旧身份信息。
@@ -357,6 +375,7 @@ export function AdminPage() {
             }
             onOpenEditModal={setEditingCity}
             onSearchChange={setCityKeyword}
+            onToggleStatus={(city) => void handleToggleCityStatus(city)}
             onSubmitCreate={(payload) => void handleSubmitCity(payload)}
             onSubmitEdit={(city, payload) => void handleSubmitCity(payload, city.id)}
           />
@@ -413,6 +432,7 @@ export function AdminPage() {
             }
             onOpenEditModal={setEditingSpot}
             onStatusFilterChange={setSpotStatusFilter}
+            onToggleStatus={(spot) => void handleToggleSpotStatus(spot)}
             onSubmitCreate={(payload) => void handleSubmitSpot(payload)}
             onSubmitEdit={(spot, payload) => void handleSubmitSpot(payload, spot.id)}
             onTypeFilterChange={setSpotTypeFilter}

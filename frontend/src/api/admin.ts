@@ -3,11 +3,17 @@ import type { AppUserDto, UserUpdateRequestDto } from "../types/auth";
 import type { PageResponse } from "../types/mapWorkbench";
 import type { AdminCityDto, AdminCityFormDto, AdminSpotDto, AdminSpotFormDto } from "../types/admin";
 
-// 管理员用户列表查询：当前默认按后端分页接口拉取，避免一次加载全部用户。
-export function fetchAdminUsers(pageNum = 1, pageSize = 20) {
-  return request<PageResponse<AppUserDto>>(
-    `/api/users?pageNum=${pageNum}&pageSize=${pageSize}`,
-  );
+// 管理员用户列表查询：后台页当前优先一次拉全量，再由前端分页和筛选。
+export function fetchAdminUsers(pageNum?: number, pageSize?: number) {
+  const searchParams = new URLSearchParams();
+  if (pageNum) {
+    searchParams.set("pageNum", String(pageNum));
+  }
+  if (pageSize) {
+    searchParams.set("pageSize", String(pageSize));
+  }
+  const queryString = searchParams.toString();
+  return request<PageResponse<AppUserDto>>(`/api/users${queryString ? `?${queryString}` : ""}`);
 }
 
 // 管理员更新用户：当前先支持角色、状态和基础资料调整。
@@ -21,11 +27,17 @@ export function updateAdminUser(
   });
 }
 
-// 管理员城市列表查询：用于后台城市管理表格。
-export function fetchAdminCities(pageNum = 1, pageSize = 50) {
-  return request<PageResponse<AdminCityDto>>(
-    `/api/admin/cities?pageNum=${pageNum}&pageSize=${pageSize}`,
-  );
+// 管理员城市列表查询：后台页当前优先一次拉全量，再由前端分页和筛选。
+export function fetchAdminCities(pageNum?: number, pageSize?: number) {
+  const searchParams = new URLSearchParams();
+  if (pageNum) {
+    searchParams.set("pageNum", String(pageNum));
+  }
+  if (pageSize) {
+    searchParams.set("pageSize", String(pageSize));
+  }
+  const queryString = searchParams.toString();
+  return request<PageResponse<AdminCityDto>>(`/api/admin/cities${queryString ? `?${queryString}` : ""}`);
 }
 
 export function createAdminCity(payload: AdminCityFormDto) {
@@ -50,13 +62,17 @@ export function deleteAdminCity(cityId: number) {
 
 // 管理员景点列表查询：支持后台城市、关键词、类型和状态筛选。
 export function fetchAdminSpots(
-  pageNum = 1,
-  pageSize = 50,
+  pageNum?: number,
+  pageSize?: number,
   params?: { cityId?: number; keyword?: string; type?: string; status?: number },
 ) {
   const searchParams = new URLSearchParams();
-  searchParams.set("pageNum", String(pageNum));
-  searchParams.set("pageSize", String(pageSize));
+  if (pageNum) {
+    searchParams.set("pageNum", String(pageNum));
+  }
+  if (pageSize) {
+    searchParams.set("pageSize", String(pageSize));
+  }
   if (params?.cityId) {
     searchParams.set("cityId", String(params.cityId));
   }
@@ -70,7 +86,8 @@ export function fetchAdminSpots(
     searchParams.set("status", String(params.status));
   }
 
-  return request<PageResponse<AdminSpotDto>>(`/api/admin/spots?${searchParams.toString()}`);
+  const queryString = searchParams.toString();
+  return request<PageResponse<AdminSpotDto>>(`/api/admin/spots${queryString ? `?${queryString}` : ""}`);
 }
 
 export function createAdminSpot(payload: AdminSpotFormDto) {

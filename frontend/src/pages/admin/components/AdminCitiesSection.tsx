@@ -1,7 +1,7 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag } from "antd";
+import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AdminCityDto, AdminCityFormDto } from "../../../types/admin";
 import sectionStyles from "./AdminSections.module.css";
 
@@ -17,6 +17,7 @@ type AdminCitiesSectionProps = {
   onOpenCreateModal: () => void;
   onOpenEditModal: (city: AdminCityDto) => void;
   onSearchChange: (value: string) => void;
+  onToggleStatus: (city: AdminCityDto) => void;
   onSubmitCreate: (payload: AdminCityFormDto) => void;
   onSubmitEdit: (city: AdminCityDto, payload: Partial<AdminCityFormDto>) => void;
 };
@@ -36,10 +37,13 @@ export function AdminCitiesSection({
   onOpenCreateModal,
   onOpenEditModal,
   onSearchChange,
+  onToggleStatus,
   onSubmitCreate,
   onSubmitEdit,
 }: AdminCitiesSectionProps) {
   const [form] = Form.useForm<AdminCityFormValues>();
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const isCreateMode = editingCity?.id === 0;
 
   useEffect(() => {
@@ -78,6 +82,16 @@ export function AdminCitiesSection({
       }),
     [cities, keyword],
   );
+
+  const pagedCities = useMemo(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredCities.length / pageSize));
+    const safePageNum = Math.min(pageNum, maxPage);
+    const startIndex = (safePageNum - 1) * pageSize;
+    return filteredCities.slice(startIndex, startIndex + pageSize);
+  }, [filteredCities, pageNum, pageSize]);
+
+  const totalCityPages = Math.max(1, Math.ceil(filteredCities.length / pageSize));
+  const currentCityPage = Math.min(pageNum, totalCityPages);
 
   const columns = useMemo<ColumnsType<AdminCityDto>>(
     () => [
@@ -132,11 +146,18 @@ export function AdminCitiesSection({
       {
         title: "操作",
         key: "actions",
-        width: 170,
+        width: 220,
         render: (_, city) => (
           <Space size="small" wrap>
             <Button type="link" icon={<EditOutlined />} onClick={() => onOpenEditModal(city)}>
               编辑
+            </Button>
+            <Button
+              type="link"
+              icon={city.status === 1 ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+              onClick={() => onToggleStatus(city)}
+            >
+              {city.status === 1 ? "停用" : "启用"}
             </Button>
             <Popconfirm
               title="确定删除该城市吗？"
@@ -153,7 +174,7 @@ export function AdminCitiesSection({
         ),
       },
     ],
-    [onDeleteCity, onOpenEditModal],
+    [onDeleteCity, onOpenEditModal, onToggleStatus],
   );
 
   return (
@@ -195,13 +216,32 @@ export function AdminCitiesSection({
               className={sectionStyles.userTable}
               loading={isLoading || isSubmitting}
               columns={columns}
-              dataSource={filteredCities}
+              dataSource={pagedCities}
               pagination={false}
               tableLayout="fixed"
               scroll={{ x: 1030 }}
             />
           )}
         </Card>
+
+        <div className={sectionStyles.paginationBar}>
+          <Pagination
+            current={currentCityPage}
+            pageSize={pageSize}
+            total={filteredCities.length}
+            showSizeChanger
+            pageSizeOptions={["10", "20", "50", "100"]}
+            showTotal={(total) => `共 ${total} 条`}
+            onChange={(nextPage, nextPageSize) => {
+              setPageNum(nextPage);
+              setPageSize(nextPageSize);
+            }}
+            onShowSizeChange={(_, nextPageSize) => {
+              setPageNum(1);
+              setPageSize(nextPageSize);
+            }}
+          />
+        </div>
 
         <Modal
           title={isCreateMode ? "新增城市" : "编辑城市"}

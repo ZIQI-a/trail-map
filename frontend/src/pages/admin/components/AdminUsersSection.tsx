@@ -1,4 +1,10 @@
-import { SearchOutlined, UserOutlined, EditOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  UserOutlined,
+  EditOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+} from "@ant-design/icons";
 import {
   Alert,
   Avatar,
@@ -8,13 +14,14 @@ import {
   Grid,
   Input,
   Modal,
+  Pagination,
   Select,
   Space,
   Table,
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { roleOptions, statusOptions } from "../../../admin/config";
 import type { AdminStatusFilter } from "../../../admin/types";
 import type { AppUserDto, UserUpdateRequestDto } from "../../../types/auth";
@@ -73,6 +80,8 @@ export function AdminUsersSection({
   onSubmitEdit,
 }: AdminUsersSectionProps) {
   const [form] = Form.useForm<AdminUserEditFormValues>();
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const screens = Grid.useBreakpoint();
   const isMediumScreen = Boolean(screens.md);
   const isLargeScreen = Boolean(screens.lg);
@@ -195,6 +204,9 @@ export function AdminUsersSection({
             <Button
               type="link"
               danger={user.status === 1}
+              icon={
+                user.status === 1 ? <EyeInvisibleOutlined /> : <EyeOutlined />
+              }
               disabled={currentUserId === user.id}
               onClick={() => onToggleStatus(user)}
             >
@@ -212,6 +224,19 @@ export function AdminUsersSection({
       onToggleStatus,
     ],
   );
+
+  const pagedUsers = useMemo(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+    const safePageNum = Math.min(pageNum, maxPage);
+    const startIndex = (safePageNum - 1) * pageSize;
+    return filteredUsers.slice(startIndex, startIndex + pageSize);
+  }, [filteredUsers, pageNum, pageSize]);
+
+  const totalUserPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / pageSize),
+  );
+  const currentUserPage = Math.min(pageNum, totalUserPages);
 
   return (
     <section className={sectionStyles.contentGridSingle}>
@@ -264,13 +289,32 @@ export function AdminUsersSection({
               className={sectionStyles.userTable}
               loading={isLoading || isUpdating}
               columns={columns}
-              dataSource={filteredUsers}
+              dataSource={pagedUsers}
               pagination={false}
               tableLayout="fixed"
               scroll={{ x: 1160 }}
             />
           )}
         </Card>
+
+        <div className={sectionStyles.paginationBar}>
+          <Pagination
+            current={currentUserPage}
+            pageSize={pageSize}
+            total={filteredUsers.length}
+            showSizeChanger
+            pageSizeOptions={["10", "20", "50", "100"]}
+            showTotal={(total) => `共 ${total} 条`}
+            onChange={(nextPage, nextPageSize) => {
+              setPageNum(nextPage);
+              setPageSize(nextPageSize);
+            }}
+            onShowSizeChange={(_, nextPageSize) => {
+              setPageNum(1);
+              setPageSize(nextPageSize);
+            }}
+          />
+        </div>
 
         <Modal
           title="编辑用户"

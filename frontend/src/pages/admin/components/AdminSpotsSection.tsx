@@ -1,7 +1,7 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
+import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AdminSpotDto, AdminSpotFormDto } from "../../../types/admin";
 import type { SpotType, TravelCityDto } from "../../../types/mapWorkbench";
 import sectionStyles from "./AdminSections.module.css";
@@ -24,6 +24,7 @@ type AdminSpotsSectionProps = {
   onOpenCreateModal: () => void;
   onOpenEditModal: (spot: AdminSpotDto) => void;
   onStatusFilterChange: (value: "all" | "enabled" | "disabled") => void;
+  onToggleStatus: (spot: AdminSpotDto) => void;
   onSubmitCreate: (payload: AdminSpotFormDto) => void;
   onSubmitEdit: (spot: AdminSpotDto, payload: Partial<AdminSpotFormDto>) => void;
   onTypeFilterChange: (value: "all" | SpotType) => void;
@@ -68,11 +69,14 @@ export function AdminSpotsSection({
   onOpenCreateModal,
   onOpenEditModal,
   onStatusFilterChange,
+  onToggleStatus,
   onSubmitCreate,
   onSubmitEdit,
   onTypeFilterChange,
 }: AdminSpotsSectionProps) {
   const [form] = Form.useForm<AdminSpotFormValues>();
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const isCreateMode = editingSpot?.id === 0;
 
   useEffect(() => {
@@ -160,11 +164,18 @@ export function AdminSpotsSection({
       {
         title: "操作",
         key: "actions",
-        width: 170,
+        width: 220,
         render: (_, spot) => (
           <Space size="small" wrap>
             <Button type="link" icon={<EditOutlined />} onClick={() => onOpenEditModal(spot)}>
               编辑
+            </Button>
+            <Button
+              type="link"
+              icon={spot.status === 1 ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+              onClick={() => onToggleStatus(spot)}
+            >
+              {spot.status === 1 ? "停用" : "启用"}
             </Button>
             <Popconfirm
               title="确定删除该景点吗？"
@@ -181,8 +192,18 @@ export function AdminSpotsSection({
         ),
       },
     ],
-    [onDeleteSpot, onOpenEditModal],
+    [onDeleteSpot, onOpenEditModal, onToggleStatus],
   );
+
+  const pagedSpots = useMemo(() => {
+    const maxPage = Math.max(1, Math.ceil(spots.length / pageSize));
+    const safePageNum = Math.min(pageNum, maxPage);
+    const startIndex = (safePageNum - 1) * pageSize;
+    return spots.slice(startIndex, startIndex + pageSize);
+  }, [pageNum, pageSize, spots]);
+
+  const totalSpotPages = Math.max(1, Math.ceil(spots.length / pageSize));
+  const currentSpotPage = Math.min(pageNum, totalSpotPages);
 
   return (
     <section className={sectionStyles.contentGridSingle}>
@@ -247,13 +268,32 @@ export function AdminSpotsSection({
               className={sectionStyles.userTable}
               loading={isLoading || isSubmitting}
               columns={columns}
-              dataSource={spots}
+              dataSource={pagedSpots}
               pagination={false}
               tableLayout="fixed"
               scroll={{ x: 960 }}
             />
           )}
         </Card>
+
+        <div className={sectionStyles.paginationBar}>
+          <Pagination
+            current={currentSpotPage}
+            pageSize={pageSize}
+            total={spots.length}
+            showSizeChanger
+            pageSizeOptions={["10", "20", "50", "100"]}
+            showTotal={(total) => `共 ${total} 条`}
+            onChange={(nextPage, nextPageSize) => {
+              setPageNum(nextPage);
+              setPageSize(nextPageSize);
+            }}
+            onShowSizeChange={(_, nextPageSize) => {
+              setPageNum(1);
+              setPageSize(nextPageSize);
+            }}
+          />
+        </div>
 
         <Modal
           title={isCreateMode ? "新增景点" : "编辑景点"}
