@@ -87,7 +87,7 @@ export function fetchAdminSpots(
   if (params?.type) {
     searchParams.set("type", params.type);
   }
-  if (params?.status) {
+  if (params?.status !== undefined) {
     searchParams.set("status", String(params.status));
   }
 

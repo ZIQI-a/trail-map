@@ -1,4 +1,5 @@
 import { ConfigProvider } from "antd";
+import zhCN from "antd/locale/zh_CN";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MapWorkbenchPage } from "./pages/map-workbench";
@@ -11,6 +12,7 @@ const AdminPage = lazy(() =>
 function App() {
   return (
     <ConfigProvider
+      locale={zhCN}
       theme={{
         token: {
           colorPrimary: "#2266e8",

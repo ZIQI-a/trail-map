@@ -50,15 +50,18 @@ export function AdminPage() {
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const adminDataEnabled = Boolean(authToken) && currentUserQuery.data?.userType === "admin";
   const overviewQuery = useAdminOverviewQuery(adminDataEnabled);
+  const usersQueryEnabled = adminDataEnabled && activeSection === "users";
+  const citiesQueryEnabled = adminDataEnabled && (activeSection === "cities" || activeSection === "spots");
+  const spotsQueryEnabled = adminDataEnabled && activeSection === "spots";
   const usersQuery = useAdminUsersQuery(
     1,
     20,
-    adminDataEnabled,
+    usersQueryEnabled,
   );
   const citiesQuery = useAdminCitiesQuery(
     1,
     100,
-    adminDataEnabled,
+    citiesQueryEnabled,
   );
   const spotsQuery = useAdminSpotsQuery(
     1,
@@ -69,7 +72,7 @@ export function AdminPage() {
       type: spotTypeFilter === "all" ? undefined : spotTypeFilter,
       status: spotStatusFilter === "all" ? undefined : spotStatusFilter === "enabled" ? 1 : 0,
     },
-    adminDataEnabled,
+    spotsQueryEnabled,
   );
   const userUpdateMutation = useAdminUserUpdateMutation();
   const cityCreateMutation = useAdminCityCreateMutation();
@@ -135,6 +138,7 @@ export function AdminPage() {
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       setEditingUser(null);
       messageApi.success("用户信息已更新");
@@ -152,6 +156,7 @@ export function AdminPage() {
         await cityCreateMutation.mutateAsync(payload as AdminCityFormDto);
       }
       await queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       await queryClient.invalidateQueries({ queryKey: ["cities"] });
       setEditingCity(null);
       messageApi.success(cityId ? "城市信息已更新" : "城市已创建");
@@ -164,6 +169,7 @@ export function AdminPage() {
     try {
       await cityDeleteMutation.mutateAsync(cityId);
       await queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       await queryClient.invalidateQueries({ queryKey: ["cities"] });
       messageApi.success("城市已删除");
     } catch (error) {
@@ -189,6 +195,7 @@ export function AdminPage() {
         await spotCreateMutation.mutateAsync(payload as AdminSpotFormDto);
       }
       await queryClient.invalidateQueries({ queryKey: ["admin", "spots"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       await queryClient.invalidateQueries({ queryKey: ["spots"] });
       setEditingSpot(null);
       messageApi.success(spotId ? "景点信息已更新" : "景点已创建");
@@ -201,6 +208,7 @@ export function AdminPage() {
     try {
       await spotDeleteMutation.mutateAsync(spotId);
       await queryClient.invalidateQueries({ queryKey: ["admin", "spots"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       await queryClient.invalidateQueries({ queryKey: ["spots"] });
       messageApi.success("景点已删除");
     } catch (error) {
@@ -222,6 +230,30 @@ export function AdminPage() {
     clearAuthToken();
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
     navigate("/");
+  }
+
+  // 顶部刷新只刷新当前模块相关数据，避免概览页触发无关列表请求。
+  function handleRefreshCurrentSection() {
+    if (activeSection === "overview") {
+      return void queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+    }
+    if (activeSection === "users") {
+      return void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
+      ]);
+    }
+    if (activeSection === "cities") {
+      return void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
+      ]);
+    }
+    return void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "spots"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
+    ]);
   }
 
   if (!authToken) {
@@ -284,14 +316,7 @@ export function AdminPage() {
           isRefreshing={overviewQuery.isFetching || usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
           searchKeyword={searchKeyword}
           onLogout={handleLogout}
-          onRefresh={() =>
-            void Promise.all([
-              queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
-              queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
-              queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
-              queryClient.invalidateQueries({ queryKey: ["admin", "spots"] }),
-            ])
-          }
+          onRefresh={handleRefreshCurrentSection}
           onSearchChange={setSearchKeyword}
         />
 

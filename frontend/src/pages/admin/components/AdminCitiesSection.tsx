@@ -319,7 +319,7 @@ export function AdminCitiesSection({
             pageSize={pageSize}
             total={filteredCities.length}
             showSizeChanger
-            pageSizeOptions={["10", "20", "50", "100"]}
+            pageSizeOptions={["5", "10", "20", "50", "100"]}
             showTotal={(total) => `共 ${total} 条`}
             onChange={(nextPage, nextPageSize) => {
               setPageNum(nextPage);
