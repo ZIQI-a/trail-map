@@ -1,5 +1,5 @@
-import { Alert, Button, Empty, Spin, message } from "antd";
-import { useMemo, useState } from "react";
+import { Alert, Button, Empty, Grid, Spin, message } from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminSidebar } from "../../components/admin/AdminSidebar";
 import { AdminTopBar } from "../../components/admin/AdminTopBar";
@@ -43,6 +43,9 @@ export function AdminPage() {
   const [spotCityFilter, setSpotCityFilter] = useState<number | undefined>(undefined);
   const [spotTypeFilter, setSpotTypeFilter] = useState<"all" | AdminSpotDto["type"]>("all");
   const [spotStatusFilter, setSpotStatusFilter] = useState<"all" | "enabled" | "disabled">("all");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const screens = Grid.useBreakpoint();
+  const lastLargeScreenRef = useRef<boolean | undefined>(undefined);
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const usersQuery = useAdminUsersQuery(
     1,
@@ -133,6 +136,15 @@ export function AdminPage() {
     ],
     [overviewStats.adminUsers, users],
   );
+
+  // 屏幕较小时自动收起侧边栏，保证右侧主内容区域的可用宽度。
+  useEffect(() => {
+    if (lastLargeScreenRef.current === screens.lg) {
+      return;
+    }
+    lastLargeScreenRef.current = screens.lg;
+    setSidebarCollapsed(!screens.lg);
+  }, [screens.lg]);
 
   // 统一更新用户资料、角色与状态，避免页面和表格各自散写 mutation。
   async function handleUpdateUser(
@@ -285,15 +297,20 @@ export function AdminPage() {
   const currentAdmin = currentUser;
 
   return (
-    <main className={styles.consoleShell}>
+    <main
+      className={
+        sidebarCollapsed
+          ? `${styles.consoleShell} ${styles.consoleShellCollapsed}`
+          : styles.consoleShell
+      }
+    >
       {contextHolder}
 
       <AdminSidebar
         activeSection={activeSection}
-        currentUser={currentAdmin}
-        onBack={() => navigate("/")}
+        collapsed={sidebarCollapsed}
         onChangeSection={setActiveSection}
-        onLogout={handleLogout}
+        onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
       />
 
       <section className={styles.workspace}>
@@ -302,6 +319,7 @@ export function AdminPage() {
           currentUser={currentAdmin}
           isRefreshing={usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
           searchKeyword={searchKeyword}
+          onLogout={handleLogout}
           onRefresh={() =>
             void Promise.all([
               queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),

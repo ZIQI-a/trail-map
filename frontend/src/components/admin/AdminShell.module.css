@@ -2,23 +2,37 @@
   height: 100vh;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 24px;
+  grid-template-rows: 76px 1fr auto;
+  gap: 18px;
   padding: 20px 16px;
   background: linear-gradient(180deg, #0b284d 0%, #061b35 100%);
   color: #ffffff;
   overflow: hidden;
+  transition: width 180ms ease, padding 180ms ease;
+}
+
+.sideRailCollapsed {
+  grid-template-rows: 64px 1fr auto;
+  padding-inline: 12px;
 }
 
 .brandArea {
-  display: grid;
-  gap: 8px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
 }
 
 .brandArea img {
-  width: 172px;
+  width: 168px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
   display: block;
   filter: brightness(0) invert(1);
+  transform-origin: left center;
+  transition: width 180ms ease, transform 180ms ease;
 }
 
 .brandArea span {
@@ -38,6 +52,7 @@
 
 .sideMenuItem,
 .sideMenuItemActive {
+  width: 100%;
   min-height: 54px;
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
@@ -51,6 +66,24 @@
   font-weight: 800;
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.sideRailCollapsed .brandArea {
+  align-items: center;
+}
+
+.sideRailCollapsed .brandArea img {
+  width: 36px;
+  filter: none;
+}
+
+.sideRailCollapsed .sideMenuItem,
+.sideRailCollapsed .sideMenuItemActive {
+  width: 56px;
+  min-height: 56px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding-inline: 0;
 }
 
 .sideMenuItem {
@@ -70,33 +103,33 @@
 }
 
 .sideFooter {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.adminProfile {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 16px;
-  background: rgb(255 255 255 / 6%);
+.collapseButton {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 12px;
+  border-color: rgb(255 255 255 / 16%) !important;
+  color: #ffffff !important;
+  background: rgb(255 255 255 / 8%) !important;
 }
 
-.adminProfile strong {
-  display: block;
-  color: #ffffff;
-  font-size: 14px;
+.sideRailCollapsed .collapseButton {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding-inline: 0;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 10%) !important;
 }
 
-.adminProfile span {
-  display: block;
-  margin-top: 2px;
-  color: rgb(224 234 246 / 68%);
-  font-size: 12px;
+.collapseButton:hover {
+  border-color: rgb(255 255 255 / 24%) !important;
+  background: rgb(255 255 255 / 14%) !important;
 }
 
 .topBar {
@@ -160,7 +193,7 @@
 
 .topUser {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -169,6 +202,13 @@
   border: 1px solid #e8edf5;
   border-radius: 14px;
   background: #f8fbff;
+}
+
+.topUserButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .topUserMeta {
@@ -192,6 +232,11 @@
   text-overflow: ellipsis;
 }
 
+.topUserArrow {
+  color: #8a9ab0;
+  font-size: 12px;
+}
+
 @media (max-width: 1280px) {
   .topBar {
     grid-template-columns: 1fr;
@@ -209,7 +254,66 @@
 
 @media (max-width: 900px) {
   .sideRail {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-rows: auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgb(255 255 255 / 10%);
+  }
+
+  .sideRailCollapsed {
+    grid-template-rows: auto;
+    padding-inline: 12px;
+  }
+
+  .brandArea {
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brandArea img,
+  .sideRailCollapsed .brandArea img {
+    width: 34px;
+    filter: none;
+  }
+
+  .brandArea span {
+    display: none;
+  }
+
+  .sideMenu {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sideRailCollapsed .sideMenuItem,
+  .sideRailCollapsed .sideMenuItemActive,
+  .sideMenuItem,
+  .sideMenuItemActive {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding-inline: 0;
+    border-radius: 12px;
+  }
+
+  .sideMenuItem span,
+  .sideMenuItemActive span {
+    display: none;
+  }
+
+  .sideFooter {
+    display: none;
   }
 
   .topBar {

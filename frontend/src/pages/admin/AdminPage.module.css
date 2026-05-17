@@ -5,6 +5,11 @@
   grid-template-columns: 216px minmax(0, 1fr);
   background: #f5f7fb;
   overflow: hidden;
+  transition: grid-template-columns 180ms ease;
+}
+
+.consoleShellCollapsed {
+  grid-template-columns: 88px minmax(0, 1fr);
 }
 
 .stateShell {
@@ -31,6 +36,10 @@
 
 @media (max-width: 900px) {
   .consoleShell {
+    grid-template-columns: 1fr;
+  }
+
+  .consoleShellCollapsed {
     grid-template-columns: 1fr;
   }
 }
