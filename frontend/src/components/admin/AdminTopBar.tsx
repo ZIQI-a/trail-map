@@ -28,22 +28,38 @@ export function AdminTopBar({
   onRefresh,
   onSearchChange,
 }: AdminTopBarProps) {
+  const activeSectionLabel =
+    activeSection === "overview"
+      ? "数据概览"
+      : activeSection === "users"
+        ? "用户管理"
+        : activeSection === "cities"
+          ? "城市管理"
+          : "景点管理";
+
+  const searchPlaceholder =
+    activeSection === "users"
+      ? "搜索用户、角色、状态等"
+      : activeSection === "cities"
+        ? "搜索城市名称、省份、编码等"
+        : activeSection === "spots"
+          ? "搜索景点名称、城市、类型等"
+          : "搜索后台数据";
+
   return (
     <header className={styles.topBar}>
       <div className={styles.pagePath}>
         {topBarIcon}
         <span>首页</span>
         <em>/</em>
-        <strong>
-          {activeSection === "overview" ? "数据概览" : "用户管理"}
-        </strong>
+        <strong>{activeSectionLabel}</strong>
       </div>
 
       <div className={styles.topBarActions}>
         <Input
           className={styles.searchInput}
           prefix={<SearchOutlined />}
-          placeholder="搜索用户、角色、状态等"
+          placeholder={searchPlaceholder}
           value={searchKeyword}
           onChange={(event) => onSearchChange(event.target.value)}
         />

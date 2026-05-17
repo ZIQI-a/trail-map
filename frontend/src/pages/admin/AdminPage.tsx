@@ -4,12 +4,26 @@ import { useNavigate } from "react-router-dom";
 import { AdminSidebar } from "../../components/admin/AdminSidebar";
 import { AdminTopBar } from "../../components/admin/AdminTopBar";
 import type { AdminSection, AdminStatusFilter } from "../../admin/types";
-import { useAdminUsersQuery, useAdminUserUpdateMutation } from "../../hooks/useAdminData";
+import {
+  useAdminCitiesQuery,
+  useAdminCityCreateMutation,
+  useAdminCityDeleteMutation,
+  useAdminCityUpdateMutation,
+  useAdminSpotCreateMutation,
+  useAdminSpotDeleteMutation,
+  useAdminSpotUpdateMutation,
+  useAdminSpotsQuery,
+  useAdminUsersQuery,
+  useAdminUserUpdateMutation,
+} from "../../hooks/useAdminData";
 import { useCurrentUserQuery } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import { queryClient } from "../../lib/queryClient";
+import type { AdminCityDto, AdminCityFormDto, AdminSpotDto, AdminSpotFormDto } from "../../types/admin";
 import type { AppUserDto } from "../../types/auth";
 import { AdminOverviewSection } from "./components/AdminOverviewSection";
+import { AdminCitiesSection } from "./components/AdminCitiesSection";
+import { AdminSpotsSection } from "./components/AdminSpotsSection";
 import { AdminUsersSection } from "./components/AdminUsersSection";
 import styles from "./AdminPage.module.css";
 
@@ -22,16 +36,47 @@ export function AdminPage() {
   const [roleFilter, setRoleFilter] = useState<"all" | AppUserDto["userType"]>("all");
   const [statusFilter, setStatusFilter] = useState<AdminStatusFilter>("all");
   const [editingUser, setEditingUser] = useState<AppUserDto | null>(null);
+  const [editingCity, setEditingCity] = useState<AdminCityDto | null>(null);
+  const [editingSpot, setEditingSpot] = useState<AdminSpotDto | null>(null);
+  const [cityKeyword, setCityKeyword] = useState("");
+  const [spotKeyword, setSpotKeyword] = useState("");
+  const [spotCityFilter, setSpotCityFilter] = useState<number | undefined>(undefined);
+  const [spotTypeFilter, setSpotTypeFilter] = useState<"all" | AdminSpotDto["type"]>("all");
+  const [spotStatusFilter, setSpotStatusFilter] = useState<"all" | "enabled" | "disabled">("all");
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const usersQuery = useAdminUsersQuery(
     1,
     20,
     Boolean(authToken) && currentUserQuery.data?.userType === "admin",
   );
+  const citiesQuery = useAdminCitiesQuery(
+    1,
+    100,
+    Boolean(authToken) && currentUserQuery.data?.userType === "admin",
+  );
+  const spotsQuery = useAdminSpotsQuery(
+    1,
+    100,
+    {
+      cityId: spotCityFilter,
+      keyword: spotKeyword || undefined,
+      type: spotTypeFilter === "all" ? undefined : spotTypeFilter,
+      status: spotStatusFilter === "all" ? undefined : spotStatusFilter === "enabled" ? 1 : 0,
+    },
+    Boolean(authToken) && currentUserQuery.data?.userType === "admin",
+  );
   const userUpdateMutation = useAdminUserUpdateMutation();
+  const cityCreateMutation = useAdminCityCreateMutation();
+  const cityUpdateMutation = useAdminCityUpdateMutation();
+  const cityDeleteMutation = useAdminCityDeleteMutation();
+  const spotCreateMutation = useAdminSpotCreateMutation();
+  const spotUpdateMutation = useAdminSpotUpdateMutation();
+  const spotDeleteMutation = useAdminSpotDeleteMutation();
   const [messageApi, contextHolder] = message.useMessage();
   const currentUser = currentUserQuery.data;
   const users = useMemo(() => usersQuery.data?.list ?? [], [usersQuery.data?.list]);
+  const cities = useMemo(() => citiesQuery.data?.list ?? [], [citiesQuery.data?.list]);
+  const spots = useMemo(() => spotsQuery.data?.list ?? [], [spotsQuery.data?.list]);
   const filteredUsers = useMemo(
     () =>
       users.filter((user) => {
@@ -122,6 +167,62 @@ export function AdminPage() {
     }
   }
 
+  // 管理端城市新增、编辑共用同一套成功提示和缓存刷新逻辑。
+  async function handleSubmitCity(payload: Partial<AdminCityFormDto>, cityId?: number) {
+    try {
+      if (cityId) {
+        await cityUpdateMutation.mutateAsync({ cityId, data: payload });
+      } else {
+        await cityCreateMutation.mutateAsync(payload as AdminCityFormDto);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
+      await queryClient.invalidateQueries({ queryKey: ["cities"] });
+      setEditingCity(null);
+      messageApi.success(cityId ? "城市信息已更新" : "城市已创建");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "城市操作失败");
+    }
+  }
+
+  async function handleDeleteCity(cityId: number) {
+    try {
+      await cityDeleteMutation.mutateAsync(cityId);
+      await queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
+      await queryClient.invalidateQueries({ queryKey: ["cities"] });
+      messageApi.success("城市已删除");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "城市删除失败");
+    }
+  }
+
+  // 管理端景点新增、编辑共用提交逻辑，避免页面层散落字段转换。
+  async function handleSubmitSpot(payload: Partial<AdminSpotFormDto>, spotId?: number) {
+    try {
+      if (spotId) {
+        await spotUpdateMutation.mutateAsync({ spotId, data: payload });
+      } else {
+        await spotCreateMutation.mutateAsync(payload as AdminSpotFormDto);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["admin", "spots"] });
+      await queryClient.invalidateQueries({ queryKey: ["spots"] });
+      setEditingSpot(null);
+      messageApi.success(spotId ? "景点信息已更新" : "景点已创建");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "景点操作失败");
+    }
+  }
+
+  async function handleDeleteSpot(spotId: number) {
+    try {
+      await spotDeleteMutation.mutateAsync(spotId);
+      await queryClient.invalidateQueries({ queryKey: ["admin", "spots"] });
+      await queryClient.invalidateQueries({ queryKey: ["spots"] });
+      messageApi.success("景点已删除");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "景点删除失败");
+    }
+  }
+
   // 退出登录时同时清理认证态缓存，防止后台页残留旧身份信息。
   function handleLogout() {
     clearAuthToken();
@@ -181,10 +282,14 @@ export function AdminPage() {
         <AdminTopBar
           activeSection={activeSection}
           currentUser={currentAdmin}
-          isRefreshing={usersQuery.isFetching}
+          isRefreshing={usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
           searchKeyword={searchKeyword}
           onRefresh={() =>
-            void queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+            void Promise.all([
+              queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+              queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
+              queryClient.invalidateQueries({ queryKey: ["admin", "spots"] }),
+            ])
           }
           onSearchChange={setSearchKeyword}
         />
@@ -196,7 +301,7 @@ export function AdminPage() {
             statusSummary={statusSummary}
             onOpenUsers={() => setActiveSection("users")}
           />
-        ) : (
+        ) : activeSection === "users" ? (
           <AdminUsersSection
             currentUserId={currentAdmin.id}
             editingUser={editingUser}
@@ -223,6 +328,94 @@ export function AdminPage() {
               })
             }
             onSubmitEdit={(user, payload) => void handleUpdateUser(user, payload)}
+          />
+        ) : activeSection === "cities" ? (
+          <AdminCitiesSection
+            cities={cities}
+            editingCity={editingCity}
+            isLoading={citiesQuery.isLoading}
+            isSubmitting={cityCreateMutation.isPending || cityUpdateMutation.isPending || cityDeleteMutation.isPending}
+            keyword={cityKeyword}
+            tableError={citiesQuery.error instanceof Error ? citiesQuery.error : null}
+            onCloseEditModal={() => setEditingCity(null)}
+            onDeleteCity={(city) => void handleDeleteCity(city.id)}
+            onOpenCreateModal={() =>
+              setEditingCity({
+                id: 0,
+                name: "",
+                provinceName: "",
+                cityCode: "",
+                center: { lng: 0, lat: 0 },
+                mapZoom: 11,
+                coverUrl: "",
+                description: "",
+                recommendDays: 3,
+                hotScore: 0,
+                sortOrder: 0,
+                status: 1,
+              })
+            }
+            onOpenEditModal={setEditingCity}
+            onSearchChange={setCityKeyword}
+            onSubmitCreate={(payload) => void handleSubmitCity(payload)}
+            onSubmitEdit={(city, payload) => void handleSubmitCity(payload, city.id)}
+          />
+        ) : (
+          <AdminSpotsSection
+            cities={cities}
+            editingSpot={editingSpot}
+            isLoading={spotsQuery.isLoading}
+            isSubmitting={spotCreateMutation.isPending || spotUpdateMutation.isPending || spotDeleteMutation.isPending}
+            keyword={spotKeyword}
+            selectedCityId={spotCityFilter}
+            selectedStatus={spotStatusFilter}
+            selectedType={spotTypeFilter}
+            spots={spots}
+            tableError={spotsQuery.error instanceof Error ? spotsQuery.error : null}
+            onCityFilterChange={setSpotCityFilter}
+            onCloseEditModal={() => setEditingSpot(null)}
+            onDeleteSpot={(spot) => void handleDeleteSpot(spot.id)}
+            onKeywordChange={setSpotKeyword}
+            onOpenCreateModal={() =>
+              setEditingSpot({
+                id: 0,
+                cityId: cities[0]?.id ?? 0,
+                cityName: cities[0]?.name ?? "",
+                name: "",
+                type: "history",
+                position: { lng: 0, lat: 0 },
+                address: "",
+                amapPoiId: "",
+                boundaryGeojson: "",
+                coverUrl: "",
+                summary: "",
+                description: "",
+                recommendReason: "",
+                travelGuide: "",
+                openingHours: "",
+                ticketInfo: "",
+                suggestedDurationMinutes: 120,
+                bestTime: "",
+                recommendScore: 4.5,
+                hotScore: 0,
+                suitableCrowd: "",
+                free: false,
+                indoor: false,
+                night: false,
+                rainyDay: false,
+                subwayFriendly: false,
+                firstVisit: false,
+                sortOrder: 0,
+                status: 1,
+                createdAt: "",
+                updatedAt: "",
+              })
+            }
+            onOpenEditModal={setEditingSpot}
+            onStatusFilterChange={setSpotStatusFilter}
+            onSubmitCreate={(payload) => void handleSubmitSpot(payload)}
+            onSubmitEdit={(spot, payload) => void handleSubmitSpot(payload, spot.id)}
+            onTypeFilterChange={setSpotTypeFilter}
           />
         )}
       </section>

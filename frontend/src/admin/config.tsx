@@ -2,7 +2,9 @@ import {
   AlertOutlined,
   AppstoreOutlined,
   BarChartOutlined,
+  EnvironmentOutlined,
   LockOutlined,
+  PushpinOutlined,
   RiseOutlined,
   TeamOutlined,
   UserOutlined,
@@ -26,6 +28,8 @@ export const statusOptions = [
 export const adminNavItems = [
   { key: "overview", label: "数据概览", icon: <BarChartOutlined /> },
   { key: "users", label: "用户管理", icon: <TeamOutlined /> },
+  { key: "cities", label: "城市管理", icon: <EnvironmentOutlined /> },
+  { key: "spots", label: "景点管理", icon: <PushpinOutlined /> },
 ] satisfies Array<{
   key: AdminSection;
   label: string;
