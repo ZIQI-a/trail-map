@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { AdminSpotDto, AdminSpotFormDto } from "../../../types/admin";
 import type { SpotType, TravelCityDto } from "../../../types/mapWorkbench";
 import sectionStyles from "./AdminSections.module.css";
@@ -39,6 +39,15 @@ type AdminSpotFormValues = Omit<AdminSpotFormDto, "isFree" | "isIndoor" | "isNig
   firstVisit: boolean;
 };
 
+type AdminSpotEditModalProps = {
+  cities: TravelCityDto[];
+  editingSpot: AdminSpotDto | null;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmitCreate: (payload: AdminSpotFormDto) => void;
+  onSubmitEdit: (spot: AdminSpotDto, payload: Partial<AdminSpotFormDto>) => void;
+};
+
 const spotTypeOptions = [
   { label: "历史文化", value: "history" },
   { label: "自然风光", value: "nature" },
@@ -49,6 +58,180 @@ const spotTypeOptions = [
   { label: "亲子游玩", value: "family" },
   { label: "商圈街区", value: "business" },
 ] satisfies Array<{ label: string; value: SpotType }>;
+
+function AdminSpotEditModal({
+  cities,
+  editingSpot,
+  isSubmitting,
+  onCancel,
+  onSubmitCreate,
+  onSubmitEdit,
+}: AdminSpotEditModalProps) {
+  const [form] = Form.useForm<AdminSpotFormValues>();
+
+  if (!editingSpot) {
+    return null;
+  }
+
+  const isCreateMode = editingSpot.id === 0;
+
+  return (
+    <Modal
+      title={isCreateMode ? "新增景点" : "编辑景点"}
+      open
+      okText={isCreateMode ? "创建" : "保存"}
+      cancelText="取消"
+      confirmLoading={isSubmitting}
+      destroyOnHidden
+      width={860}
+      afterOpenChange={(opened) => {
+        if (opened) {
+          form.setFieldsValue({
+            cityId: editingSpot.cityId,
+            spotName: editingSpot.name,
+            spotType: editingSpot.type,
+            lng: editingSpot.position.lng,
+            lat: editingSpot.position.lat,
+            address: editingSpot.address,
+            amapPoiId: editingSpot.amapPoiId ?? undefined,
+            boundaryGeojson: editingSpot.boundaryGeojson ?? undefined,
+            coverUrl: editingSpot.coverUrl ?? undefined,
+            summary: editingSpot.summary ?? undefined,
+            description: editingSpot.description ?? undefined,
+            recommendReason: editingSpot.recommendReason ?? undefined,
+            travelGuide: editingSpot.travelGuide ?? undefined,
+            openingHours: editingSpot.openingHours ?? undefined,
+            ticketInfo: editingSpot.ticketInfo ?? undefined,
+            suggestedDuration: editingSpot.suggestedDurationMinutes ?? undefined,
+            bestTime: editingSpot.bestTime ?? undefined,
+            recommendScore: editingSpot.recommendScore ?? undefined,
+            hotScore: editingSpot.hotScore ?? undefined,
+            suitableCrowd: editingSpot.suitableCrowd ?? undefined,
+            isFree: editingSpot.free,
+            isIndoor: editingSpot.indoor,
+            isNight: editingSpot.night,
+            isRainyDay: editingSpot.rainyDay,
+            subwayFriendly: editingSpot.subwayFriendly,
+            firstVisit: editingSpot.firstVisit,
+            sortOrder: editingSpot.sortOrder ?? undefined,
+            status: editingSpot.status,
+          });
+        }
+      }}
+      onCancel={onCancel}
+      afterClose={() => form.resetFields()}
+      onOk={() => {
+        void form.validateFields().then((values) => {
+          const payload: AdminSpotFormDto = {
+            ...values,
+            isFree: values.isFree ? 1 : 0,
+            isIndoor: values.isIndoor ? 1 : 0,
+            isNight: values.isNight ? 1 : 0,
+            isRainyDay: values.isRainyDay ? 1 : 0,
+            subwayFriendly: values.subwayFriendly ? 1 : 0,
+            firstVisit: values.firstVisit ? 1 : 0,
+          };
+          if (isCreateMode) {
+            onSubmitCreate(payload);
+            return;
+          }
+          onSubmitEdit(editingSpot, payload);
+        });
+      }}
+    >
+      <Form form={form} layout="vertical">
+        <div className={sectionStyles.formGridTwo}>
+          <Form.Item label="景点名称" name="spotName" rules={[{ required: true, message: "请输入景点名称" }]}>
+            <Input placeholder="请输入景点名称" />
+          </Form.Item>
+          <Form.Item label="所属城市" name="cityId" rules={[{ required: true, message: "请选择所属城市" }]}>
+            <Select options={cities.map((city) => ({ label: city.name, value: city.id }))} />
+          </Form.Item>
+          <Form.Item label="景点类型" name="spotType" rules={[{ required: true, message: "请选择景点类型" }]}>
+            <Select options={spotTypeOptions} />
+          </Form.Item>
+          <Form.Item label="状态" name="status" rules={[{ required: true, message: "请选择状态" }]}>
+            <Select options={[{ label: "启用", value: 1 }, { label: "停用", value: 0 }]} />
+          </Form.Item>
+          <Form.Item label="经度" name="lng" rules={[{ required: true, message: "请输入经度" }]}>
+            <InputNumber style={{ width: "100%" }} precision={6} />
+          </Form.Item>
+          <Form.Item label="纬度" name="lat" rules={[{ required: true, message: "请输入纬度" }]}>
+            <InputNumber style={{ width: "100%" }} precision={6} />
+          </Form.Item>
+          <Form.Item label="评分" name="recommendScore">
+            <InputNumber style={{ width: "100%" }} min={0.1} max={9.9} precision={1} />
+          </Form.Item>
+          <Form.Item label="热度" name="hotScore">
+            <InputNumber style={{ width: "100%" }} min={0} />
+          </Form.Item>
+          <Form.Item label="建议时长（分钟）" name="suggestedDuration">
+            <InputNumber style={{ width: "100%" }} min={0} />
+          </Form.Item>
+          <Form.Item label="排序" name="sortOrder">
+            <InputNumber style={{ width: "100%" }} min={0} />
+          </Form.Item>
+        </div>
+        <Form.Item label="景点地址" name="address" rules={[{ required: true, message: "请输入景点地址" }]}>
+          <Input placeholder="请输入景点地址" />
+        </Form.Item>
+        <Form.Item label="封面图地址" name="coverUrl">
+          <Input placeholder="请输入封面图地址" />
+        </Form.Item>
+        <Form.Item label="开放时间" name="openingHours">
+          <Input placeholder="请输入开放时间" />
+        </Form.Item>
+        <Form.Item label="门票信息" name="ticketInfo">
+          <Input placeholder="请输入门票信息" />
+        </Form.Item>
+        <Form.Item label="推荐时间" name="bestTime">
+          <Input placeholder="请输入推荐游玩时间" />
+        </Form.Item>
+        <Form.Item label="摘要" name="summary">
+          <Input.TextArea rows={2} placeholder="请输入景点摘要" />
+        </Form.Item>
+        <Form.Item label="推荐理由" name="recommendReason">
+          <Input.TextArea rows={2} placeholder="请输入推荐理由" />
+        </Form.Item>
+        <Form.Item label="详细介绍" name="description">
+          <Input.TextArea rows={3} placeholder="请输入详细介绍" />
+        </Form.Item>
+        <Form.Item label="游玩攻略" name="travelGuide">
+          <Input.TextArea rows={3} placeholder="请输入游玩攻略" />
+        </Form.Item>
+        <Form.Item label="适合人群" name="suitableCrowd">
+          <Input placeholder="请输入适合人群" />
+        </Form.Item>
+        <Form.Item label="高德 POI ID" name="amapPoiId">
+          <Input placeholder="请输入高德 POI ID" />
+        </Form.Item>
+        <Form.Item label="边界 GeoJSON" name="boundaryGeojson">
+          <Input.TextArea rows={3} placeholder="如有需要可输入区域边界 GeoJSON" />
+        </Form.Item>
+        <div className={sectionStyles.switchGrid}>
+          <Form.Item label="免费景点" name="isFree" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item label="室内景点" name="isIndoor" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item label="适合夜游" name="isNight" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item label="雨天可去" name="isRainyDay" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item label="地铁方便" name="subwayFriendly" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item label="首次必去" name="firstVisit" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+        </div>
+      </Form>
+    </Modal>
+  );
+}
 
 // 景点管理模块提供景点基础资料的筛选、编辑、新增和删除。
 export function AdminSpotsSection({
@@ -74,47 +257,8 @@ export function AdminSpotsSection({
   onSubmitEdit,
   onTypeFilterChange,
 }: AdminSpotsSectionProps) {
-  const [form] = Form.useForm<AdminSpotFormValues>();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const isCreateMode = editingSpot?.id === 0;
-
-  useEffect(() => {
-    if (!editingSpot) {
-      form.resetFields();
-      return;
-    }
-    form.setFieldsValue({
-      cityId: editingSpot.cityId,
-      spotName: editingSpot.name,
-      spotType: editingSpot.type,
-      lng: editingSpot.position.lng,
-      lat: editingSpot.position.lat,
-      address: editingSpot.address,
-      amapPoiId: editingSpot.amapPoiId ?? undefined,
-      boundaryGeojson: editingSpot.boundaryGeojson ?? undefined,
-      coverUrl: editingSpot.coverUrl ?? undefined,
-      summary: editingSpot.summary ?? undefined,
-      description: editingSpot.description ?? undefined,
-      recommendReason: editingSpot.recommendReason ?? undefined,
-      travelGuide: editingSpot.travelGuide ?? undefined,
-      openingHours: editingSpot.openingHours ?? undefined,
-      ticketInfo: editingSpot.ticketInfo ?? undefined,
-      suggestedDuration: editingSpot.suggestedDurationMinutes ?? undefined,
-      bestTime: editingSpot.bestTime ?? undefined,
-      recommendScore: editingSpot.recommendScore ?? undefined,
-      hotScore: editingSpot.hotScore ?? undefined,
-      suitableCrowd: editingSpot.suitableCrowd ?? undefined,
-      isFree: editingSpot.free,
-      isIndoor: editingSpot.indoor,
-      isNight: editingSpot.night,
-      isRainyDay: editingSpot.rainyDay,
-      subwayFriendly: editingSpot.subwayFriendly,
-      firstVisit: editingSpot.firstVisit,
-      sortOrder: editingSpot.sortOrder ?? undefined,
-      status: editingSpot.status,
-    });
-  }, [editingSpot, form]);
 
   const columns = useMemo<ColumnsType<AdminSpotDto>>(
     () => [
@@ -295,128 +439,14 @@ export function AdminSpotsSection({
           />
         </div>
 
-        <Modal
-          title={isCreateMode ? "新增景点" : "编辑景点"}
-          open={Boolean(editingSpot)}
-          okText={isCreateMode ? "创建" : "保存"}
-          cancelText="取消"
-          confirmLoading={isSubmitting}
-          width={860}
+        <AdminSpotEditModal
+          cities={cities}
+          editingSpot={editingSpot}
+          isSubmitting={isSubmitting}
           onCancel={onCloseEditModal}
-          afterClose={() => form.resetFields()}
-          onOk={() => {
-            void form.validateFields().then((values) => {
-              const payload: AdminSpotFormDto = {
-                ...values,
-                isFree: values.isFree ? 1 : 0,
-                isIndoor: values.isIndoor ? 1 : 0,
-                isNight: values.isNight ? 1 : 0,
-                isRainyDay: values.isRainyDay ? 1 : 0,
-                subwayFriendly: values.subwayFriendly ? 1 : 0,
-                firstVisit: values.firstVisit ? 1 : 0,
-              };
-              if (!editingSpot) {
-                return;
-              }
-              if (isCreateMode) {
-                onSubmitCreate(payload);
-                return;
-              }
-              onSubmitEdit(editingSpot, payload);
-            });
-          }}
-        >
-          <Form form={form} layout="vertical">
-            <div className={sectionStyles.formGridTwo}>
-              <Form.Item label="景点名称" name="spotName" rules={[{ required: true, message: "请输入景点名称" }]}>
-                <Input placeholder="请输入景点名称" />
-              </Form.Item>
-              <Form.Item label="所属城市" name="cityId" rules={[{ required: true, message: "请选择所属城市" }]}>
-                <Select options={cities.map((city) => ({ label: city.name, value: city.id }))} />
-              </Form.Item>
-              <Form.Item label="景点类型" name="spotType" rules={[{ required: true, message: "请选择景点类型" }]}>
-                <Select options={spotTypeOptions} />
-              </Form.Item>
-              <Form.Item label="状态" name="status" rules={[{ required: true, message: "请选择状态" }]}>
-                <Select options={[{ label: "启用", value: 1 }, { label: "停用", value: 0 }]} />
-              </Form.Item>
-              <Form.Item label="经度" name="lng" rules={[{ required: true, message: "请输入经度" }]}>
-                <InputNumber style={{ width: "100%" }} precision={6} />
-              </Form.Item>
-              <Form.Item label="纬度" name="lat" rules={[{ required: true, message: "请输入纬度" }]}>
-                <InputNumber style={{ width: "100%" }} precision={6} />
-              </Form.Item>
-              <Form.Item label="评分" name="recommendScore">
-                <InputNumber style={{ width: "100%" }} min={0.1} max={9.9} precision={1} />
-              </Form.Item>
-              <Form.Item label="热度" name="hotScore">
-                <InputNumber style={{ width: "100%" }} min={0} />
-              </Form.Item>
-              <Form.Item label="建议时长（分钟）" name="suggestedDuration">
-                <InputNumber style={{ width: "100%" }} min={0} />
-              </Form.Item>
-              <Form.Item label="排序" name="sortOrder">
-                <InputNumber style={{ width: "100%" }} min={0} />
-              </Form.Item>
-            </div>
-            <Form.Item label="景点地址" name="address" rules={[{ required: true, message: "请输入景点地址" }]}>
-              <Input placeholder="请输入景点地址" />
-            </Form.Item>
-            <Form.Item label="封面图地址" name="coverUrl">
-              <Input placeholder="请输入封面图地址" />
-            </Form.Item>
-            <Form.Item label="开放时间" name="openingHours">
-              <Input placeholder="请输入开放时间" />
-            </Form.Item>
-            <Form.Item label="门票信息" name="ticketInfo">
-              <Input placeholder="请输入门票信息" />
-            </Form.Item>
-            <Form.Item label="推荐时间" name="bestTime">
-              <Input placeholder="请输入推荐游玩时间" />
-            </Form.Item>
-            <Form.Item label="摘要" name="summary">
-              <Input.TextArea rows={2} placeholder="请输入景点摘要" />
-            </Form.Item>
-            <Form.Item label="推荐理由" name="recommendReason">
-              <Input.TextArea rows={2} placeholder="请输入推荐理由" />
-            </Form.Item>
-            <Form.Item label="详细介绍" name="description">
-              <Input.TextArea rows={3} placeholder="请输入详细介绍" />
-            </Form.Item>
-            <Form.Item label="游玩攻略" name="travelGuide">
-              <Input.TextArea rows={3} placeholder="请输入游玩攻略" />
-            </Form.Item>
-            <Form.Item label="适合人群" name="suitableCrowd">
-              <Input placeholder="请输入适合人群" />
-            </Form.Item>
-            <Form.Item label="高德 POI ID" name="amapPoiId">
-              <Input placeholder="请输入高德 POI ID" />
-            </Form.Item>
-            <Form.Item label="边界 GeoJSON" name="boundaryGeojson">
-              <Input.TextArea rows={3} placeholder="如有需要可输入区域边界 GeoJSON" />
-            </Form.Item>
-            <div className={sectionStyles.switchGrid}>
-              <Form.Item label="免费景点" name="isFree" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item label="室内景点" name="isIndoor" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item label="适合夜游" name="isNight" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item label="雨天可去" name="isRainyDay" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item label="地铁方便" name="subwayFriendly" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item label="首次必去" name="firstVisit" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-            </div>
-          </Form>
-        </Modal>
+          onSubmitCreate={onSubmitCreate}
+          onSubmitEdit={onSubmitEdit}
+        />
       </div>
     </section>
   );

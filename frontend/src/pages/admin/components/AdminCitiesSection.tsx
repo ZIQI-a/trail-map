@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { AdminCityDto, AdminCityFormDto } from "../../../types/admin";
 import sectionStyles from "./AdminSections.module.css";
 
@@ -24,6 +24,112 @@ type AdminCitiesSectionProps = {
 
 type AdminCityFormValues = AdminCityFormDto;
 
+type AdminCityEditModalProps = {
+  editingCity: AdminCityDto | null;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmitCreate: (payload: AdminCityFormDto) => void;
+  onSubmitEdit: (city: AdminCityDto, payload: Partial<AdminCityFormDto>) => void;
+};
+
+function AdminCityEditModal({
+  editingCity,
+  isSubmitting,
+  onCancel,
+  onSubmitCreate,
+  onSubmitEdit,
+}: AdminCityEditModalProps) {
+  const [form] = Form.useForm<AdminCityFormValues>();
+
+  if (!editingCity) {
+    return null;
+  }
+
+  const isCreateMode = editingCity.id === 0;
+
+  return (
+    <Modal
+      title={isCreateMode ? "新增城市" : "编辑城市"}
+      open
+      okText={isCreateMode ? "创建" : "保存"}
+      cancelText="取消"
+      confirmLoading={isSubmitting}
+      destroyOnHidden
+      width={720}
+      afterOpenChange={(opened) => {
+        if (opened) {
+          form.setFieldsValue({
+            cityName: editingCity.name,
+            provinceName: editingCity.provinceName,
+            cityCode: editingCity.cityCode,
+            centerLng: editingCity.center.lng,
+            centerLat: editingCity.center.lat,
+            mapZoom: editingCity.mapZoom,
+            coverUrl: editingCity.coverUrl,
+            description: editingCity.description,
+            recommendDays: editingCity.recommendDays,
+            hotScore: editingCity.hotScore,
+            sortOrder: editingCity.sortOrder ?? 0,
+            status: editingCity.status,
+          });
+        }
+      }}
+      onCancel={onCancel}
+      afterClose={() => form.resetFields()}
+      onOk={() => {
+        void form.validateFields().then((values) => {
+          if (isCreateMode) {
+            onSubmitCreate(values);
+            return;
+          }
+          onSubmitEdit(editingCity, values);
+        });
+      }}
+    >
+      <Form form={form} layout="vertical">
+        <div className={sectionStyles.formGridTwo}>
+          <Form.Item label="城市名称" name="cityName" rules={[{ required: true, message: "请输入城市名称" }]}>
+            <Input placeholder="例如：南京市" />
+          </Form.Item>
+          <Form.Item label="所属省份" name="provinceName" rules={[{ required: true, message: "请输入所属省份" }]}>
+            <Input placeholder="例如：江苏省" />
+          </Form.Item>
+          <Form.Item label="城市编码" name="cityCode" rules={[{ required: true, message: "请输入城市编码" }]}>
+            <Input placeholder="例如：nanjing" />
+          </Form.Item>
+          <Form.Item label="地图缩放" name="mapZoom" rules={[{ required: true, message: "请输入地图缩放" }]}>
+            <InputNumber min={1} max={20} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="中心经度" name="centerLng" rules={[{ required: true, message: "请输入中心经度" }]}>
+            <InputNumber style={{ width: "100%" }} precision={6} />
+          </Form.Item>
+          <Form.Item label="中心纬度" name="centerLat" rules={[{ required: true, message: "请输入中心纬度" }]}>
+            <InputNumber style={{ width: "100%" }} precision={6} />
+          </Form.Item>
+          <Form.Item label="推荐天数" name="recommendDays">
+            <InputNumber min={0.5} max={30} style={{ width: "100%" }} precision={1} />
+          </Form.Item>
+          <Form.Item label="热度" name="hotScore">
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="排序" name="sortOrder">
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="状态" name="status">
+            <Select options={[{ label: "启用", value: 1 }, { label: "停用", value: 0 }]} />
+          </Form.Item>
+        </div>
+        <Form.Item label="封面图地址" name="coverUrl">
+          <Input placeholder="请输入封面图地址" />
+        </Form.Item>
+        <Form.Item label="城市简介" name="description">
+          <Input.TextArea rows={4} placeholder="请输入城市简介" />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
 // 城市管理模块提供城市基础资料的列表查看、创建、编辑和删除。
 export function AdminCitiesSection({
   cities,
@@ -41,31 +147,8 @@ export function AdminCitiesSection({
   onSubmitCreate,
   onSubmitEdit,
 }: AdminCitiesSectionProps) {
-  const [form] = Form.useForm<AdminCityFormValues>();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const isCreateMode = editingCity?.id === 0;
-
-  useEffect(() => {
-    if (!editingCity) {
-      form.resetFields();
-      return;
-    }
-    form.setFieldsValue({
-      cityName: editingCity.name,
-      provinceName: editingCity.provinceName,
-      cityCode: editingCity.cityCode,
-      centerLng: editingCity.center.lng,
-      centerLat: editingCity.center.lat,
-      mapZoom: editingCity.mapZoom,
-      coverUrl: editingCity.coverUrl,
-      description: editingCity.description,
-      recommendDays: editingCity.recommendDays,
-      hotScore: editingCity.hotScore,
-      sortOrder: editingCity.sortOrder ?? 0,
-      status: editingCity.status,
-    });
-  }, [editingCity, form]);
 
   const filteredCities = useMemo(
     () =>
@@ -243,69 +326,13 @@ export function AdminCitiesSection({
           />
         </div>
 
-        <Modal
-          title={isCreateMode ? "新增城市" : "编辑城市"}
-          open={Boolean(editingCity)}
-          okText={isCreateMode ? "创建" : "保存"}
-          cancelText="取消"
-          confirmLoading={isSubmitting}
-          width={720}
+        <AdminCityEditModal
+          editingCity={editingCity}
+          isSubmitting={isSubmitting}
           onCancel={onCloseEditModal}
-          afterClose={() => form.resetFields()}
-          onOk={() => {
-            void form.validateFields().then((values) => {
-              if (!editingCity) {
-                return;
-              }
-              if (isCreateMode) {
-                onSubmitCreate(values);
-                return;
-              }
-              onSubmitEdit(editingCity, values);
-            });
-          }}
-        >
-          <Form form={form} layout="vertical">
-            <div className={sectionStyles.formGridTwo}>
-              <Form.Item label="城市名称" name="cityName" rules={[{ required: true, message: "请输入城市名称" }]}>
-                <Input placeholder="例如：南京市" />
-              </Form.Item>
-              <Form.Item label="所属省份" name="provinceName" rules={[{ required: true, message: "请输入所属省份" }]}>
-                <Input placeholder="例如：江苏省" />
-              </Form.Item>
-              <Form.Item label="城市编码" name="cityCode" rules={[{ required: true, message: "请输入城市编码" }]}>
-                <Input placeholder="例如：nanjing" />
-              </Form.Item>
-              <Form.Item label="地图缩放" name="mapZoom" rules={[{ required: true, message: "请输入地图缩放" }]}>
-                <InputNumber min={1} max={20} style={{ width: "100%" }} />
-              </Form.Item>
-              <Form.Item label="中心经度" name="centerLng" rules={[{ required: true, message: "请输入中心经度" }]}>
-                <InputNumber style={{ width: "100%" }} precision={6} />
-              </Form.Item>
-              <Form.Item label="中心纬度" name="centerLat" rules={[{ required: true, message: "请输入中心纬度" }]}>
-                <InputNumber style={{ width: "100%" }} precision={6} />
-              </Form.Item>
-              <Form.Item label="推荐天数" name="recommendDays">
-                <InputNumber min={0.5} max={30} style={{ width: "100%" }} precision={1} />
-              </Form.Item>
-              <Form.Item label="热度" name="hotScore">
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-              <Form.Item label="排序" name="sortOrder">
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-              <Form.Item label="状态" name="status">
-                <Select options={[{ label: "启用", value: 1 }, { label: "停用", value: 0 }]} />
-              </Form.Item>
-            </div>
-            <Form.Item label="封面图地址" name="coverUrl">
-              <Input placeholder="请输入封面图地址" />
-            </Form.Item>
-            <Form.Item label="城市简介" name="description">
-              <Input.TextArea rows={4} placeholder="请输入城市简介" />
-            </Form.Item>
-          </Form>
-        </Modal>
+          onSubmitCreate={onSubmitCreate}
+          onSubmitEdit={onSubmitEdit}
+        />
       </div>
     </section>
   );

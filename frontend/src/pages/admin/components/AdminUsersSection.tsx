@@ -21,7 +21,7 @@ import {
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { roleOptions, statusOptions } from "../../../admin/config";
 import type { AdminStatusFilter } from "../../../admin/types";
 import type { AppUserDto, UserUpdateRequestDto } from "../../../types/auth";
@@ -59,6 +59,99 @@ type AdminUserEditFormValues = {
   userType: AppUserDto["userType"];
 };
 
+type AdminUserEditModalProps = {
+  currentUserId?: number;
+  editingUser: AppUserDto | null;
+  isUpdating: boolean;
+  onCancel: () => void;
+  onSubmitEdit: (user: AppUserDto, payload: UserUpdateRequestDto) => void;
+};
+
+function AdminUserEditModal({
+  currentUserId,
+  editingUser,
+  isUpdating,
+  onCancel,
+  onSubmitEdit,
+}: AdminUserEditModalProps) {
+  const [form] = Form.useForm<AdminUserEditFormValues>();
+
+  if (!editingUser) {
+    return null;
+  }
+
+  return (
+    <Modal
+      title="编辑用户"
+      open
+      okText="保存"
+      cancelText="取消"
+      confirmLoading={isUpdating}
+      destroyOnHidden
+      afterOpenChange={(opened) => {
+        if (opened) {
+          form.setFieldsValue({
+            nickname: editingUser.nickname,
+            phone: editingUser.phone ?? undefined,
+            email: editingUser.email ?? undefined,
+            avatarUrl: editingUser.avatarUrl ?? undefined,
+            userType: editingUser.userType,
+          });
+        }
+      }}
+      onCancel={onCancel}
+      afterClose={() => form.resetFields()}
+      onOk={() => {
+        void form.validateFields().then((values) => {
+          onSubmitEdit(editingUser, {
+            nickname: values.nickname.trim(),
+            phone: values.phone?.trim() || null,
+            email: values.email?.trim() || null,
+            avatarUrl: values.avatarUrl?.trim() || null,
+            userType: values.userType,
+          });
+        });
+      }}
+    >
+      <Form form={form} layout="vertical">
+        <Form.Item label="用户名">
+          <Input value={editingUser.username} disabled />
+        </Form.Item>
+        <Form.Item
+          label="昵称"
+          name="nickname"
+          rules={[{ required: true, message: "请输入昵称" }]}
+        >
+          <Input maxLength={30} placeholder="请输入用户昵称" />
+        </Form.Item>
+        <Form.Item
+          label="角色"
+          name="userType"
+          rules={[{ required: true, message: "请选择角色" }]}
+        >
+          <Select
+            options={roleOptions}
+            disabled={currentUserId === editingUser.id}
+          />
+        </Form.Item>
+        <Form.Item label="手机号" name="phone">
+          <Input maxLength={20} placeholder="请输入手机号" />
+        </Form.Item>
+        <Form.Item
+          label="邮箱"
+          name="email"
+          rules={[{ type: "email", message: "邮箱格式不正确" }]}
+        >
+          <Input maxLength={60} placeholder="请输入邮箱" />
+        </Form.Item>
+        <Form.Item label="头像地址" name="avatarUrl">
+          <Input placeholder="请输入头像 URL" />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
 // 用户管理模块聚焦列表筛选与基础操作，角色和资料编辑统一收敛到弹窗中。
 export function AdminUsersSection({
   currentUserId,
@@ -79,27 +172,11 @@ export function AdminUsersSection({
   onToggleStatus,
   onSubmitEdit,
 }: AdminUsersSectionProps) {
-  const [form] = Form.useForm<AdminUserEditFormValues>();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const screens = Grid.useBreakpoint();
   const isMediumScreen = Boolean(screens.md);
   const isLargeScreen = Boolean(screens.lg);
-
-  // 编辑对象变化时同步表单初始值，避免切换用户后残留上一次输入。
-  useEffect(() => {
-    if (!editingUser) {
-      form.resetFields();
-      return;
-    }
-    form.setFieldsValue({
-      nickname: editingUser.nickname,
-      phone: editingUser.phone ?? undefined,
-      email: editingUser.email ?? undefined,
-      avatarUrl: editingUser.avatarUrl ?? undefined,
-      userType: editingUser.userType,
-    });
-  }, [editingUser, form]);
 
   const columns = useMemo<ColumnsType<AppUserDto>>(
     () => [
@@ -316,65 +393,13 @@ export function AdminUsersSection({
           />
         </div>
 
-        <Modal
-          title="编辑用户"
-          open={Boolean(editingUser)}
-          okText="保存"
-          cancelText="取消"
-          confirmLoading={isUpdating}
+        <AdminUserEditModal
+          currentUserId={currentUserId}
+          editingUser={editingUser}
+          isUpdating={isUpdating}
           onCancel={onCloseEditModal}
-          afterClose={() => form.resetFields()}
-          onOk={() => {
-            void form.validateFields().then((values) => {
-              if (!editingUser) {
-                return;
-              }
-              onSubmitEdit(editingUser, {
-                nickname: values.nickname.trim(),
-                phone: values.phone?.trim() || null,
-                email: values.email?.trim() || null,
-                avatarUrl: values.avatarUrl?.trim() || null,
-                userType: values.userType,
-              });
-            });
-          }}
-        >
-          <Form form={form} layout="vertical">
-            <Form.Item label="用户名">
-              <Input value={editingUser?.username} disabled />
-            </Form.Item>
-            <Form.Item
-              label="昵称"
-              name="nickname"
-              rules={[{ required: true, message: "请输入昵称" }]}
-            >
-              <Input maxLength={30} placeholder="请输入用户昵称" />
-            </Form.Item>
-            <Form.Item
-              label="角色"
-              name="userType"
-              rules={[{ required: true, message: "请选择角色" }]}
-            >
-              <Select
-                options={roleOptions}
-                disabled={currentUserId === editingUser?.id}
-              />
-            </Form.Item>
-            <Form.Item label="手机号" name="phone">
-              <Input maxLength={20} placeholder="请输入手机号" />
-            </Form.Item>
-            <Form.Item
-              label="邮箱"
-              name="email"
-              rules={[{ type: "email", message: "邮箱格式不正确" }]}
-            >
-              <Input maxLength={60} placeholder="请输入邮箱" />
-            </Form.Item>
-            <Form.Item label="头像地址" name="avatarUrl">
-              <Input placeholder="请输入头像 URL" />
-            </Form.Item>
-          </Form>
-        </Modal>
+          onSubmitEdit={onSubmitEdit}
+        />
       </div>
     </section>
   );
