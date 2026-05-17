@@ -100,6 +100,14 @@ export function AdminPage() {
   const users = useMemo(() => usersQuery.data?.list ?? [], [usersQuery.data?.list]);
   const cities = useMemo(() => citiesQuery.data?.list ?? [], [citiesQuery.data?.list]);
   const spots = useMemo(() => spotsQuery.data?.list ?? [], [spotsQuery.data?.list]);
+  const activeSearchKeyword =
+    activeSection === "users"
+      ? searchKeyword
+      : activeSection === "cities"
+        ? cityKeyword
+        : activeSection === "spots"
+          ? spotKeyword
+          : "";
   // 屏幕较小时自动收起侧边栏，保证右侧主内容区域的可用宽度。
   useEffect(() => {
     if (lastLargeScreenRef.current === screens.lg) {
@@ -310,10 +318,25 @@ export function AdminPage() {
           activeSection={activeSection}
           currentUser={currentAdmin}
           isRefreshing={overviewQuery.isFetching || usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
-          searchKeyword={searchKeyword}
+          searchKeyword={activeSearchKeyword}
           onLogout={handleLogout}
           onRefresh={handleRefreshCurrentSection}
-          onSearchChange={setSearchKeyword}
+          onSearchChange={(value) => {
+            if (activeSection === "users") {
+              setSearchKeyword(value);
+              setUserPageNum(1);
+              return;
+            }
+            if (activeSection === "cities") {
+              setCityKeyword(value);
+              setCityPageNum(1);
+              return;
+            }
+            if (activeSection === "spots") {
+              setSpotKeyword(value);
+              setSpotPageNum(1);
+            }
+          }}
         />
 
         {activeSection === "overview" ? (
