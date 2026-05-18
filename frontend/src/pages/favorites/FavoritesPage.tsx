@@ -73,6 +73,7 @@ export function FavoritesPage() {
     Boolean(authToken),
   );
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
+  // 获取所有收藏的景点，用于生成筛选项
   const favoriteSpotOptionsQuery = useFavoriteSpotsQuery(
     {
       sortBy: "latest",
@@ -540,7 +541,6 @@ function resolveSpotTypeLabel(type: FavoriteSpotItemDto["type"]) {
       return "景点";
   }
 }
-
 
 function formatFavoriteDate(value: string) {
   const date = new Date(value);

@@ -2,7 +2,6 @@ package com.trailmap.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.trailmap.common.ErrorCode;
 import com.trailmap.entity.City;
 import com.trailmap.entity.Spot;
@@ -85,10 +84,8 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
             return PageResponse.unpaged(items);
         }
 
-        Page<UserFavoriteSpot> page = userFavoriteSpotMapper.selectPage(
-                new Page<>(1, Math.max(pageQuery.resolvedPageNum() * pageQuery.resolvedPageSize(), pageQuery.resolvedPageSize())),
-                favoriteQuery);
-        List<FavoriteSpotItemResponse> matchedItems = page.getRecords()
+        // 分页总数必须基于“完整筛选结果”计算，不能先按页截断再统计，否则 total 会被误算成当前窗口条数。
+        List<FavoriteSpotItemResponse> matchedItems = userFavoriteSpotMapper.selectList(favoriteQuery)
                 .stream()
                 .map(favorite -> toFavoriteItemResponse(favorite, cityMap, tagMapping))
                 .filter(item -> item != null)
