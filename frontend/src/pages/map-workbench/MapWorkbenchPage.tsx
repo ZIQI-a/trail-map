@@ -34,6 +34,8 @@ import {
   type ActiveSpotFilter,
 } from "../../components/map-workbench/WorkbenchHeader";
 import {
+  useFavoriteSpotMutation,
+  useFavoriteSpotStatusQuery,
   useCitiesQuery,
   useCityDetailQuery,
   useCitySpotsQuery,
@@ -44,6 +46,7 @@ import {
   useRegisterMutation,
   useRoutePlanMutation,
   useSpotDetailQuery,
+  useUnfavoriteSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../../lib/authToken";
@@ -147,6 +150,8 @@ export function MapWorkbenchPage() {
   const routePlanMutation = useRoutePlanMutation();
   const loginMutation = useLoginMutation();
   const registerMutation = useRegisterMutation();
+  const favoriteSpotMutation = useFavoriteSpotMutation();
+  const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const cities = useMemo(
     () =>
@@ -209,6 +214,10 @@ export function MapWorkbenchPage() {
     ? selectedSpotId
     : undefined;
   const spotDetailQuery = useSpotDetailQuery(effectiveSelectedSpotId);
+  const favoriteSpotStatusQuery = useFavoriteSpotStatusQuery(
+    effectiveSelectedSpotId,
+    Boolean(authToken),
+  );
   const selectedSpot = useMemo(
     () =>
       mergeSpotDetail(
@@ -361,6 +370,31 @@ export function MapWorkbenchPage() {
     setAuthTokenState(null);
     setAuthError(undefined);
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
+    queryClient.removeQueries({ queryKey: ["favorite-spot-status"] });
+  }
+
+  // 收藏按钮未登录时先拉起登录弹窗；已登录时按当前状态切换收藏关系。
+  async function handleToggleFavorite(spotId: number) {
+    if (!authToken) {
+      setAuthError(undefined);
+      setAuthDialogOpen(true);
+      return;
+    }
+
+    try {
+      if (favoriteSpotStatusQuery.data?.favorited) {
+        await unfavoriteSpotMutation.mutateAsync(spotId);
+      } else {
+        await favoriteSpotMutation.mutateAsync(spotId);
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ["favorite-spot-status", spotId],
+      });
+    } catch (error) {
+      setPlannerAssistError(
+        error instanceof Error ? error.message : "收藏操作失败",
+      );
+    }
   }
 
   // 加入行程时去重，避免同一个景点在路线规划池中重复出现。
@@ -807,11 +841,17 @@ export function MapWorkbenchPage() {
         {selectedSpot && !routePlanResult ? (
           <div className={styles.detailFloatPanel}>
             <SpotDetailPanel
+              favoriteLoading={
+                favoriteSpotMutation.isPending || unfavoriteSpotMutation.isPending
+              }
+              isFavorite={favoriteSpotStatusQuery.data?.favorited ?? false}
+              isLoggedIn={Boolean(authToken)}
               spot={selectedSpot}
               tags={tags}
               nearbySpots={nearbySpots}
               isInTrip={tripSpotIds.includes(selectedSpot.id)}
               onAddToTrip={handleAddToTrip}
+              onToggleFavorite={handleToggleFavorite}
               onSelectSpot={setSelectedSpotId}
             />
           </div>

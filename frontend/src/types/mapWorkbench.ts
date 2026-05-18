@@ -179,6 +179,11 @@ export interface TravelSpotDetailDto extends TravelSpotSummaryDto {
   suitableCrowd: string;
 }
 
+// 收藏状态接口响应对象，供详情面板收藏按钮使用。
+export interface FavoriteSpotStatusDto {
+  favorited: boolean;
+}
+
 // 起点候选项：复用百度地点检索结果，优先给行程规划起点做名称转坐标。
 export interface PoiCalibrationCandidateDto {
   name: string;

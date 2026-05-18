@@ -30,15 +30,33 @@
   gap: 8px;
 }
 
-.coverActions span {
+.favoriteButton {
   width: 34px;
   height: 34px;
   display: grid;
   place-items: center;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
   color: #24415f;
   background: rgb(255 255 255 / 92%);
   box-shadow: 0 8px 18px rgb(13 30 56 / 16%);
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.favoriteButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.favoriteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.favoriteButtonActive {
+  color: #ff5a68;
+  background: rgb(255 240 242 / 96%);
 }
 
 .panelLabel,

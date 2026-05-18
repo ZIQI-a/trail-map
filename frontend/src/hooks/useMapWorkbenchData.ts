@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail } from '../api/mapWorkbench';
+import { favoriteSpot, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, unfavoriteSpot } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto } from '../types/mapWorkbench';
@@ -51,6 +51,27 @@ export function useSpotDetailQuery(spotId?: number) {
     queryKey: ['spot-detail', spotId],
     queryFn: () => fetchSpotDetail(spotId!),
     enabled: spotId != null,
+  });
+}
+
+// 收藏状态只在已登录且已选中景点时查询，避免未登录时产生 401 请求。
+export function useFavoriteSpotStatusQuery(spotId?: number, enabled = false) {
+  return useQuery({
+    queryKey: ['favorite-spot-status', spotId],
+    queryFn: () => fetchFavoriteSpotStatus(spotId!),
+    enabled: enabled && spotId != null,
+  });
+}
+
+export function useFavoriteSpotMutation() {
+  return useMutation({
+    mutationFn: (spotId: number) => favoriteSpot(spotId),
+  });
+}
+
+export function useUnfavoriteSpotMutation() {
+  return useMutation({
+    mutationFn: (spotId: number) => unfavoriteSpot(spotId),
   });
 }
 

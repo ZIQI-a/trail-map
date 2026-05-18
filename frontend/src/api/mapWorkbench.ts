@@ -1,6 +1,7 @@
 import { request } from '../lib/http';
 import type {
   PageResponse,
+  FavoriteSpotStatusDto,
   PoiCalibrationCandidateDto,
   RoutePlanRequestDto,
   RoutePlanResponseDto,
@@ -45,6 +46,25 @@ export function fetchCitySpots(cityId: number, params?: { keyword?: string; type
 // 获取景点详情，在右侧详情面板选中景点时请求。
 export function fetchSpotDetail(spotId: number) {
   return request<TravelSpotDetailDto>(`/api/spots/${spotId}`);
+}
+
+// 获取当前登录用户对指定景点的收藏状态。
+export function fetchFavoriteSpotStatus(spotId: number) {
+  return request<FavoriteSpotStatusDto>(`/api/favorite-spots/${spotId}/status`);
+}
+
+// 收藏指定景点，成功后返回最新收藏状态。
+export function favoriteSpot(spotId: number) {
+  return request<FavoriteSpotStatusDto>(`/api/favorite-spots/${spotId}`, {
+    method: 'POST',
+  });
+}
+
+// 取消收藏指定景点，成功后返回最新收藏状态。
+export function unfavoriteSpot(spotId: number) {
+  return request<FavoriteSpotStatusDto>(`/api/favorite-spots/${spotId}`, {
+    method: 'DELETE',
+  });
 }
 
 // 用百度地点检索把用户输入的起点名称解析成候选坐标。

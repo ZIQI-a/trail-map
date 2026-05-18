@@ -53,6 +53,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/auth/me")
                         .authenticated()
+                        .requestMatchers("/api/favorite-spots/**")
+                        .authenticated()
                         .requestMatchers("/api/users/**")
                         .hasRole("ADMIN")
                         .anyRequest()

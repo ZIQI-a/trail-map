@@ -2,6 +2,7 @@ import {
   ClockCircleOutlined,
   CompassOutlined,
   EnvironmentOutlined,
+  HeartFilled,
   HeartOutlined,
   PlusOutlined,
   StarFilled,
@@ -13,21 +14,29 @@ import { formatDuration, getSpotTagName } from '../../../utils/map-workbench/spo
 import styles from './SpotDetailPanel.module.css';
 
 interface SpotDetailPanelProps {
+  favoriteLoading: boolean;
+  isFavorite: boolean;
+  isLoggedIn: boolean;
   spot?: TravelSpot;
   tags: SpotTag[];
   nearbySpots: TravelSpot[];
   isInTrip: boolean;
   onAddToTrip: (spotId: number) => void;
+  onToggleFavorite: (spotId: number) => void;
   onSelectSpot: (spotId: number) => void;
 }
 
 // SpotDetailPanel 负责右侧选中景点详情和加入行程入口。
 export function SpotDetailPanel({
+  favoriteLoading,
+  isFavorite,
+  isLoggedIn,
   spot,
   tags,
   nearbySpots,
   isInTrip,
   onAddToTrip,
+  onToggleFavorite,
   onSelectSpot,
 }: SpotDetailPanelProps) {
   if (!spot) {
@@ -45,8 +54,17 @@ export function SpotDetailPanel({
         className={styles.coverBlock}
         style={spot.coverUrl ? { backgroundImage: `linear-gradient(180deg, rgb(13 30 56 / 4%), rgb(13 30 56 / 62%)), url(${spot.coverUrl})` } : undefined}
       >
-        <div className={styles.coverActions} aria-hidden="true">
-          <span><HeartOutlined /></span>
+        <div className={styles.coverActions}>
+          <button
+            className={`${styles.favoriteButton} ${isFavorite ? styles.favoriteButtonActive : ''}`}
+            type="button"
+            aria-label={isLoggedIn ? (isFavorite ? '取消收藏景点' : '收藏景点') : '登录后收藏景点'}
+            aria-pressed={isFavorite}
+            disabled={favoriteLoading}
+            onClick={() => onToggleFavorite(spot.id)}
+          >
+            {isFavorite ? <HeartFilled /> : <HeartOutlined />}
+          </button>
         </div>
       </div>
 
