@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.trailmap.common.ErrorCode;
 import com.trailmap.entity.City;
-import com.trailmap.entity.Spot;
 import com.trailmap.entity.SpotTag;
 import com.trailmap.entity.SpotTagRelation;
 import com.trailmap.entity.UserFavoriteSpot;
@@ -17,6 +16,7 @@ import com.trailmap.mapper.UserFavoriteSpotMapper;
 import com.trailmap.model.query.FavoriteSpotQuery;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.response.CoordinateResponse;
+import com.trailmap.model.response.FavoriteSpotBaseRecord;
 import com.trailmap.model.response.FavoriteSpotItemResponse;
 import com.trailmap.model.response.FavoriteSpotStatusResponse;
 import com.trailmap.model.response.PageResponse;
@@ -58,10 +58,6 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
 
     @Override
     public PageResponse<FavoriteSpotItemResponse> listFavoriteSpots(Long userId, FavoriteSpotQuery query, PageQuery pageQuery) {
-        Map<Long, City> cityMap = cityMapper.selectList(new LambdaQueryWrapper<City>()
-                        .eq(City::getStatus, 1))
-                .stream()
-                .collect(Collectors.toMap(City::getId, Function.identity()));
         Map<Long, List<SpotTagResponse>> tagMapping = buildSpotTagMapping();
         LambdaQueryWrapper<UserFavoriteSpot> favoriteQuery = new LambdaQueryWrapper<UserFavoriteSpot>()
                 .eq(UserFavoriteSpot::getUserId, userId);
@@ -74,30 +70,28 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
         }
 
         if (!pageQuery.isPaged()) {
-            List<FavoriteSpotItemResponse> items = userFavoriteSpotMapper.selectList(favoriteQuery)
+            List<FavoriteSpotItemResponse> items = userFavoriteSpotMapper.selectFavoriteSpotPage(
+                            userId,
+                            query,
+                            0,
+                            Integer.MAX_VALUE)
                     .stream()
-                    .map(favorite -> toFavoriteItemResponse(favorite, cityMap, tagMapping))
-                    .filter(item -> item != null)
-                    .filter(item -> matchesFavoriteQuery(item, query))
-                    .sorted(buildFavoriteComparator(query.sortBy()))
+                    .map(record -> toFavoriteItemResponse(record, tagMapping))
                     .toList();
             return PageResponse.unpaged(items);
         }
 
-        // 分页总数必须基于“完整筛选结果”计算，不能先按页截断再统计，否则 total 会被误算成当前窗口条数。
-        List<FavoriteSpotItemResponse> matchedItems = userFavoriteSpotMapper.selectList(favoriteQuery)
+        long total = userFavoriteSpotMapper.countFavoriteSpots(userId, query);
+        long offset = (pageQuery.resolvedPageNum() - 1) * pageQuery.resolvedPageSize();
+        List<FavoriteSpotItemResponse> pagedItems = userFavoriteSpotMapper.selectFavoriteSpotPage(
+                        userId,
+                        query,
+                        offset,
+                        pageQuery.resolvedPageSize())
                 .stream()
-                .map(favorite -> toFavoriteItemResponse(favorite, cityMap, tagMapping))
-                .filter(item -> item != null)
-                .filter(item -> matchesFavoriteQuery(item, query))
-                .sorted(buildFavoriteComparator(query.sortBy()))
+                .map(record -> toFavoriteItemResponse(record, tagMapping))
                 .toList();
-        int startIndex = Math.max(0, (int) ((pageQuery.resolvedPageNum() - 1) * pageQuery.resolvedPageSize()));
-        int endIndex = Math.min(matchedItems.size(), startIndex + (int) pageQuery.resolvedPageSize());
-        List<FavoriteSpotItemResponse> pagedItems = startIndex >= matchedItems.size()
-                ? List.of()
-                : matchedItems.subList(startIndex, endIndex);
-        return PageResponse.paged(pagedItems, matchedItems.size(), pageQuery.resolvedPageNum(), pageQuery.resolvedPageSize());
+        return PageResponse.paged(pagedItems, total, pageQuery.resolvedPageNum(), pageQuery.resolvedPageSize());
     }
 
     @Override
@@ -136,43 +130,34 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
     }
 
     private FavoriteSpotItemResponse toFavoriteItemResponse(
-            UserFavoriteSpot favorite,
-            Map<Long, City> cityMap,
+            FavoriteSpotBaseRecord record,
             Map<Long, List<SpotTagResponse>> tagMapping) {
-        Spot spot = spotMapper.selectOne(new LambdaQueryWrapper<Spot>()
-                .eq(Spot::getId, favorite.getSpotId())
-                .eq(Spot::getStatus, 1));
-        if (spot == null) {
-            return null;
-        }
-
-        City city = cityMap.get(spot.getCityId());
         return new FavoriteSpotItemResponse(
-                favorite.getId(),
-                spot.getId(),
-                spot.getCityId(),
-                city != null ? city.getCityName() : "",
-                spot.getSpotName(),
-                spot.getSpotType(),
-                new CoordinateResponse(spot.getLng(), spot.getLat()),
-                spot.getAddress(),
-                spot.getCoverUrl(),
-                spot.getSummary(),
-                spot.getRecommendReason(),
-                spot.getOpeningHours(),
-                spot.getTicketInfo(),
-                spot.getSuggestedDuration(),
-                spot.getBestTime(),
-                spot.getRecommendScore(),
-                spot.getHotScore(),
-                toBoolean(spot.getIsFree()),
-                toBoolean(spot.getIsIndoor()),
-                toBoolean(spot.getIsNight()),
-                toBoolean(spot.getIsRainyDay()),
-                toBoolean(spot.getSubwayFriendly()),
-                toBoolean(spot.getFirstVisit()),
-                favorite.getCreatedAt(),
-                sortTags(tagMapping.getOrDefault(spot.getId(), List.of()))
+                record.favoriteId(),
+                record.spotId(),
+                record.cityId(),
+                record.cityName(),
+                record.name(),
+                record.type(),
+                new CoordinateResponse(record.lng(), record.lat()),
+                record.address(),
+                record.coverUrl(),
+                record.summary(),
+                record.recommendReason(),
+                record.openingHours(),
+                record.ticketInfo(),
+                record.suggestedDurationMinutes(),
+                record.bestTime(),
+                record.recommendScore(),
+                record.hotScore(),
+                toBoolean(record.isFree()),
+                toBoolean(record.isIndoor()),
+                toBoolean(record.isNight()),
+                toBoolean(record.isRainyDay()),
+                toBoolean(record.subwayFriendly()),
+                toBoolean(record.firstVisit()),
+                record.favoritedAt(),
+                sortTags(tagMapping.getOrDefault(record.spotId(), List.of()))
         );
     }
 
@@ -201,23 +186,6 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
                 .toList();
     }
 
-    private boolean matchesFavoriteQuery(FavoriteSpotItemResponse item, FavoriteSpotQuery query) {
-        boolean matchesType = !StringUtils.hasText(query.type()) || item.type().equals(query.type());
-        boolean matchesCity = !StringUtils.hasText(query.cityName()) || item.cityName().equals(query.cityName().trim());
-        return matchesType && matchesCity;
-    }
-
-    private Comparator<FavoriteSpotItemResponse> buildFavoriteComparator(String sortBy) {
-        if ("score".equals(sortBy)) {
-            return Comparator
-                    .comparing(FavoriteSpotItemResponse::recommendScore, Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(FavoriteSpotItemResponse::favoritedAt, Comparator.nullsLast(Comparator.reverseOrder()));
-        }
-        return Comparator
-                .comparing(FavoriteSpotItemResponse::favoritedAt, Comparator.nullsLast(Comparator.reverseOrder()))
-                .thenComparing(FavoriteSpotItemResponse::favoriteId, Comparator.nullsLast(Comparator.reverseOrder()));
-    }
-
     private void validateSortBy(String sortBy) {
         if (!StringUtils.hasText(sortBy)) {
             return;
@@ -229,10 +197,10 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
 
     // 收藏动作只允许针对当前可见景点执行，避免前端保留过期景点 id 造成脏数据。
     private void validateSpotAvailable(Long spotId) {
-        Spot spot = spotMapper.selectOne(new LambdaQueryWrapper<Spot>()
-                .eq(Spot::getId, spotId)
-                .eq(Spot::getStatus, 1));
-        if (spot == null) {
+        Long count = spotMapper.selectCount(new LambdaQueryWrapper<com.trailmap.entity.Spot>()
+                .eq(com.trailmap.entity.Spot::getId, spotId)
+                .eq(com.trailmap.entity.Spot::getStatus, 1));
+        if (count == null || count == 0L) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "景点不存在或已下线");
         }
     }
