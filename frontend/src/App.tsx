@@ -3,6 +3,7 @@ import zhCN from "antd/locale/zh_CN";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MapWorkbenchPage } from "./pages/map-workbench";
+import { FavoritesPage } from "./pages/favorites";
 import { NotFoundPage } from "./pages/not-found";
 
 const AdminPage = lazy(() =>
@@ -35,6 +36,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
           <Route
             path="/admin"
             element={

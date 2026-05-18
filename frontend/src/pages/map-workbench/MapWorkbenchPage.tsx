@@ -15,6 +15,7 @@ import {
 } from "antd";
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthDialog } from "../../components/map-workbench/AuthDialog";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
@@ -116,6 +117,8 @@ const defaultScheduleConfig: SchedulePlanConfig = {
 
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [authToken, setAuthTokenState] = useState(() => getAuthToken());
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
@@ -125,7 +128,11 @@ export function MapWorkbenchPage() {
   const [activeRecommendTab, setActiveRecommendTab] =
     useState<RecommendTab>("recommend");
   const [selectedCityId, setSelectedCityId] = useState<number>();
-  const [selectedSpotId, setSelectedSpotId] = useState<number>();
+  const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>(() => {
+    const spotIdText = searchParams.get("spotId");
+    const spotId = spotIdText ? Number(spotIdText) : undefined;
+    return spotId && Number.isFinite(spotId) ? spotId : undefined;
+  });
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState("");
   const [startPointPosition, setStartPointPosition] = useState<GeoPoint>();
@@ -464,6 +471,11 @@ export function MapWorkbenchPage() {
   function handleCityChange(cityId: number) {
     setSelectedCityId(cityId);
     setSelectedSpotId(undefined);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      nextParams.delete("spotId");
+      return nextParams;
+    });
     setTripSpotIds([]);
     setRoutePlanResult(undefined);
     setStartPoint("");
@@ -726,6 +738,11 @@ export function MapWorkbenchPage() {
   function handleFocusRouteTimelineLocation(target: RouteTimelineFocusTarget) {
     if (target.spotId) {
       setSelectedSpotId(target.spotId);
+      setSearchParams((currentParams) => {
+        const nextParams = new URLSearchParams(currentParams);
+        nextParams.set("spotId", String(target.spotId));
+        return nextParams;
+      });
     }
 
     setMapFocusTarget({
@@ -778,6 +795,14 @@ export function MapWorkbenchPage() {
           setAuthError(undefined);
           setAuthDialogOpen(true);
         }}
+        onFavoritesClick={() => {
+          if (!authToken) {
+            setAuthError(undefined);
+            setAuthDialogOpen(true);
+            return;
+          }
+          navigate("/favorites");
+        }}
         onAdminClick={() => window.open("/admin", "_blank", "noopener,noreferrer")}
         onLogout={handleLogout}
       />
@@ -794,7 +819,14 @@ export function MapWorkbenchPage() {
           focusTarget={mapFocusTarget}
           startPointPicking={startPointPicking}
           startPointPosition={startPointPosition}
-          onSelectSpot={setSelectedSpotId}
+          onSelectSpot={(spotId) => {
+            setSelectedSpotId(spotId);
+            setSearchParams((currentParams) => {
+              const nextParams = new URLSearchParams(currentParams);
+              nextParams.set("spotId", String(spotId));
+              return nextParams;
+            });
+          }}
           onPickStartPoint={handlePickMapStartPoint}
         />
 
@@ -832,7 +864,14 @@ export function MapWorkbenchPage() {
               activeTab={activeRecommendTab}
               selectedSpotId={effectiveSelectedSpotId}
               onActiveTabChange={setActiveRecommendTab}
-              onSelectSpot={setSelectedSpotId}
+              onSelectSpot={(spotId) => {
+                setSelectedSpotId(spotId);
+                setSearchParams((currentParams) => {
+                  const nextParams = new URLSearchParams(currentParams);
+                  nextParams.set("spotId", String(spotId));
+                  return nextParams;
+                });
+              }}
               onDragSpotStart={handleDragRecommendSpot}
             />
           )}
@@ -852,7 +891,14 @@ export function MapWorkbenchPage() {
               isInTrip={tripSpotIds.includes(selectedSpot.id)}
               onAddToTrip={handleAddToTrip}
               onToggleFavorite={handleToggleFavorite}
-              onSelectSpot={setSelectedSpotId}
+              onSelectSpot={(spotId) => {
+                setSelectedSpotId(spotId);
+                setSearchParams((currentParams) => {
+                  const nextParams = new URLSearchParams(currentParams);
+                  nextParams.set("spotId", String(spotId));
+                  return nextParams;
+                });
+              }}
             />
           </div>
         ) : null}

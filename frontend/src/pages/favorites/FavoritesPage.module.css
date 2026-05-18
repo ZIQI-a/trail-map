@@ -1,0 +1,397 @@
+.pageShell {
+  min-height: 100vh;
+  padding: 28px 32px 36px;
+  background:
+    radial-gradient(circle at top right, rgb(59 130 246 / 10%), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+}
+
+.pageHeader {
+  display: grid;
+  gap: 24px;
+  padding: 8px 0 28px;
+  border-bottom: 1px solid #dde6f4;
+}
+
+.headerMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #20365d;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.headerMain h1 {
+  margin: 8px 0 0;
+  color: #172b4d;
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+.headerHint {
+  display: inline-block;
+  margin-top: 12px;
+  color: #7a8dab;
+  font-size: 15px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ghostButton {
+  min-height: 44px;
+  padding-inline: 18px;
+  border-radius: 14px;
+}
+
+.viewSwitch {
+  min-height: 44px;
+  padding: 4px;
+  background: #ffffff;
+  border: 1px solid #dbe5f2;
+  border-radius: 16px;
+}
+
+.userButton {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid #dce7f5;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 12px 30px rgb(28 64 118 / 8%);
+  cursor: pointer;
+}
+
+.userAvatar {
+  background: linear-gradient(135deg, #2266e8, #55c5f7);
+}
+
+.userMeta {
+  display: grid;
+  text-align: left;
+}
+
+.userMeta strong {
+  color: #1a3053;
+  font-size: 14px;
+}
+
+.userMeta span {
+  color: #7b8ea9;
+  font-size: 12px;
+}
+
+.categoryRail {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.categoryItem {
+  min-width: 116px;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  color: #70829d;
+  background: transparent;
+  text-align: left;
+}
+
+.categoryItem span {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.categoryItem strong {
+  color: #98a8bd;
+  font-size: 24px;
+}
+
+.categoryItemActive {
+  border-bottom-color: #2e6cff;
+}
+
+.categoryItemActive span,
+.categoryItemActive strong {
+  color: #2e6cff;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 24px 0 8px;
+}
+
+.filterGroup,
+.sortGroup {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterGroup :global(.ant-select),
+.sortGroup :global(.ant-select) {
+  min-width: 152px;
+}
+
+.filterGroup :global(.ant-select-selector),
+.sortGroup :global(.ant-select-selector) {
+  min-height: 42px !important;
+  border-radius: 14px !important;
+}
+
+.inlineStateCard,
+.feedbackCard {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 28px;
+  border: 1px solid #dde7f4;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 16px 42px rgb(27 69 128 / 8%);
+  text-align: center;
+}
+
+.inlineStateCard :global(.anticon) {
+  color: #2e6cff;
+  font-size: 28px;
+}
+
+.inlineStateCard strong {
+  color: #173159;
+  font-size: 18px;
+}
+
+.inlineStateCard p,
+.feedbackCard p {
+  margin: 0;
+  color: #7385a0;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  padding-top: 18px;
+}
+
+.favoriteCard {
+  overflow: hidden;
+  border: 1px solid #dce6f4;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 14px 40px rgb(24 62 116 / 8%);
+}
+
+.cardCover {
+  position: relative;
+  min-height: 182px;
+  background:
+    linear-gradient(135deg, #dce8ff, #bbcff6);
+  background-position: center;
+  background-size: cover;
+}
+
+.cardBadge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #7746ff;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgb(244 238 255 / 92%);
+}
+
+.favoriteToggle {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #ff5a67;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgb(20 41 76 / 16%);
+  cursor: pointer;
+}
+
+.cardBody {
+  display: grid;
+  gap: 12px;
+  padding: 18px 18px 16px;
+}
+
+.cardTitleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.cardTitleRow h2 {
+  margin: 0;
+  color: #1b3154;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.openButton {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #dde7f6;
+  border-radius: 12px;
+  color: #2f6dff;
+  background: #f7faff;
+  cursor: pointer;
+}
+
+.cardMeta {
+  margin: 0;
+  color: #8697b0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cardStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: #7a8ca6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cardStats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardStats :global(.anticon) {
+  color: #ffb022;
+}
+
+.cardSummary {
+  min-height: 44px;
+  margin: 0;
+  color: #4f6484;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.favoriteDate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #8494ad;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.paginationBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 28px 0 0;
+}
+
+.totalText {
+  color: #778aa6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stateShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: #f4f8ff;
+}
+
+@media (max-width: 1320px) {
+  .cardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .pageShell {
+    padding: 22px 18px 30px;
+  }
+
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .pageHeader {
+    gap: 18px;
+  }
+
+  .headerMain h1 {
+    font-size: 30px;
+  }
+
+  .headerActions,
+  .toolbar,
+  .paginationBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .viewSwitch,
+  .userButton,
+  .ghostButton,
+  .filterGroup :global(.ant-select),
+  .sortGroup :global(.ant-select) {
+    width: 100%;
+  }
+
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+}

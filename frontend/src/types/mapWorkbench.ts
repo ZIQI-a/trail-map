@@ -184,6 +184,35 @@ export interface FavoriteSpotStatusDto {
   favorited: boolean;
 }
 
+// 我的收藏景点列表项，对齐后端收藏页接口结构。
+export interface FavoriteSpotItemDto {
+  favoriteId: number;
+  spotId: number;
+  cityId: number;
+  cityName: string;
+  name: string;
+  type: SpotType;
+  position: GeoPoint;
+  address: string;
+  coverUrl: string;
+  summary: string;
+  recommendReason: string;
+  openingHours: string;
+  ticketInfo: string;
+  suggestedDurationMinutes: number;
+  bestTime: string;
+  recommendScore: number;
+  hotScore: number;
+  free: boolean;
+  indoor: boolean;
+  night: boolean;
+  rainyDay: boolean;
+  subwayFriendly: boolean;
+  firstVisit: boolean;
+  favoritedAt: string;
+  tags: SpotTagDto[];
+}
+
 // 起点候选项：复用百度地点检索结果，优先给行程规划起点做名称转坐标。
 export interface PoiCalibrationCandidateDto {
   name: string;

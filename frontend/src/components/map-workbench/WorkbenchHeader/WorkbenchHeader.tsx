@@ -41,6 +41,7 @@ interface WorkbenchHeaderProps {
   onActiveFilterChange: (filter: ActiveSpotFilter) => void;
   onAuthClick: () => void;
   onAdminClick: () => void;
+  onFavoritesClick: () => void;
   onLogout: () => void;
 }
 
@@ -64,6 +65,7 @@ export function WorkbenchHeader({
   onActiveFilterChange,
   onAuthClick,
   onAdminClick,
+  onFavoritesClick,
   onLogout,
 }: WorkbenchHeaderProps) {
   const filterOptions: Array<{ label: string; icon: ReactNode; value: ActiveSpotFilter }> = [
@@ -104,7 +106,12 @@ export function WorkbenchHeader({
 
         <div className={styles.actionGroup} aria-label="快捷操作">
           {quickActions.map((action) => (
-            <Button className={styles.actionButton} icon={action.icon} key={action.label}>
+            <Button
+              className={styles.actionButton}
+              icon={action.icon}
+              key={action.label}
+              onClick={action.label === "收藏夹" ? onFavoritesClick : undefined}
+            >
               {action.label}
             </Button>
           ))}
@@ -128,6 +135,12 @@ export function WorkbenchHeader({
                         },
                       ]
                     : []),
+                  {
+                    key: "favorites",
+                    label: "我的收藏",
+                    icon: <HeartOutlined />,
+                    onClick: onFavoritesClick,
+                  },
                   {
                     key: "logout",
                     label: "退出登录",

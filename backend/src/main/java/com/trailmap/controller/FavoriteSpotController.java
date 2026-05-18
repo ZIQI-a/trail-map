@@ -1,7 +1,10 @@
 package com.trailmap.controller;
 
 import com.trailmap.common.ApiResponse;
+import com.trailmap.model.query.PageQuery;
+import com.trailmap.model.response.FavoriteSpotItemResponse;
 import com.trailmap.model.response.FavoriteSpotStatusResponse;
+import com.trailmap.model.response.PageResponse;
 import com.trailmap.security.AuthUserPrincipal;
 import com.trailmap.service.FavoriteSpotService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -29,6 +33,18 @@ public class FavoriteSpotController {
 
     public FavoriteSpotController(FavoriteSpotService favoriteSpotService) {
         this.favoriteSpotService = favoriteSpotService;
+    }
+
+    /**
+     * 获取当前用户收藏的景点列表，供“我的收藏”页面展示。
+     */
+    @GetMapping
+    @Operation(summary = "获取我的收藏景点列表")
+    public ApiResponse<PageResponse<FavoriteSpotItemResponse>> listFavoriteSpots(
+            @AuthenticationPrincipal AuthUserPrincipal principal,
+            @RequestParam(required = false) @Positive(message = "页号必须大于 0") Integer pageNum,
+            @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") Integer pageSize) {
+        return ApiResponse.success(favoriteSpotService.listFavoriteSpots(principal.userId(), new PageQuery(pageNum, pageSize)));
     }
 
     /**

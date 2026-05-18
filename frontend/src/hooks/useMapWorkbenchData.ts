@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { favoriteSpot, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, unfavoriteSpot } from '../api/mapWorkbench';
+import { favoriteSpot, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, unfavoriteSpot } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto } from '../types/mapWorkbench';
@@ -72,6 +72,16 @@ export function useFavoriteSpotMutation() {
 export function useUnfavoriteSpotMutation() {
   return useMutation({
     mutationFn: (spotId: number) => unfavoriteSpot(spotId),
+  });
+}
+
+// 收藏页使用后端分页，便于后续继续扩展路线、城市等收藏类型。
+export function useFavoriteSpotsQuery(pageNum: number, pageSize: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ['favorite-spots', pageNum, pageSize],
+    queryFn: () => fetchFavoriteSpots({ pageNum, pageSize }),
+    enabled,
+    placeholderData: (previousData) => previousData,
   });
 }
 

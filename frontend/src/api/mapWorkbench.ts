@@ -2,6 +2,7 @@ import { request } from '../lib/http';
 import type {
   PageResponse,
   FavoriteSpotStatusDto,
+  FavoriteSpotItemDto,
   PoiCalibrationCandidateDto,
   RoutePlanRequestDto,
   RoutePlanResponseDto,
@@ -65,6 +66,19 @@ export function unfavoriteSpot(spotId: number) {
   return request<FavoriteSpotStatusDto>(`/api/favorite-spots/${spotId}`, {
     method: 'DELETE',
   });
+}
+
+// 获取当前登录用户的收藏景点列表，收藏页使用服务端分页。
+export function fetchFavoriteSpots(params?: { pageNum?: number; pageSize?: number }) {
+  const searchParams = new URLSearchParams();
+  if (params?.pageNum) {
+    searchParams.set('pageNum', String(params.pageNum));
+  }
+  if (params?.pageSize) {
+    searchParams.set('pageSize', String(params.pageSize));
+  }
+  const queryString = searchParams.toString();
+  return request<PageResponse<FavoriteSpotItemDto>>(`/api/favorite-spots${queryString ? `?${queryString}` : ''}`);
 }
 
 // 用百度地点检索把用户输入的起点名称解析成候选坐标。
