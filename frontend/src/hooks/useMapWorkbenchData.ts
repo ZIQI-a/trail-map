@@ -75,8 +75,12 @@ export function useUnfavoriteSpotMutation() {
   });
 }
 
-// 收藏页使用后端分页，便于后续继续扩展路线、城市等收藏类型。
-export function useFavoriteSpotsQuery(pageNum: number, pageSize: number, enabled: boolean) {
+// 收藏页当前先拉完整景点收藏，再由前端做筛选和分页，避免筛选后页码与总数错乱。
+export function useFavoriteSpotsQuery(
+  pageNum: number | undefined,
+  pageSize: number | undefined,
+  enabled: boolean,
+) {
   return useQuery({
     queryKey: ['favorite-spots', pageNum, pageSize],
     queryFn: () => fetchFavoriteSpots({ pageNum, pageSize }),

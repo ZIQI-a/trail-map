@@ -30,17 +30,19 @@ import {
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import type { AppUserDto } from "../../types/auth";
-import type { FavoriteSpotItemDto } from "../../types/mapWorkbench";
+import type { FavoriteSpotItemDto, SpotType } from "../../types/mapWorkbench";
 import styles from "./FavoritesPage.module.css";
 
 type FavoriteViewMode = "grid" | "map";
+type FavoriteDateFilter = "all" | "7d" | "30d" | "365d";
 
-const categoryItems = [
-  { key: "all", label: "全部" },
-  { key: "spot", label: "景点" },
-  // { key: "route", label: "路线" },
-  // { key: "city", label: "城市" },
-] as const;
+// todo 暂时用不上，只有景点展示
+// const categoryItems = [
+//   { key: "all", label: "全部" },
+//   { key: "spot", label: "景点" },
+//   { key: "route", label: "路线" },
+//   { key: "city", label: "城市" },
+// ] as const;
 
 // FavoritesPage 负责独立承接“我的收藏”场景，当前先聚焦景点收藏列表。
 export function FavoritesPage() {
@@ -50,21 +52,67 @@ export function FavoritesPage() {
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [viewMode, setViewMode] = useState<FavoriteViewMode>("grid");
+  const [typeFilter, setTypeFilter] = useState<"all" | SpotType>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<FavoriteDateFilter>("all");
   const [sortMode, setSortMode] = useState("latest");
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const favoriteSpotsQuery = useFavoriteSpotsQuery(
-    pageNum,
-    pageSize,
+    undefined,
+    undefined,
     Boolean(authToken),
   );
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
 
-  const totalFavorites = favoriteSpotsQuery.data?.total ?? 0;
+  const allFavoriteSpots = useMemo(
+    () => favoriteSpotsQuery.data?.list ?? [],
+    [favoriteSpotsQuery.data?.list],
+  );
 
-  // 对收藏的景点进行排序
+  // 收藏筛选项按当前真实数据动态生成，避免出现选项和数据不匹配。
+  const typeOptions = useMemo(
+    () => [
+      { label: "全部分类", value: "all" },
+      ...Array.from(new Set(allFavoriteSpots.map((spot) => spot.type))).map(
+        (type) => ({
+          label: resolveSpotTypeLabel(type),
+          value: type,
+        }),
+      ),
+    ],
+    [allFavoriteSpots],
+  );
+
+  const cityOptions = useMemo(
+    () => [
+      { label: "全部城市", value: "all" },
+      ...Array.from(new Set(allFavoriteSpots.map((spot) => spot.cityName)))
+        .filter(Boolean)
+        .map((cityName) => ({
+          label: cityName,
+          value: cityName,
+        })),
+    ],
+    [allFavoriteSpots],
+  );
+
+  // 先按筛选条件收窄数据，再按排序方式整理展示顺序。
+  const filteredFavoriteSpots = useMemo(() => {
+    const now = new Date().getTime();
+    return allFavoriteSpots.filter((spot) => {
+      const matchesType = typeFilter === "all" || spot.type === typeFilter;
+      const matchesCity = cityFilter === "all" || spot.cityName === cityFilter;
+      const matchesDate = matchFavoriteDateFilter(
+        spot.favoritedAt,
+        dateFilter,
+        now,
+      );
+      return matchesType && matchesCity && matchesDate;
+    });
+  }, [allFavoriteSpots, cityFilter, dateFilter, typeFilter]);
+
   const sortedFavoriteSpots = useMemo(() => {
-    const favoriteSpots = favoriteSpotsQuery.data?.list ?? [];
-    const items = [...favoriteSpots];
+    const items = [...filteredFavoriteSpots];
     if (sortMode === "score") {
       return items.sort(
         (left, right) => right.recommendScore - left.recommendScore,
@@ -75,7 +123,15 @@ export function FavoritesPage() {
         new Date(right.favoritedAt).getTime() -
         new Date(left.favoritedAt).getTime(),
     );
-  }, [favoriteSpotsQuery.data?.list, sortMode]);
+  }, [filteredFavoriteSpots, sortMode]);
+
+  // 收藏页分页放在筛选之后执行，避免切换筛选后总数和页码不一致。
+  const pagedFavoriteSpots = useMemo(() => {
+    const startIndex = (pageNum - 1) * pageSize;
+    return sortedFavoriteSpots.slice(startIndex, startIndex + pageSize);
+  }, [pageNum, pageSize, sortedFavoriteSpots]);
+
+  const totalFavorites = sortedFavoriteSpots.length;
 
   const userMenuItems = buildUserMenuItems(
     currentUserQuery.data,
@@ -187,7 +243,7 @@ export function FavoritesPage() {
           </div>
         </div>
 
-        {/* <div className={styles.categoryRail}>
+        {/* todo 暂时去掉 <div className={styles.categoryRail}>
           {categoryItems.map((item) => {
             const count =
               item.key === "all" || item.key === "spot" ? totalFavorites : 0;
@@ -210,13 +266,33 @@ export function FavoritesPage() {
       <section className={styles.toolbar}>
         <div className={styles.filterGroup}>
           <Select
-            value="spot"
-            options={[{ label: "全部分类", value: "spot" }]}
+            value={typeFilter}
+            options={typeOptions}
+            onChange={(value) => {
+              setTypeFilter(value as "all" | SpotType);
+              setPageNum(1);
+            }}
           />
-          <Select value="all" options={[{ label: "全部城市", value: "all" }]} />
           <Select
-            value="favoritedAt"
-            options={[{ label: "收藏时间", value: "favoritedAt" }]}
+            value={cityFilter}
+            options={cityOptions}
+            onChange={(value) => {
+              setCityFilter(value);
+              setPageNum(1);
+            }}
+          />
+          <Select
+            value={dateFilter}
+            options={[
+              { label: "全部时间", value: "all" },
+              { label: "近 7 天收藏", value: "7d" },
+              { label: "近 30 天收藏", value: "30d" },
+              { label: "近 1 年收藏", value: "365d" },
+            ]}
+            onChange={(value) => {
+              setDateFilter(value as FavoriteDateFilter);
+              setPageNum(1);
+            }}
           />
         </div>
 
@@ -263,7 +339,11 @@ export function FavoritesPage() {
       ) : sortedFavoriteSpots.length === 0 ? (
         <section className={styles.feedbackCard}>
           <Empty
-            description="你还没有收藏景点，先去地图工作台逛逛吧"
+            description={
+              allFavoriteSpots.length === 0
+                ? "你还没有收藏景点，先去地图工作台逛逛吧"
+                : "当前筛选条件下暂无收藏景点，试试切换筛选条件"
+            }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
           <Button type="primary" onClick={() => navigate("/")}>
@@ -273,7 +353,7 @@ export function FavoritesPage() {
       ) : (
         <>
           <section className={styles.cardGrid}>
-            {sortedFavoriteSpots.map((spot) => (
+            {pagedFavoriteSpots.map((spot) => (
               <FavoriteSpotCard
                 key={spot.favoriteId}
                 spot={spot}
@@ -460,6 +540,30 @@ function resolveSpotTypeLabel(type: FavoriteSpotItemDto["type"]) {
     default:
       return "景点";
   }
+}
+
+function matchFavoriteDateFilter(
+  favoritedAt: string,
+  dateFilter: FavoriteDateFilter,
+  now: number,
+) {
+  if (dateFilter === "all") {
+    return true;
+  }
+
+  const favoriteTime = new Date(favoritedAt).getTime();
+  if (Number.isNaN(favoriteTime)) {
+    return false;
+  }
+
+  const diffDays = (now - favoriteTime) / (1000 * 60 * 60 * 24);
+  if (dateFilter === "7d") {
+    return diffDays <= 7;
+  }
+  if (dateFilter === "30d") {
+    return diffDays <= 30;
+  }
+  return diffDays <= 365;
 }
 
 function formatFavoriteDate(value: string) {
