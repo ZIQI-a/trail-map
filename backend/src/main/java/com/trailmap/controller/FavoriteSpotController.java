@@ -1,6 +1,7 @@
 package com.trailmap.controller;
 
 import com.trailmap.common.ApiResponse;
+import com.trailmap.model.query.FavoriteSpotQuery;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.response.FavoriteSpotItemResponse;
 import com.trailmap.model.response.FavoriteSpotStatusResponse;
@@ -42,9 +43,16 @@ public class FavoriteSpotController {
     @Operation(summary = "获取我的收藏景点列表")
     public ApiResponse<PageResponse<FavoriteSpotItemResponse>> listFavoriteSpots(
             @AuthenticationPrincipal AuthUserPrincipal principal,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String cityName,
+            @RequestParam(required = false) @Positive(message = "收藏天数必须大于 0") Integer favoritedWithinDays,
+            @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) @Positive(message = "页号必须大于 0") Integer pageNum,
             @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") Integer pageSize) {
-        return ApiResponse.success(favoriteSpotService.listFavoriteSpots(principal.userId(), new PageQuery(pageNum, pageSize)));
+        return ApiResponse.success(favoriteSpotService.listFavoriteSpots(
+                principal.userId(),
+                new FavoriteSpotQuery(type, cityName, favoritedWithinDays, sortBy),
+                new PageQuery(pageNum, pageSize)));
     }
 
     /**

@@ -57,17 +57,37 @@ export function FavoritesPage() {
   const [dateFilter, setDateFilter] = useState<FavoriteDateFilter>("all");
   const [sortMode, setSortMode] = useState("latest");
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
+  const favoriteQueryParams = useMemo(
+    () => ({
+      type: typeFilter === "all" ? undefined : typeFilter,
+      cityName: cityFilter === "all" ? undefined : cityFilter,
+      favoritedWithinDays: resolveFavoritedWithinDays(dateFilter),
+      sortBy: sortMode,
+      pageNum,
+      pageSize,
+    }),
+    [cityFilter, dateFilter, pageNum, pageSize, sortMode, typeFilter],
+  );
   const favoriteSpotsQuery = useFavoriteSpotsQuery(
-    undefined,
-    undefined,
+    favoriteQueryParams,
     Boolean(authToken),
   );
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
+  const favoriteSpotOptionsQuery = useFavoriteSpotsQuery(
+    {
+      sortBy: "latest",
+      pageNum: 1,
+      pageSize: 500,
+    },
+    Boolean(authToken),
+  );
 
   const allFavoriteSpots = useMemo(
-    () => favoriteSpotsQuery.data?.list ?? [],
-    [favoriteSpotsQuery.data?.list],
+    () => favoriteSpotOptionsQuery.data?.list ?? [],
+    [favoriteSpotOptionsQuery.data?.list],
   );
+  const currentPageFavoriteSpots = favoriteSpotsQuery.data?.list ?? [];
+  const totalFavorites = favoriteSpotsQuery.data?.total ?? 0;
 
   // 收藏筛选项按当前真实数据动态生成，避免出现选项和数据不匹配。
   const typeOptions = useMemo(
@@ -95,43 +115,6 @@ export function FavoritesPage() {
     ],
     [allFavoriteSpots],
   );
-
-  // 先按筛选条件收窄数据，再按排序方式整理展示顺序。
-  const filteredFavoriteSpots = useMemo(() => {
-    const now = new Date().getTime();
-    return allFavoriteSpots.filter((spot) => {
-      const matchesType = typeFilter === "all" || spot.type === typeFilter;
-      const matchesCity = cityFilter === "all" || spot.cityName === cityFilter;
-      const matchesDate = matchFavoriteDateFilter(
-        spot.favoritedAt,
-        dateFilter,
-        now,
-      );
-      return matchesType && matchesCity && matchesDate;
-    });
-  }, [allFavoriteSpots, cityFilter, dateFilter, typeFilter]);
-
-  const sortedFavoriteSpots = useMemo(() => {
-    const items = [...filteredFavoriteSpots];
-    if (sortMode === "score") {
-      return items.sort(
-        (left, right) => right.recommendScore - left.recommendScore,
-      );
-    }
-    return items.sort(
-      (left, right) =>
-        new Date(right.favoritedAt).getTime() -
-        new Date(left.favoritedAt).getTime(),
-    );
-  }, [filteredFavoriteSpots, sortMode]);
-
-  // 收藏页分页放在筛选之后执行，避免切换筛选后总数和页码不一致。
-  const pagedFavoriteSpots = useMemo(() => {
-    const startIndex = (pageNum - 1) * pageSize;
-    return sortedFavoriteSpots.slice(startIndex, startIndex + pageSize);
-  }, [pageNum, pageSize, sortedFavoriteSpots]);
-
-  const totalFavorites = sortedFavoriteSpots.length;
 
   const userMenuItems = buildUserMenuItems(
     currentUserQuery.data,
@@ -336,11 +319,14 @@ export function FavoritesPage() {
           <Spin size="large" />
           <p>正在整理你的景点收藏...</p>
         </section>
-      ) : sortedFavoriteSpots.length === 0 ? (
+      ) : currentPageFavoriteSpots.length === 0 ? (
         <section className={styles.feedbackCard}>
           <Empty
             description={
-              allFavoriteSpots.length === 0
+              totalFavorites === 0 &&
+              typeFilter === "all" &&
+              cityFilter === "all" &&
+              dateFilter === "all"
                 ? "你还没有收藏景点，先去地图工作台逛逛吧"
                 : "当前筛选条件下暂无收藏景点，试试切换筛选条件"
             }
@@ -353,7 +339,7 @@ export function FavoritesPage() {
       ) : (
         <>
           <section className={styles.cardGrid}>
-            {pagedFavoriteSpots.map((spot) => (
+            {currentPageFavoriteSpots.map((spot) => (
               <FavoriteSpotCard
                 key={spot.favoriteId}
                 spot={spot}
@@ -386,6 +372,19 @@ export function FavoritesPage() {
       )}
     </main>
   );
+}
+
+function resolveFavoritedWithinDays(dateFilter: FavoriteDateFilter) {
+  if (dateFilter === "7d") {
+    return 7;
+  }
+  if (dateFilter === "30d") {
+    return 30;
+  }
+  if (dateFilter === "365d") {
+    return 365;
+  }
+  return undefined;
 }
 
 type FavoriteSpotCardProps = {
@@ -542,29 +541,6 @@ function resolveSpotTypeLabel(type: FavoriteSpotItemDto["type"]) {
   }
 }
 
-function matchFavoriteDateFilter(
-  favoritedAt: string,
-  dateFilter: FavoriteDateFilter,
-  now: number,
-) {
-  if (dateFilter === "all") {
-    return true;
-  }
-
-  const favoriteTime = new Date(favoritedAt).getTime();
-  if (Number.isNaN(favoriteTime)) {
-    return false;
-  }
-
-  const diffDays = (now - favoriteTime) / (1000 * 60 * 60 * 24);
-  if (dateFilter === "7d") {
-    return diffDays <= 7;
-  }
-  if (dateFilter === "30d") {
-    return diffDays <= 30;
-  }
-  return diffDays <= 365;
-}
 
 function formatFavoriteDate(value: string) {
   const date = new Date(value);

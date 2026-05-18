@@ -77,13 +77,19 @@ export function useUnfavoriteSpotMutation() {
 
 // 收藏页当前先拉完整景点收藏，再由前端做筛选和分页，避免筛选后页码与总数错乱。
 export function useFavoriteSpotsQuery(
-  pageNum: number | undefined,
-  pageSize: number | undefined,
+  params: {
+    type?: string;
+    cityName?: string;
+    favoritedWithinDays?: number;
+    sortBy?: string;
+    pageNum: number;
+    pageSize: number;
+  },
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: ['favorite-spots', pageNum, pageSize],
-    queryFn: () => fetchFavoriteSpots({ pageNum, pageSize }),
+    queryKey: ['favorite-spots', params],
+    queryFn: () => fetchFavoriteSpots(params),
     enabled,
     placeholderData: (previousData) => previousData,
   });

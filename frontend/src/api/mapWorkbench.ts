@@ -68,9 +68,28 @@ export function unfavoriteSpot(spotId: number) {
   });
 }
 
-// 获取当前登录用户的收藏景点列表，收藏页使用服务端分页。
-export function fetchFavoriteSpots(params?: { pageNum?: number; pageSize?: number }) {
+// 获取当前登录用户的收藏景点列表，筛选、排序和分页统一交给后端处理。
+export function fetchFavoriteSpots(params?: {
+  type?: string;
+  cityName?: string;
+  favoritedWithinDays?: number;
+  sortBy?: string;
+  pageNum?: number;
+  pageSize?: number;
+}) {
   const searchParams = new URLSearchParams();
+  if (params?.type) {
+    searchParams.set('type', params.type);
+  }
+  if (params?.cityName) {
+    searchParams.set('cityName', params.cityName);
+  }
+  if (params?.favoritedWithinDays) {
+    searchParams.set('favoritedWithinDays', String(params.favoritedWithinDays));
+  }
+  if (params?.sortBy) {
+    searchParams.set('sortBy', params.sortBy);
+  }
   if (params?.pageNum) {
     searchParams.set('pageNum', String(params.pageNum));
   }

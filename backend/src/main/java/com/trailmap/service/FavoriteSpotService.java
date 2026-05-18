@@ -1,5 +1,6 @@
 package com.trailmap.service;
 
+import com.trailmap.model.query.FavoriteSpotQuery;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.response.FavoriteSpotItemResponse;
 import com.trailmap.model.response.FavoriteSpotStatusResponse;
@@ -10,7 +11,7 @@ import com.trailmap.model.response.PageResponse;
  */
 public interface FavoriteSpotService {
 
-    PageResponse<FavoriteSpotItemResponse> listFavoriteSpots(Long userId, PageQuery pageQuery);
+    PageResponse<FavoriteSpotItemResponse> listFavoriteSpots(Long userId, FavoriteSpotQuery query, PageQuery pageQuery);
 
     FavoriteSpotStatusResponse getFavoriteStatus(Long userId, Long spotId);
 
