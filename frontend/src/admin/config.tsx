@@ -37,10 +37,30 @@ export const adminNavItems = [
 }>;
 
 export const overviewCardConfigs = [
-  { key: "totalUsers", title: "用户总数", icon: <TeamOutlined />, trend: "近 7 日持续增长" },
-  { key: "enabledUsers", title: "启用账号", icon: <AlertOutlined />, trend: "账号状态稳定" },
-  { key: "adminUsers", title: "管理员账号", icon: <LockOutlined />, trend: "后台权限受控" },
-  { key: "memberUsers", title: "会员用户", icon: <RiseOutlined />, trend: "会员体系可扩展" },
+  {
+    key: "totalUsers",
+    title: "用户总数",
+    icon: <TeamOutlined />,
+    trend: "近 7 日持续增长",
+  },
+  {
+    key: "enabledUsers",
+    title: "启用账号",
+    icon: <AlertOutlined />,
+    trend: "账号状态稳定",
+  },
+  {
+    key: "adminUsers",
+    title: "管理员账号",
+    icon: <LockOutlined />,
+    trend: "后台权限受控",
+  },
+  {
+    key: "memberUsers",
+    title: "会员用户",
+    icon: <RiseOutlined />,
+    trend: "会员体系可扩展",
+  },
 ] satisfies Array<{
   key: "totalUsers" | "enabledUsers" | "adminUsers" | "memberUsers";
   title: string;
