@@ -21,14 +21,6 @@
   flex-wrap: wrap;
 }
 
-.eyebrow {
-  margin: 0;
-  color: #20365d;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
 .headerMain h1 {
   margin: 8px 0 0;
   color: #172b4d;

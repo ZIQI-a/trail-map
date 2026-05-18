@@ -23,7 +23,11 @@ import type { MenuProps } from "antd";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCurrentUserQuery, useFavoriteSpotsQuery, useUnfavoriteSpotMutation } from "../../hooks/useMapWorkbenchData";
+import {
+  useCurrentUserQuery,
+  useFavoriteSpotsQuery,
+  useUnfavoriteSpotMutation,
+} from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import type { AppUserDto } from "../../types/auth";
 import type { FavoriteSpotItemDto } from "../../types/mapWorkbench";
@@ -34,8 +38,8 @@ type FavoriteViewMode = "grid" | "map";
 const categoryItems = [
   { key: "all", label: "全部" },
   { key: "spot", label: "景点" },
-  { key: "route", label: "路线" },
-  { key: "city", label: "城市" },
+  // { key: "route", label: "路线" },
+  // { key: "city", label: "城市" },
 ] as const;
 
 // FavoritesPage 负责独立承接“我的收藏”场景，当前先聚焦景点收藏列表。
@@ -48,20 +52,28 @@ export function FavoritesPage() {
   const [viewMode, setViewMode] = useState<FavoriteViewMode>("grid");
   const [sortMode, setSortMode] = useState("latest");
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
-  const favoriteSpotsQuery = useFavoriteSpotsQuery(pageNum, pageSize, Boolean(authToken));
+  const favoriteSpotsQuery = useFavoriteSpotsQuery(
+    pageNum,
+    pageSize,
+    Boolean(authToken),
+  );
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
 
   const totalFavorites = favoriteSpotsQuery.data?.total ?? 0;
 
+  // 对收藏的景点进行排序
   const sortedFavoriteSpots = useMemo(() => {
     const favoriteSpots = favoriteSpotsQuery.data?.list ?? [];
     const items = [...favoriteSpots];
     if (sortMode === "score") {
-      return items.sort((left, right) => right.recommendScore - left.recommendScore);
+      return items.sort(
+        (left, right) => right.recommendScore - left.recommendScore,
+      );
     }
     return items.sort(
       (left, right) =>
-        new Date(right.favoritedAt).getTime() - new Date(left.favoritedAt).getTime(),
+        new Date(right.favoritedAt).getTime() -
+        new Date(left.favoritedAt).getTime(),
     );
   }, [favoriteSpotsQuery.data?.list, sortMode]);
 
@@ -81,7 +93,9 @@ export function FavoritesPage() {
   async function handleUnfavorite(spotId: number) {
     await unfavoriteSpotMutation.mutateAsync(spotId);
     await queryClient.invalidateQueries({ queryKey: ["favorite-spots"] });
-    await queryClient.invalidateQueries({ queryKey: ["favorite-spot-status", spotId] });
+    await queryClient.invalidateQueries({
+      queryKey: ["favorite-spot-status", spotId],
+    });
   }
 
   if (!authToken) {
@@ -126,9 +140,10 @@ export function FavoritesPage() {
       <header className={styles.pageHeader}>
         <div className={styles.headerMain}>
           <div>
-            <p className={styles.eyebrow}>我的收藏</p>
-            <h1>收藏的美好，期待下一次出发</h1>
-            <span className={styles.headerHint}>当前先展示已收藏景点，路线和城市收藏后续再接入。</span>
+            <h1>我的收藏</h1>
+            <span className={styles.headerHint}>
+              收藏的美好，期待下一次出发✨
+            </span>
           </div>
 
           <div className={styles.headerActions}>
@@ -143,8 +158,16 @@ export function FavoritesPage() {
               className={styles.viewSwitch}
               value={viewMode}
               options={[
-                { label: "卡片模式", value: "grid", icon: <AppstoreOutlined /> },
-                { label: "地图模式", value: "map", icon: <EnvironmentOutlined /> },
+                {
+                  label: "卡片模式",
+                  value: "grid",
+                  icon: <AppstoreOutlined />,
+                },
+                {
+                  label: "地图模式",
+                  value: "map",
+                  icon: <EnvironmentOutlined />,
+                },
               ]}
               onChange={(value) => setViewMode(value as FavoriteViewMode)}
             />
@@ -164,7 +187,7 @@ export function FavoritesPage() {
           </div>
         </div>
 
-        <div className={styles.categoryRail}>
+        {/* <div className={styles.categoryRail}>
           {categoryItems.map((item) => {
             const count =
               item.key === "all" || item.key === "spot" ? totalFavorites : 0;
@@ -181,14 +204,20 @@ export function FavoritesPage() {
               </button>
             );
           })}
-        </div>
+        </div> */}
       </header>
 
       <section className={styles.toolbar}>
         <div className={styles.filterGroup}>
-          <Select value="spot" options={[{ label: "全部分类", value: "spot" }]} />
+          <Select
+            value="spot"
+            options={[{ label: "全部分类", value: "spot" }]}
+          />
           <Select value="all" options={[{ label: "全部城市", value: "all" }]} />
-          <Select value="favoritedAt" options={[{ label: "收藏时间", value: "favoritedAt" }]} />
+          <Select
+            value="favoritedAt"
+            options={[{ label: "收藏时间", value: "favoritedAt" }]}
+          />
         </div>
 
         <div className={styles.sortGroup}>
@@ -298,7 +327,9 @@ function FavoriteSpotCard({
         className={styles.cardCover}
         style={
           spot.coverUrl
-            ? { backgroundImage: `linear-gradient(180deg, rgb(10 21 43 / 0%) 0%, rgb(10 21 43 / 18%) 100%), url(${spot.coverUrl})` }
+            ? {
+                backgroundImage: `linear-gradient(180deg, rgb(10 21 43 / 0%) 0%, rgb(10 21 43 / 18%) 100%), url(${spot.coverUrl})`,
+              }
             : undefined
         }
       >
@@ -340,7 +371,9 @@ function FavoriteSpotCard({
           <span>{spot.ticketInfo || "票务待补充"}</span>
         </div>
 
-        <p className={styles.cardSummary}>{spot.summary || spot.recommendReason}</p>
+        <p className={styles.cardSummary}>
+          {spot.summary || spot.recommendReason}
+        </p>
 
         <div className={styles.cardFooter}>
           <span className={styles.favoriteDate}>
