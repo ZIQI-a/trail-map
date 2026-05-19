@@ -70,7 +70,7 @@ export function unfavoriteSpot(spotId: number) {
 
 // 获取当前登录用户的收藏景点列表，筛选、排序和分页统一交给后端处理。
 export function fetchFavoriteSpots(params?: {
-  type?: string;
+  tagCode?: string;
   cityName?: string;
   favoritedWithinDays?: number;
   sortBy?: string;
@@ -78,8 +78,8 @@ export function fetchFavoriteSpots(params?: {
   pageSize?: number;
 }) {
   const searchParams = new URLSearchParams();
-  if (params?.type) {
-    searchParams.set('type', params.type);
+  if (params?.tagCode) {
+    searchParams.set('tagCode', params.tagCode);
   }
   if (params?.cityName) {
     searchParams.set('cityName', params.cityName);

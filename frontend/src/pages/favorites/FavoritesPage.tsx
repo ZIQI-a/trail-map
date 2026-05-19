@@ -25,12 +25,14 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useCurrentUserQuery,
+  useCitiesQuery,
+  useCityTagsQuery,
   useFavoriteSpotsQuery,
   useUnfavoriteSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import type { AppUserDto } from "../../types/auth";
-import type { FavoriteSpotItemDto, SpotType } from "../../types/mapWorkbench";
+import type { FavoriteSpotItemDto, SpotTagCode } from "../../types/mapWorkbench";
 import styles from "./FavoritesPage.module.css";
 
 type FavoriteViewMode = "grid" | "map";
@@ -52,69 +54,65 @@ export function FavoritesPage() {
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [viewMode, setViewMode] = useState<FavoriteViewMode>("grid");
-  const [typeFilter, setTypeFilter] = useState<"all" | SpotType>("all");
+  const [tagFilter, setTagFilter] = useState<"all" | SpotTagCode>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<FavoriteDateFilter>("all");
   const [sortMode, setSortMode] = useState("latest");
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
+  const citiesQuery = useCitiesQuery();
+
+  const selectedCityIdForTags = useMemo(() => {
+    if (cityFilter === "all" || !citiesQuery.data?.list) {
+      return citiesQuery.data?.list?.[0]?.id;
+    }
+    return citiesQuery.data.list.find((c) => c.name === cityFilter)?.id;
+  }, [cityFilter, citiesQuery.data?.list]);
+
+  // 当选择具体城市时，加载该城市的标签；当选择全部城市时，暂时使用首个城市的标签作为兜底。
+  // 更彻底的方案应该是后端补一个全局景点标签接口，供收藏页直接使用。
+  const cityTagsQuery = useCityTagsQuery(selectedCityIdForTags);
+
   const favoriteQueryParams = useMemo(
     () => ({
-      type: typeFilter === "all" ? undefined : typeFilter,
+      tagCode: tagFilter === "all" ? undefined : tagFilter,
       cityName: cityFilter === "all" ? undefined : cityFilter,
       favoritedWithinDays: resolveFavoritedWithinDays(dateFilter),
       sortBy: sortMode,
       pageNum,
       pageSize,
     }),
-    [cityFilter, dateFilter, pageNum, pageSize, sortMode, typeFilter],
+    [cityFilter, dateFilter, pageNum, pageSize, sortMode, tagFilter],
   );
   const favoriteSpotsQuery = useFavoriteSpotsQuery(
     favoriteQueryParams,
     Boolean(authToken),
   );
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
-  // 获取所有收藏的景点，用于生成筛选项
-  const favoriteSpotOptionsQuery = useFavoriteSpotsQuery(
-    {
-      sortBy: "latest",
-      pageNum: 1,
-      pageSize: 500,
-    },
-    Boolean(authToken),
-  );
-
-  const allFavoriteSpots = useMemo(
-    () => favoriteSpotOptionsQuery.data?.list ?? [],
-    [favoriteSpotOptionsQuery.data?.list],
-  );
   const currentPageFavoriteSpots = favoriteSpotsQuery.data?.list ?? [];
   const totalFavorites = favoriteSpotsQuery.data?.total ?? 0;
 
-  // 收藏筛选项按当前真实数据动态生成，避免出现选项和数据不匹配。
+  // 分类选项直接使用标签接口，避免为拼选项额外拉一次收藏列表。
   const typeOptions = useMemo(
     () => [
       { label: "全部分类", value: "all" },
-      ...Array.from(new Set(allFavoriteSpots.map((spot) => spot.type))).map(
-        (type) => ({
-          label: resolveSpotTypeLabel(type),
-          value: type,
-        }),
-      ),
+      ...(cityTagsQuery.data ?? []).map((tag) => ({
+          label: tag.name,
+          value: tag.code,
+        })),
     ],
-    [allFavoriteSpots],
+    [cityTagsQuery.data],
   );
 
+  // 城市选项直接使用城市接口，不再依赖收藏列表反推。
   const cityOptions = useMemo(
     () => [
       { label: "全部城市", value: "all" },
-      ...Array.from(new Set(allFavoriteSpots.map((spot) => spot.cityName)))
-        .filter(Boolean)
-        .map((cityName) => ({
-          label: cityName,
-          value: cityName,
-        })),
+      ...(citiesQuery.data?.list ?? []).map((city) => ({
+        label: city.name,
+        value: city.name,
+      })),
     ],
-    [allFavoriteSpots],
+    [citiesQuery.data?.list],
   );
 
   const userMenuItems = buildUserMenuItems(
@@ -250,10 +248,10 @@ export function FavoritesPage() {
       <section className={styles.toolbar}>
         <div className={styles.filterGroup}>
           <Select
-            value={typeFilter}
+            value={tagFilter}
             options={typeOptions}
             onChange={(value) => {
-              setTypeFilter(value as "all" | SpotType);
+              setTagFilter(value as "all" | SpotTagCode);
               setPageNum(1);
             }}
           />
@@ -325,7 +323,7 @@ export function FavoritesPage() {
           <Empty
             description={
               totalFavorites === 0 &&
-              typeFilter === "all" &&
+              tagFilter === "all" &&
               cityFilter === "all" &&
               dateFilter === "all"
                 ? "你还没有收藏景点，先去地图工作台逛逛吧"
@@ -541,6 +539,7 @@ function resolveSpotTypeLabel(type: FavoriteSpotItemDto["type"]) {
       return "景点";
   }
 }
+
 
 function formatFavoriteDate(value: string) {
   const date = new Date(value);

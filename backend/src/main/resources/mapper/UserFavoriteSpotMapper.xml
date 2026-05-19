@@ -7,14 +7,21 @@
     <sql id="favoriteSpotWhere">
         f.user_id = #{userId}
         AND s.status = 1
-        <if test="query.type != null and query.type != ''">
-            AND s.spot_type = #{query.type}
+        <if test="query.tagCode != null and query.tagCode != ''">
+            AND EXISTS (
+                SELECT 1
+                FROM spot_tag_relation str
+                INNER JOIN spot_tag st ON str.tag_id = st.id
+                WHERE str.spot_id = s.id
+                  AND st.status = 1
+                  AND st.tag_code = #{query.tagCode}
+            )
         </if>
         <if test="query.cityName != null and query.cityName != ''">
             AND c.city_name = #{query.cityName}
         </if>
         <if test="query.favoritedWithinDays != null">
-            AND f.created_at <![CDATA[>=]]> DATEADD('DAY', -#{query.favoritedWithinDays}, CURRENT_TIMESTAMP)
+            AND f.created_at <![CDATA[>=]]> #{favoritedAfter}
         </if>
     </sql>
 

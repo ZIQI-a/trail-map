@@ -78,7 +78,7 @@ export function useUnfavoriteSpotMutation() {
 // 收藏页当前先拉完整景点收藏，再由前端做筛选和分页，避免筛选后页码与总数错乱。
 export function useFavoriteSpotsQuery(
   params: {
-    type?: string;
+    tagCode?: string;
     cityName?: string;
     favoritedWithinDays?: number;
     sortBy?: string;

@@ -62,17 +62,15 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
         LambdaQueryWrapper<UserFavoriteSpot> favoriteQuery = new LambdaQueryWrapper<UserFavoriteSpot>()
                 .eq(UserFavoriteSpot::getUserId, userId);
         validateSortBy(query.sortBy());
-
-        if (query.favoritedWithinDays() != null) {
-            favoriteQuery.ge(
-                    UserFavoriteSpot::getCreatedAt,
-                    LocalDateTime.now().minusDays(query.favoritedWithinDays()));
-        }
+        LocalDateTime favoritedAfter = query.favoritedWithinDays() == null
+                ? null
+                : LocalDateTime.now().minusDays(query.favoritedWithinDays());
 
         if (!pageQuery.isPaged()) {
             List<FavoriteSpotItemResponse> items = userFavoriteSpotMapper.selectFavoriteSpotPage(
                             userId,
                             query,
+                            favoritedAfter,
                             0,
                             Integer.MAX_VALUE)
                     .stream()
@@ -81,11 +79,12 @@ public class FavoriteSpotServiceImpl implements FavoriteSpotService {
             return PageResponse.unpaged(items);
         }
 
-        long total = userFavoriteSpotMapper.countFavoriteSpots(userId, query);
+        long total = userFavoriteSpotMapper.countFavoriteSpots(userId, query, favoritedAfter);
         long offset = (pageQuery.resolvedPageNum() - 1) * pageQuery.resolvedPageSize();
         List<FavoriteSpotItemResponse> pagedItems = userFavoriteSpotMapper.selectFavoriteSpotPage(
                         userId,
                         query,
+                        favoritedAfter,
                         offset,
                         pageQuery.resolvedPageSize())
                 .stream()

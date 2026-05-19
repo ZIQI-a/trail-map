@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.trailmap.entity.UserFavoriteSpot;
 import com.trailmap.model.query.FavoriteSpotQuery;
 import com.trailmap.model.response.FavoriteSpotBaseRecord;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -17,10 +18,12 @@ public interface UserFavoriteSpotMapper extends BaseMapper<UserFavoriteSpot> {
     List<FavoriteSpotBaseRecord> selectFavoriteSpotPage(
             @Param("userId") Long userId,
             @Param("query") FavoriteSpotQuery query,
+            @Param("favoritedAfter") LocalDateTime favoritedAfter,
             @Param("offset") long offset,
             @Param("limit") long limit);
 
     long countFavoriteSpots(
             @Param("userId") Long userId,
-            @Param("query") FavoriteSpotQuery query);
+            @Param("query") FavoriteSpotQuery query,
+            @Param("favoritedAfter") LocalDateTime favoritedAfter);
 }
