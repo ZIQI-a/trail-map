@@ -52,25 +52,44 @@
 .viewSwitch {
   min-height: 44px;
   padding: 4px;
-  background: #ffffff;
+  background: #f0f4fa;
   border: 1px solid #dbe5f2;
-  border-radius: 16px;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.viewSwitch :global(.ant-segmented-item) {
+  border-radius: 11px !important;
+  transition: all 0.3s ease;
+}
+
+.viewSwitch :global(.ant-segmented-item-selected) {
+  box-shadow: 0 4px 12px rgb(46 108 255 / 15%);
 }
 
 .userButton {
   min-width: 0;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 14px 6px 6px;
+  padding: 4px 14px 4px 4px;
   border: 1px solid #dce7f5;
   border-radius: 18px;
   background: rgb(255 255 255 / 92%);
   box-shadow: 0 12px 30px rgb(28 64 118 / 8%);
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.userButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 36px rgb(28 64 118 / 12%);
 }
 
 .userAvatar {
+  width: 36px !important;
+  height: 36px !important;
   background: linear-gradient(135deg, #2266e8, #55c5f7);
 }
 
@@ -146,48 +165,98 @@
   min-width: 152px;
 }
 
+/* 优化 Select 内部对齐：移除强制 min-height，改用 padding 和 flex 对齐 */
 .filterGroup :global(.ant-select-selector),
 .sortGroup :global(.ant-select-selector) {
-  min-height: 42px !important;
+  height: 44px !important;
+  padding: 0 16px !important;
   border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border-color: #dce7f5 !important;
+  transition: all 0.2s ease !important;
+}
+
+.filterGroup :global(.ant-select-selector):hover,
+.sortGroup :global(.ant-select-selector):hover {
+  border-color: #2e6cff !important;
+  box-shadow: 0 4px 12px rgb(46 108 255 / 8%) !important;
+}
+
+.filterGroup :global(.ant-select-selection-item),
+.sortGroup :global(.ant-select-selection-item) {
+  line-height: 42px !important;
+  font-weight: 600;
+  color: #344767;
+  display: flex;
+  align-items: center;
+}
+
+.filterGroup :global(.ant-select-arrow),
+.sortGroup :global(.ant-select-arrow) {
+  right: 14px !important;
+  font-size: 11px;
+  color: #8392ab;
+  transition: transform 0.2s ease;
+}
+
+.filterGroup :global(.ant-select-open) :global(.ant-select-arrow),
+.sortGroup :global(.ant-select-open) :global(.ant-select-arrow) {
+  transform: rotate(180deg);
 }
 
 .inlineStateCard,
 .feedbackCard {
-  min-height: 220px;
+  min-height: 320px;
   display: grid;
   place-items: center;
-  gap: 12px;
+  align-content: center;
+  gap: 16px;
   margin-top: 18px;
-  padding: 28px;
+  padding: 40px;
   border: 1px solid #dde7f4;
-  border-radius: 24px;
-  background: rgb(255 255 255 / 92%);
-  box-shadow: 0 16px 42px rgb(27 69 128 / 8%);
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 20px 48px rgb(27 69 128 / 6%);
   text-align: center;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .inlineStateCard :global(.anticon) {
   color: #2e6cff;
-  font-size: 28px;
+  font-size: 32px;
 }
 
 .inlineStateCard strong {
   color: #173159;
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .inlineStateCard p,
 .feedbackCard p {
   margin: 0;
   color: #7385a0;
+  font-size: 15px;
 }
 
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
+  gap: 24px;
   padding-top: 18px;
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .favoriteCard {

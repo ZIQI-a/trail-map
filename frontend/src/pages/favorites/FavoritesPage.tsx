@@ -33,7 +33,10 @@ import {
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import type { AppUserDto } from "../../types/auth";
-import type { FavoriteSpotItemDto, SpotTagCode } from "../../types/mapWorkbench";
+import type {
+  FavoriteSpotItemDto,
+  SpotTagCode,
+} from "../../types/mapWorkbench";
 import styles from "./FavoritesPage.module.css";
 
 type FavoriteViewMode = "grid" | "map";
@@ -62,6 +65,7 @@ export function FavoritesPage() {
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const citiesQuery = useCitiesQuery();
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const selectedCityIdForTags = useMemo(() => {
     if (cityFilter === "all" || !citiesQuery.data?.list) {
       return undefined;
@@ -73,7 +77,8 @@ export function FavoritesPage() {
   const cityTagsQuery = useCityTagsQuery(selectedCityIdForTags);
   const allTagsQuery = useAllTagsQuery();
 
-  const activeTags = cityFilter === "all" ? allTagsQuery.data : cityTagsQuery.data;
+  const activeTags =
+    cityFilter === "all" ? allTagsQuery.data : cityTagsQuery.data;
 
   const favoriteQueryParams = useMemo(
     () => ({
@@ -99,9 +104,9 @@ export function FavoritesPage() {
     () => [
       { label: "全部分类", value: "all" },
       ...(activeTags ?? []).map((tag) => ({
-          label: tag.name,
-          value: tag.code,
-        })),
+        label: tag.name,
+        value: tag.code,
+      })),
     ],
     [activeTags],
   );
@@ -251,6 +256,7 @@ export function FavoritesPage() {
       <section className={styles.toolbar}>
         <div className={styles.filterGroup}>
           <Select
+            size="large"
             value={tagFilter}
             options={typeOptions}
             onChange={(value) => {
@@ -259,6 +265,7 @@ export function FavoritesPage() {
             }}
           />
           <Select
+            size="large"
             value={cityFilter}
             options={cityOptions}
             onChange={(value) => {
@@ -267,6 +274,7 @@ export function FavoritesPage() {
             }}
           />
           <Select
+            size="large"
             value={dateFilter}
             options={[
               { label: "全部时间", value: "all" },
@@ -283,6 +291,7 @@ export function FavoritesPage() {
 
         <div className={styles.sortGroup}>
           <Select
+            size="large"
             value={sortMode}
             options={[
               { label: "最新收藏", value: "latest" },
@@ -542,7 +551,6 @@ function resolveSpotTypeLabel(type: FavoriteSpotItemDto["type"]) {
       return "景点";
   }
 }
-
 
 function formatFavoriteDate(value: string) {
   const date = new Date(value);
