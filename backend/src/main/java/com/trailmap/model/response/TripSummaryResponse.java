@@ -11,11 +11,15 @@ public record TripSummaryResponse(
     Long cityId,
     String cityName,
     String tripName,
+    String startName,
+    String endName,
     LocalDate startDate,
     LocalDate endDate,
     Integer days,
     String transportType,
     String planMode,
+    Integer totalDistance,
+    Integer totalDuration,
     String coverUrl,
     LocalDateTime createdAt
 ) {

@@ -7,8 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * 用户行程实体，对应 user_trip 表。
- * 用于保存用户规划好的完整行程或自由路线。
+ * 用户行程主实体，对应 user_trip 表。
  */
 @TableName("user_trip")
 public class UserTrip {
@@ -18,12 +17,18 @@ public class UserTrip {
     private Long userId;
     private Long cityId;
     private String tripName;
+    private String startName;
+    private String endName;
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer days;
     private String transportType;
     private String planMode;
     private Long routeRecordId;
+    private Integer totalDistance;
+    private Integer totalTravelDuration;
+    private Integer totalStayDuration;
+    private Integer totalTripDuration;
     private String coverUrl;
     private Integer status;
     private LocalDateTime createdAt;
@@ -59,6 +64,22 @@ public class UserTrip {
 
     public void setTripName(String tripName) {
         this.tripName = tripName;
+    }
+
+    public String getStartName() {
+        return startName;
+    }
+
+    public void setStartName(String startName) {
+        this.startName = startName;
+    }
+
+    public String getEndName() {
+        return endName;
+    }
+
+    public void setEndName(String endName) {
+        this.endName = endName;
     }
 
     public LocalDate getStartDate() {
@@ -107,6 +128,38 @@ public class UserTrip {
 
     public void setRouteRecordId(Long routeRecordId) {
         this.routeRecordId = routeRecordId;
+    }
+
+    public Integer getTotalDistance() {
+        return totalDistance;
+    }
+
+    public void setTotalDistance(Integer totalDistance) {
+        this.totalDistance = totalDistance;
+    }
+
+    public Integer getTotalTravelDuration() {
+        return totalTravelDuration;
+    }
+
+    public void setTotalTravelDuration(Integer totalTravelDuration) {
+        this.totalTravelDuration = totalTravelDuration;
+    }
+
+    public Integer getTotalStayDuration() {
+        return totalStayDuration;
+    }
+
+    public void setTotalStayDuration(Integer totalStayDuration) {
+        this.totalStayDuration = totalStayDuration;
+    }
+
+    public Integer getTotalTripDuration() {
+        return totalTripDuration;
+    }
+
+    public void setTotalTripDuration(Integer totalTripDuration) {
+        this.totalTripDuration = totalTripDuration;
     }
 
     public String getCoverUrl() {
