@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/api/favorite-spots/**")
                         .authenticated()
+                        .requestMatchers("/api/user-trips/**")
+                        .authenticated()
                         .requestMatchers("/api/users/**")
                         .hasRole("ADMIN")
                         .anyRequest()
