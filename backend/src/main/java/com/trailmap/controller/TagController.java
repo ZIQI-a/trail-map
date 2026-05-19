@@ -14,11 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 标签接口，负责给前端返回当前城市可用的筛选标签。
+ * 标签接口，负责给前端返回系统中的景点筛选标签。
  */
 @Validated
 @RestController
-@RequestMapping("/api/cities/{cityId}/tags")
+@RequestMapping("/api")
 @Tag(name = "标签接口")
 public class TagController {
 
@@ -31,11 +31,20 @@ public class TagController {
     /**
      * 只返回当前城市实际有景点命中的标签，减少前端出现空筛选结果的概率。
      */
-    @GetMapping
+    @GetMapping("/cities/{cityId}/tags")
     @Operation(summary = "获取城市景点标签")
     public ApiResponse<List<SpotTagResponse>> listTagsByCity(
             @PathVariable @Positive(message = "城市 ID 必须大于 0") Long cityId
     ) {
         return ApiResponse.success(tagService.listTagsByCity(cityId));
+    }
+
+    /**
+     * 返回系统中定义的全部可用标签，不限城市。
+     */
+    @GetMapping("/tags")
+    @Operation(summary = "获取全量景点标签")
+    public ApiResponse<List<SpotTagResponse>> listAllTags() {
+        return ApiResponse.success(tagService.listAllTags());
     }
 }

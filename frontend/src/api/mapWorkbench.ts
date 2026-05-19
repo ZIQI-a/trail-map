@@ -27,6 +27,11 @@ export function fetchCityTags(cityId: number) {
   return request<SpotTagDto[]>(`/api/cities/${cityId}/tags`);
 }
 
+// 获取全量景点标签。
+export function fetchAllTags() {
+  return request<SpotTagDto[]>('/api/tags');
+}
+
 // 获取当前城市景点列表，支持关键词和标签等筛选。
 export function fetchCitySpots(cityId: number, params?: { keyword?: string; type?: string; tagCode?: string }) {
   const searchParams = new URLSearchParams();

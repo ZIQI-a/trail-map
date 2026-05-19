@@ -27,6 +27,7 @@ import {
   useCurrentUserQuery,
   useCitiesQuery,
   useCityTagsQuery,
+  useAllTagsQuery,
   useFavoriteSpotsQuery,
   useUnfavoriteSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
@@ -63,14 +64,16 @@ export function FavoritesPage() {
 
   const selectedCityIdForTags = useMemo(() => {
     if (cityFilter === "all" || !citiesQuery.data?.list) {
-      return citiesQuery.data?.list?.[0]?.id;
+      return undefined;
     }
     return citiesQuery.data.list.find((c) => c.name === cityFilter)?.id;
   }, [cityFilter, citiesQuery.data?.list]);
 
-  // 当选择具体城市时，加载该城市的标签；当选择全部城市时，暂时使用首个城市的标签作为兜底。
-  // 更彻底的方案应该是后端补一个全局景点标签接口，供收藏页直接使用。
+  // 当选择具体城市时，加载该城市的标签；当选择全部城市时，加载系统全量标签。
   const cityTagsQuery = useCityTagsQuery(selectedCityIdForTags);
+  const allTagsQuery = useAllTagsQuery();
+
+  const activeTags = cityFilter === "all" ? allTagsQuery.data : cityTagsQuery.data;
 
   const favoriteQueryParams = useMemo(
     () => ({
@@ -91,16 +94,16 @@ export function FavoritesPage() {
   const currentPageFavoriteSpots = favoriteSpotsQuery.data?.list ?? [];
   const totalFavorites = favoriteSpotsQuery.data?.total ?? 0;
 
-  // 分类选项直接使用标签接口，避免为拼选项额外拉一次收藏列表。
+  // 分类选项直接使用标签接口，根据城市筛选状态切换全量或城市特定标签。
   const typeOptions = useMemo(
     () => [
       { label: "全部分类", value: "all" },
-      ...(cityTagsQuery.data ?? []).map((tag) => ({
+      ...(activeTags ?? []).map((tag) => ({
           label: tag.name,
           value: tag.code,
         })),
     ],
-    [cityTagsQuery.data],
+    [activeTags],
   );
 
   // 城市选项直接使用城市接口，不再依赖收藏列表反推。

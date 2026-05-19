@@ -70,6 +70,16 @@ public class TagServiceImpl implements TagService {
                 .toList();
     }
 
+    @Override
+    public java.util.List<SpotTagResponse> listAllTags() {
+        return spotTagMapper.selectList(new LambdaQueryWrapper<SpotTag>()
+                        .eq(SpotTag::getStatus, 1))
+                .stream()
+                .sorted(Comparator.comparing(SpotTag::getSortOrder))
+                .map(tag -> new SpotTagResponse(tag.getId(), tag.getTagName(), tag.getTagCode(), tag.getTagType(), tag.getSortOrder()))
+                .toList();
+    }
+
     private void validateCity(Long cityId) {
         Long count = cityMapper.selectCount(new LambdaQueryWrapper<City>()
                 .eq(City::getId, cityId)

@@ -9,4 +9,6 @@ import java.util.List;
 public interface TagService {
 
     List<SpotTagResponse> listTagsByCity(Long cityId);
+
+    List<SpotTagResponse> listAllTags();
 }

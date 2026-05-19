@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { favoriteSpot, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, unfavoriteSpot } from '../api/mapWorkbench';
+import { favoriteSpot, fetchAllTags, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, unfavoriteSpot } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto } from '../types/mapWorkbench';
@@ -28,6 +28,14 @@ export function useCityTagsQuery(cityId?: number) {
     queryKey: ['city-tags', cityId],
     queryFn: () => fetchCityTags(cityId!),
     enabled: cityId != null,
+  });
+}
+
+// 全量标签查询
+export function useAllTagsQuery() {
+  return useQuery({
+    queryKey: ['all-tags'],
+    queryFn: fetchAllTags,
   });
 }
 // 城市景点列表查询，支持基于标签和关键词的筛选
