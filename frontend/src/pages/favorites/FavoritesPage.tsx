@@ -6,6 +6,7 @@ import {
   EyeOutlined,
   HeartFilled,
   HeartOutlined,
+  ReadOutlined,
   StarFilled,
 } from "@ant-design/icons";
 import {
@@ -126,6 +127,7 @@ export function FavoritesPage() {
   const userMenuItems = buildUserMenuItems(
     currentUserQuery.data,
     () => navigate("/favorites"),
+    () => navigate("/trips"),
     () => navigate("/admin"),
     () => {
       clearAuthToken();
@@ -479,6 +481,7 @@ function FavoriteSpotCard({
 function buildUserMenuItems(
   currentUser: AppUserDto | undefined,
   onFavoritesClick: () => void,
+  onTripsClick: () => void,
   onAdminClick: () => void,
   onLogout: () => void,
 ): MenuProps["items"] {
@@ -497,6 +500,12 @@ function buildUserMenuItems(
       label: "我的收藏",
       icon: <HeartOutlined />,
       onClick: onFavoritesClick,
+    },
+    {
+      key: "trips",
+      label: "我的行程",
+      icon: <ReadOutlined />,
+      onClick: onTripsClick,
     },
     ...(currentUser.userType === "admin"
       ? [

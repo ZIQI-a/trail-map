@@ -9,6 +9,7 @@ import {
   Drawer,
   Empty,
   FloatButton,
+  message,
   Modal,
   Segmented,
   Spin,
@@ -46,11 +47,16 @@ import {
   usePoiCandidatesQuery,
   useRegisterMutation,
   useRoutePlanMutation,
+  useSaveUserTripMutation,
   useSpotDetailQuery,
   useUnfavoriteSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import { clearAuthToken, getAuthToken, setAuthToken } from "../../lib/authToken";
+import {
+  clearAuthToken,
+  getAuthToken,
+  setAuthToken,
+} from "../../lib/authToken";
 import type { LoginRequestDto, RegisterRequestDto } from "../../types/auth";
 import type {
   GeoPoint,
@@ -61,6 +67,7 @@ import type {
   RouteLocation,
   RouteSegmentDto,
   RoutePlanResponseDto,
+  SaveTripRequestDto,
   SchedulePlanConfig,
   SpotTag,
   SpotTagDto,
@@ -128,11 +135,13 @@ export function MapWorkbenchPage() {
   const [activeRecommendTab, setActiveRecommendTab] =
     useState<RecommendTab>("recommend");
   const [selectedCityId, setSelectedCityId] = useState<number>();
-  const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>(() => {
-    const spotIdText = searchParams.get("spotId");
-    const spotId = spotIdText ? Number(spotIdText) : undefined;
-    return spotId && Number.isFinite(spotId) ? spotId : undefined;
-  });
+  const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>(
+    () => {
+      const spotIdText = searchParams.get("spotId");
+      const spotId = spotIdText ? Number(spotIdText) : undefined;
+      return spotId && Number.isFinite(spotId) ? spotId : undefined;
+    },
+  );
   const [tripSpotIds, setTripSpotIds] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState("");
   const [startPointPosition, setStartPointPosition] = useState<GeoPoint>();
@@ -155,6 +164,7 @@ export function MapWorkbenchPage() {
     useState<RoutePlanResponseDto>();
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
+  const saveUserTripMutation = useSaveUserTripMutation();
   const loginMutation = useLoginMutation();
   const registerMutation = useRegisterMutation();
   const favoriteSpotMutation = useFavoriteSpotMutation();
@@ -174,7 +184,10 @@ export function MapWorkbenchPage() {
   const cityDetailQuery = useCityDetailQuery(activeCityId);
   const tagsQuery = useCityTagsQuery(activeCityId);
   const debouncedStartPoint = useDebouncedValue(startPoint, 300);
-  const debouncedHotelKeyword = useDebouncedValue(scheduleConfig.hotelName, 300);
+  const debouncedHotelKeyword = useDebouncedValue(
+    scheduleConfig.hotelName,
+    300,
+  );
   const debouncedLunchKeyword = useDebouncedValue(
     scheduleConfig.lunchPlaceName,
     300,
@@ -288,26 +301,17 @@ export function MapWorkbenchPage() {
   );
   const hotelOptions = useMemo(
     () =>
-      buildManualLocationOptions(
-        hotelPoiCandidatesQuery.data,
-        tripCenterPoint,
-      ),
+      buildManualLocationOptions(hotelPoiCandidatesQuery.data, tripCenterPoint),
     [hotelPoiCandidatesQuery.data, tripCenterPoint],
   );
   const lunchOptions = useMemo(
     () =>
-      buildManualLocationOptions(
-        lunchPoiCandidatesQuery.data,
-        tripCenterPoint,
-      ),
+      buildManualLocationOptions(lunchPoiCandidatesQuery.data, tripCenterPoint),
     [lunchPoiCandidatesQuery.data, tripCenterPoint],
   );
   const restOptions = useMemo(
     () =>
-      buildManualLocationOptions(
-        restPoiCandidatesQuery.data,
-        tripCenterPoint,
-      ),
+      buildManualLocationOptions(restPoiCandidatesQuery.data, tripCenterPoint),
     [restPoiCandidatesQuery.data, tripCenterPoint],
   );
   // 只有在完整行程模式下且有编排结果时才展示时间轴，其他情况都展示完整路线，避免用户混淆。
@@ -575,6 +579,35 @@ export function MapWorkbenchPage() {
     }
   }
 
+  // 当前阶段保存动作直接复用已生成的路线结果，先给出稳定默认名称，后续再补自定义命名。
+  async function handleSaveCurrentTrip() {
+    if (!authToken) {
+      setAuthError(undefined);
+      setAuthDialogOpen(true);
+      return;
+    }
+    if (!city || !routePlanResult) {
+      return;
+    }
+
+    const payload = buildSaveTripPayload({
+      city,
+      routePlan: routePlanResult,
+      tripSpots,
+      startPoint: startPoint.trim() || `${city.name}市中心`,
+      startPointPosition:
+        visibleRouteSegments?.[0]?.fromPosition ??
+        startPointPosition ??
+        city.center,
+      scheduleConfig,
+    });
+    const tripId = await saveUserTripMutation.mutateAsync(payload);
+    await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
+    message.success("行程已保存到我的行程");
+    navigate(`/trips`);
+    return tripId;
+  }
+
   /**
    * 用户只输入地点名称时，先尝试用百度地点检索解析成坐标。
    * 当前取第一候选项，优先使用更适合导航落点的 naviLocation。
@@ -756,7 +789,7 @@ export function MapWorkbenchPage() {
     return (
       <main className={styles.workbenchStateShell}>
         <Spin size="large" />
-        <p>正在加载地图工作台数据...</p>
+        <p>正在加载数据...</p>
       </main>
     );
   }
@@ -767,11 +800,11 @@ export function MapWorkbenchPage() {
         <Alert
           type="error"
           showIcon
-          message="地图工作台加载失败"
+          message="地图加载失败"
           description={
             pageError instanceof Error
               ? pageError.message
-              : "暂时无法获取城市和景点数据"
+              : "暂时无法获取城市和景点数据，请稍后再试~"
           }
         />
       </main>
@@ -803,7 +836,17 @@ export function MapWorkbenchPage() {
           }
           navigate("/favorites");
         }}
-        onAdminClick={() => window.open("/admin", "_blank", "noopener,noreferrer")}
+        onTripsClick={() => {
+          if (!authToken) {
+            setAuthError(undefined);
+            setAuthDialogOpen(true);
+            return;
+          }
+          navigate("/trips");
+        }}
+        onAdminClick={() =>
+          window.open("/admin", "_blank", "noopener,noreferrer")
+        }
         onLogout={handleLogout}
       />
 
@@ -881,7 +924,8 @@ export function MapWorkbenchPage() {
           <div className={styles.detailFloatPanel}>
             <SpotDetailPanel
               favoriteLoading={
-                favoriteSpotMutation.isPending || unfavoriteSpotMutation.isPending
+                favoriteSpotMutation.isPending ||
+                unfavoriteSpotMutation.isPending
               }
               isFavorite={favoriteSpotStatusQuery.data?.favorited ?? false}
               isLoggedIn={Boolean(authToken)}
@@ -922,7 +966,9 @@ export function MapWorkbenchPage() {
                   : undefined
               }
               selectedDayIndex={activeScheduleDay?.dayIndex}
+              saving={saveUserTripMutation.isPending}
               onFocusLocation={handleFocusRouteTimelineLocation}
+              onSaveTrip={() => void handleSaveCurrentTrip()}
               onClose={() => setRoutePlanResult(undefined)}
             />
           </div>
@@ -1355,6 +1401,139 @@ function reorderByIndex<T>(items: T[], fromIndex: number, toIndex: number) {
   return nextItems;
 }
 
+interface SaveTripPayloadContext {
+  city: TravelCity;
+  routePlan: RoutePlanResponseDto;
+  tripSpots: TravelSpot[];
+  startPoint: string;
+  startPointPosition: GeoPoint;
+  scheduleConfig: SchedulePlanConfig;
+}
+
+// 规划结果与保存接口结构不同，这里统一做一次映射，避免页面层散落转换逻辑。
+function buildSaveTripPayload(
+  context: SaveTripPayloadContext,
+): SaveTripRequestDto {
+  const {
+    city,
+    routePlan,
+    tripSpots,
+    startPoint,
+    startPointPosition,
+    scheduleConfig,
+  } = context;
+  const items =
+    routePlan.planMode === "schedule"
+      ? routePlan.itineraryDays.flatMap((day) =>
+          day.items.map((item, index) => ({
+            spotId: item.itemType === "spot" ? item.relatedSpotId : undefined,
+            itemName: item.placeName || item.title,
+            itemType: item.itemType,
+            position: item.position ?? undefined,
+            dayIndex: day.dayIndex,
+            sortOrder: index + 1,
+            startTime: item.suggestedStartTime,
+            endTime: item.suggestedEndTime,
+            suggestedDuration: item.durationMinutes,
+          })),
+        )
+      : routePlan.spotStayPlans.map((spot, index) => {
+          const currentSpot = tripSpots.find(
+            (tripSpot) => tripSpot.id === spot.spotId,
+          );
+          return {
+            spotId: spot.spotId,
+            itemName: spot.spotName,
+            itemType: "spot" as const,
+            position: currentSpot?.position,
+            dayIndex: 1,
+            sortOrder: index + 1,
+            startTime: spot.suggestedStartTime,
+            endTime: spot.suggestedEndTime,
+            suggestedDuration: spot.suggestedDurationMinutes,
+          };
+        });
+  const allSegments =
+    routePlan.planMode === "schedule"
+      ? routePlan.itineraryDays.flatMap((day) =>
+          day.segments.map((segment) => ({
+            dayIndex: day.dayIndex,
+            segmentIndex: segment.segmentIndex,
+            fromName: segment.fromName,
+            fromPosition: segment.fromPosition,
+            toName: segment.toName,
+            toPosition: segment.toPosition,
+            transportType: segment.transportType,
+            distance: segment.distanceMeters,
+            duration: segment.durationSeconds,
+            instruction: segment.instruction,
+            polyline: segment.polyline,
+            steps: segment.stepTexts,
+          })),
+        )
+      : routePlan.segments.map((segment) => ({
+          dayIndex: 1,
+          segmentIndex: segment.segmentIndex,
+          fromName: segment.fromName,
+          fromPosition: segment.fromPosition,
+          toName: segment.toName,
+          toPosition: segment.toPosition,
+          transportType: segment.transportType,
+          distance: segment.distanceMeters,
+          duration: segment.durationSeconds,
+          instruction: segment.instruction,
+          polyline: segment.polyline,
+          steps: segment.stepTexts,
+        }));
+  const lastSegment = allSegments[allSegments.length - 1];
+  const scheduleDayCount =
+    routePlan.itineraryDays.length || scheduleConfig.tripDays || 1;
+
+  return {
+    cityId: city.id,
+    tripName: buildDefaultTripName(
+      city.name,
+      routePlan.planMode,
+      scheduleDayCount,
+    ),
+    startName: startPoint,
+    endName: lastSegment?.toName,
+    startPosition: startPointPosition,
+    endPosition: lastSegment?.toPosition,
+    startDate:
+      routePlan.planMode === "schedule"
+        ? scheduleConfig.tripStartDate
+        : undefined,
+    endDate:
+      routePlan.planMode === "schedule"
+        ? scheduleConfig.tripEndDate
+        : undefined,
+    days: routePlan.planMode === "schedule" ? scheduleDayCount : 1,
+    transportType: routePlan.transportType,
+    planMode: routePlan.planMode,
+    totalDistance: routePlan.totalDistanceMeters,
+    totalTravelDuration: routePlan.totalTravelDurationSeconds,
+    totalStayDuration: routePlan.totalStayDurationMinutes,
+    totalTripDuration: routePlan.totalTripDurationMinutes,
+    routeSummary: routePlan.routeSummary,
+    routeRecordId: routePlan.routeRecordId,
+    coverUrl: tripSpots[0]?.coverUrl || undefined,
+    items,
+    segments: allSegments,
+  };
+}
+
+function buildDefaultTripName(
+  cityName: string,
+  planMode: PlanMode,
+  days: number,
+) {
+  if (planMode === "schedule") {
+    return `${cityName}${days}天行程`;
+  }
+  return `${cityName}路线规划`;
+}
+
 function mapCity(city?: TravelCity | TravelCityDto) {
   if (!city) {
     return undefined;
@@ -1495,7 +1674,9 @@ function buildManualLocationOptions(
         label: (
           <div className={styles.startPointOption}>
             <strong>{candidate.name}</strong>
-            <span>{candidate.address || `${candidate.city}${candidate.area}`}</span>
+            <span>
+              {candidate.address || `${candidate.city}${candidate.area}`}
+            </span>
           </div>
         ),
       };

@@ -4,6 +4,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MapWorkbenchPage } from "./pages/map-workbench";
 import { FavoritesPage } from "./pages/favorites";
+import { MyTripsPage } from "./pages/trips";
 import { NotFoundPage } from "./pages/not-found";
 
 const AdminPage = lazy(() =>
@@ -37,6 +38,7 @@ function App() {
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/trips" element={<MyTripsPage />} />
           <Route
             path="/admin"
             element={

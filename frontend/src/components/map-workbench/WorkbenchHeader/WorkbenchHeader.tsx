@@ -9,6 +9,7 @@ import {
   HomeOutlined,
   LogoutOutlined,
   PictureOutlined,
+  ReadOutlined,
   SearchOutlined,
   SmileOutlined,
   StarOutlined,
@@ -42,6 +43,7 @@ interface WorkbenchHeaderProps {
   onAuthClick: () => void;
   onAdminClick: () => void;
   onFavoritesClick: () => void;
+  onTripsClick: () => void;
   onLogout: () => void;
 }
 
@@ -66,6 +68,7 @@ export function WorkbenchHeader({
   onAuthClick,
   onAdminClick,
   onFavoritesClick,
+  onTripsClick,
   onLogout,
 }: WorkbenchHeaderProps) {
   const filterOptions: Array<{ label: string; icon: ReactNode; value: ActiveSpotFilter }> = [
@@ -140,6 +143,12 @@ export function WorkbenchHeader({
                     label: "我的收藏",
                     icon: <HeartOutlined />,
                     onClick: onFavoritesClick,
+                  },
+                  {
+                    key: "trips",
+                    label: "我的行程",
+                    icon: <ReadOutlined />,
+                    onClick: onTripsClick,
                   },
                   {
                     key: "logout",

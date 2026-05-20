@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { favoriteSpot, fetchAllTags, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, unfavoriteSpot } from '../api/mapWorkbench';
+import { deleteUserTrip, favoriteSpot, fetchAllTags, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, fetchUserTripDetail, fetchUserTrips, saveUserTrip, unfavoriteSpot } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
-import type { RoutePlanRequestDto } from '../types/mapWorkbench';
+import type { RoutePlanRequestDto, SaveTripRequestDto } from '../types/mapWorkbench';
 
 // 地图工作台查询集合，集中管理城市、标签、列表和详情请求。
 export function useCitiesQuery() {
@@ -128,6 +128,45 @@ export function usePoiCandidatesQuery(
 export function useRoutePlanMutation() {
   return useMutation({
     mutationFn: (payload: RoutePlanRequestDto) => fetchRoutePlan(payload),
+  });
+}
+
+// 保存规划结果到用户账号。
+export function useSaveUserTripMutation() {
+  return useMutation({
+    mutationFn: (payload: SaveTripRequestDto) => saveUserTrip(payload),
+  });
+}
+
+// 我的行程列表查询。
+export function useUserTripsQuery(
+  params: {
+    pageNum: number;
+    pageSize: number;
+  },
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ['user-trips', params],
+    queryFn: () => fetchUserTrips(params),
+    enabled,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+// 单个行程详情查询，点击卡片后按需加载。
+export function useUserTripDetailQuery(tripId?: number, enabled = false) {
+  return useQuery({
+    queryKey: ['user-trip-detail', tripId],
+    queryFn: () => fetchUserTripDetail(tripId!),
+    enabled: enabled && tripId != null,
+  });
+}
+
+// 删除已保存行程。
+export function useDeleteUserTripMutation() {
+  return useMutation({
+    mutationFn: (tripId: number) => deleteUserTrip(tripId),
   });
 }
 

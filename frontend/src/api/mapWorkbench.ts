@@ -6,10 +6,13 @@ import type {
   PoiCalibrationCandidateDto,
   RoutePlanRequestDto,
   RoutePlanResponseDto,
+  SaveTripRequestDto,
   SpotTagDto,
   TravelCityDto,
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
+  UserTripDetailDto,
+  UserTripSummaryDto,
 } from '../types/mapWorkbench';
 
 // 获取城市列表，当前阶段默认不传分页参数，直接拿完整列表。
@@ -122,5 +125,38 @@ export function fetchRoutePlan(payload: RoutePlanRequestDto) {
   return request<RoutePlanResponseDto>('/api/routes/plan', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+// 保存当前规划结果到“我的行程”。
+export function saveUserTrip(payload: SaveTripRequestDto) {
+  return request<number>('/api/user-trips', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+// 获取当前登录用户的行程列表。
+export function fetchUserTrips(params?: { pageNum?: number; pageSize?: number }) {
+  const searchParams = new URLSearchParams();
+  if (params?.pageNum) {
+    searchParams.set('pageNum', String(params.pageNum));
+  }
+  if (params?.pageSize) {
+    searchParams.set('pageSize', String(params.pageSize));
+  }
+  const queryString = searchParams.toString();
+  return request<PageResponse<UserTripSummaryDto>>(`/api/user-trips${queryString ? `?${queryString}` : ''}`);
+}
+
+// 获取指定已保存行程的详情。
+export function fetchUserTripDetail(tripId: number) {
+  return request<UserTripDetailDto>(`/api/user-trips/${tripId}`);
+}
+
+// 删除指定已保存行程。
+export function deleteUserTrip(tripId: number) {
+  return request<null>(`/api/user-trips/${tripId}`, {
+    method: 'DELETE',
   });
 }

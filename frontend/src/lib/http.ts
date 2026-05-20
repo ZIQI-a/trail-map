@@ -42,7 +42,7 @@ async function parseApiPayload<T>(response: Response): Promise<ApiResponse<T> | 
 
 function buildHttpErrorMessage(status: number) {
   if (status >= 500) {
-    return '后端服务暂时不可用，请确认后端已启动';
+    return '服务暂时不可用，请联系网站管理员~';
   }
   if (status === 404) {
     return '请求的接口不存在';

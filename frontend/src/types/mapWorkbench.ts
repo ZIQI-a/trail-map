@@ -354,3 +354,131 @@ export interface RoutePlanResponseDto {
   segments: RouteSegmentDto[];
   itineraryDays: ItineraryDayDto[];
 }
+
+// 保存行程时复用规划结果中的坐标结构，保持前后端字段口径一致。
+export interface SaveTripCoordinateDto {
+  lng: number;
+  lat: number;
+}
+
+// 保存行程的节点请求结构，覆盖景点和午餐/酒店等补充节点。
+export interface SaveTripItemRequestDto {
+  spotId?: number;
+  itemName: string;
+  itemType: 'spot' | 'lunch' | 'rest' | 'hotel';
+  position?: SaveTripCoordinateDto;
+  dayIndex: number;
+  sortOrder: number;
+  startTime?: string;
+  endTime?: string;
+  suggestedDuration?: number;
+}
+
+// 保存行程时同步落库路线段，便于后续详情回放和管理端查看。
+export interface SaveTripSegmentRequestDto {
+  dayIndex: number;
+  segmentIndex: number;
+  fromName: string;
+  fromPosition: SaveTripCoordinateDto;
+  toName: string;
+  toPosition: SaveTripCoordinateDto;
+  transportType: TransportType;
+  distance: number;
+  duration: number;
+  instruction: string;
+  polyline: SaveTripCoordinateDto[];
+  steps: string[];
+}
+
+// 保存行程请求对象，对齐后端 SaveTripRequest。
+export interface SaveTripRequestDto {
+  cityId: number;
+  tripName: string;
+  startName?: string;
+  endName?: string;
+  startPosition?: SaveTripCoordinateDto;
+  endPosition?: SaveTripCoordinateDto;
+  startDate?: string;
+  endDate?: string;
+  days: number;
+  transportType: TransportType;
+  planMode: PlanMode;
+  totalDistance?: number;
+  totalTravelDuration?: number;
+  totalStayDuration?: number;
+  totalTripDuration?: number;
+  routeSummary?: string;
+  routeRecordId?: number;
+  coverUrl?: string;
+  items: SaveTripItemRequestDto[];
+  segments?: SaveTripSegmentRequestDto[];
+}
+
+// 我的行程列表项，对齐后端 TripSummaryResponse。
+export interface UserTripSummaryDto {
+  id: number;
+  cityId: number;
+  cityName: string;
+  tripName: string;
+  startName?: string | null;
+  endName?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  days: number;
+  transportType: TransportType;
+  planMode: PlanMode;
+  totalDistance: number;
+  totalDuration: number;
+  coverUrl?: string | null;
+  createdAt: string;
+}
+
+// 我的行程详情节点，对齐后端完整节点返回。
+export interface UserTripItemDetailDto {
+  spotId?: number | null;
+  itemType: 'spot' | 'lunch' | 'rest' | 'hotel';
+  itemName: string;
+  coverUrl?: string | null;
+  lng?: number | null;
+  lat?: number | null;
+  sortOrder: number;
+  suggestedDuration?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+}
+
+// 兼容旧展示的景点明细。
+export interface UserTripSpotDetailDto {
+  spotId?: number | null;
+  spotName: string;
+  coverUrl?: string | null;
+  sortOrder: number;
+  suggestedDuration?: number | null;
+}
+
+export interface UserTripDayDetailDto {
+  dayIndex: number;
+  spots: UserTripSpotDetailDto[];
+  items: UserTripItemDetailDto[];
+}
+
+// 我的行程详情对象，对齐后端 TripDetailResponse。
+export interface UserTripDetailDto {
+  id: number;
+  cityId: number;
+  cityName: string;
+  tripName: string;
+  startName?: string | null;
+  endName?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  days: number;
+  transportType: TransportType;
+  planMode: PlanMode;
+  totalDistance: number;
+  totalDuration: number;
+  routeRecordId?: number | null;
+  coverUrl?: string | null;
+  createdAt: string;
+  itineraryDays: UserTripDayDetailDto[];
+}

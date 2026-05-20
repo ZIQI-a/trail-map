@@ -47,7 +47,9 @@ interface RoutePlanDrawerProps {
   startPosition?: GeoPoint;
   scheduleStartTime?: string;
   selectedDayIndex?: number;
+  saving?: boolean;
   onFocusLocation: (target: RouteTimelineFocusTarget) => void;
+  onSaveTrip: () => void;
   onClose: () => void;
 }
 
@@ -68,7 +70,9 @@ export function RoutePlanDrawer({
   startPosition,
   scheduleStartTime,
   selectedDayIndex,
+  saving = false,
   onFocusLocation,
+  onSaveTrip,
   onClose,
 }: RoutePlanDrawerProps) {
   const spotMapping = new Map(tripSpots.map((spot) => [spot.id, spot]));
@@ -110,6 +114,14 @@ export function RoutePlanDrawer({
           </h2>
         </div>
         <div className={styles.headerActions}>
+          <Button
+            icon={<ExportOutlined />}
+            className={styles.headerButton}
+            loading={saving}
+            onClick={onSaveTrip}
+          >
+            保存行程
+          </Button>
           <Button icon={<ShareAltOutlined />} className={styles.headerButton}>
             分享
           </Button>
