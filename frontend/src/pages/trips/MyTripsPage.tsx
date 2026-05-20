@@ -5,12 +5,12 @@ import {
   CarOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
+  EllipsisOutlined,
   EnvironmentOutlined,
   EyeOutlined,
   HeartOutlined,
   ReadOutlined,
-  RightOutlined,
-  ShareAltOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
@@ -22,6 +22,7 @@ import {
   Pagination,
   Popconfirm,
   Segmented,
+  Select,
   Spin,
   Tag,
   message,
@@ -31,6 +32,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  useCitiesQuery,
   useCurrentUserQuery,
   useDeleteUserTripMutation,
   useUserTripDetailQuery,
@@ -50,25 +52,73 @@ import {
 } from "../../utils/map-workbench/routeDisplay";
 import styles from "./MyTripsPage.module.css";
 
-type TripViewMode = "grid" | "timeline";
+type TripScope = "all" | "schedule" | "free";
+type TripViewMode = "grid" | "list";
+type TripSortMode = "latest" | "city";
+
 const EMPTY_TRIPS: UserTripSummaryDto[] = [];
 
-// MyTripsPage 负责承接“我的行程”列表、详情和删除管理。
+// MyTripsPage 负责承接“我的旅行规划”列表、详情和删除管理。
+// 已按照设计图“行程.png”和收藏页风格进行重构。
 export function MyTripsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const authToken = getAuthToken();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const [viewMode, setViewMode] = useState<TripViewMode>("grid");
+  const [scope, setScope] = useState<TripScope>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [sortMode, setSortMode] = useState<TripSortMode>("latest");
+  const [viewMode, setViewMode] = useState<TripViewMode>("list");
   const [selectedTripId, setSelectedTripId] = useState<number>();
+  
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
-  const userTripsQuery = useUserTripsQuery({ pageNum, pageSize }, Boolean(authToken));
-  const userTripDetailQuery = useUserTripDetailQuery(selectedTripId, Boolean(authToken && selectedTripId));
+  const citiesQuery = useCitiesQuery();
+  const userTripsQuery = useUserTripsQuery(
+    { pageNum, pageSize: 200 }, // 目前先拉取较多数据在前端过滤，后续可由后端支持
+    Boolean(authToken),
+  );
+  const userTripDetailQuery = useUserTripDetailQuery(
+    selectedTripId,
+    Boolean(authToken && selectedTripId),
+  );
   const deleteUserTripMutation = useDeleteUserTripMutation();
-  const currentPageTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
-  const totalTrips = userTripsQuery.data?.total ?? 0;
-  const tripStats = useMemo(() => buildTripStats(currentPageTrips, totalTrips), [currentPageTrips, totalTrips]);
+  const allTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
+
+  const cityOptions = useMemo(
+    () => [
+      { label: "全部城市", value: "all" },
+      ...(citiesQuery.data?.list ?? []).map((city) => ({
+        label: city.name,
+        value: city.name,
+      })),
+    ],
+    [citiesQuery.data?.list],
+  );
+
+  const filteredTrips = useMemo(() => {
+    const scopedTrips = allTrips.filter((trip) => {
+      if (scope !== "all" && trip.planMode !== scope) {
+        return false;
+      }
+      if (cityFilter !== "all" && trip.cityName !== cityFilter) {
+        return false;
+      }
+      return true;
+    });
+
+    return [...scopedTrips].sort((left, right) => {
+      if (sortMode === "city") {
+        return left.cityName.localeCompare(right.cityName, "zh-CN");
+      }
+      return right.createdAt.localeCompare(left.createdAt);
+    });
+  }, [allTrips, cityFilter, scope, sortMode]);
+
+  const pagedTrips = useMemo(() => {
+    const startIndex = (pageNum - 1) * pageSize;
+    return filteredTrips.slice(startIndex, startIndex + pageSize);
+  }, [filteredTrips, pageNum, pageSize]);
 
   const userMenuItems = buildUserMenuItems(
     currentUserQuery.data,
@@ -86,7 +136,7 @@ export function MyTripsPage() {
 
   async function handleDeleteTrip(tripId: number) {
     await deleteUserTripMutation.mutateAsync(tripId);
-    message.success("行程已删除");
+    message.success("规划已删除");
     if (selectedTripId === tripId) {
       setSelectedTripId(undefined);
     }
@@ -97,7 +147,7 @@ export function MyTripsPage() {
     return (
       <main className={styles.stateShell}>
         <Empty
-          description="登录后即可查看你保存的行程"
+          description="登录后即可查看你保存的旅行规划"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
         <Button type="primary" onClick={() => navigate("/")}>
@@ -111,7 +161,7 @@ export function MyTripsPage() {
     return (
       <main className={styles.stateShell}>
         <Spin size="large" />
-        <p>正在加载你的行程信息...</p>
+        <p>正在加载你的规划信息...</p>
       </main>
     );
   }
@@ -122,7 +172,7 @@ export function MyTripsPage() {
         <Alert
           type="error"
           showIcon
-          message="行程页暂时无法访问"
+          message="规划页暂时无法访问"
           description="请重新登录后再试。"
         />
         <Button onClick={() => navigate("/")}>返回首页</Button>
@@ -136,7 +186,9 @@ export function MyTripsPage() {
         <div className={styles.headerMain}>
           <div>
             <h1>我的行程</h1>
-            <span className={styles.headerHint}>把每一次规划留在账号里，随时回看与继续出发</span>
+            <span className={styles.headerHint}>
+              管理和查看你创建的所有行程
+            </span>
           </div>
 
           <div className={styles.headerActions}>
@@ -147,15 +199,6 @@ export function MyTripsPage() {
             >
               返回首页
             </Button>
-            <Segmented
-              className={styles.viewSwitch}
-              value={viewMode}
-              options={[
-                { label: "卡片浏览", value: "grid", icon: <AppstoreOutlined /> },
-                { label: "时间脉络", value: "timeline", icon: <CalendarOutlined /> },
-              ]}
-              onChange={(value) => setViewMode(value as TripViewMode)}
-            />
             <Dropdown trigger={["click"]} menu={{ items: userMenuItems }}>
               <button type="button" className={styles.userButton}>
                 <Avatar
@@ -171,77 +214,111 @@ export function MyTripsPage() {
             </Dropdown>
           </div>
         </div>
-
-        <section className={styles.statsStrip}>
-          <StatCard label="已保存行程" value={`${tripStats.total}`} accent="blue" />
-          <StatCard label="完整行程" value={`${tripStats.scheduleCount}`} accent="cyan" />
-          <StatCard label="自由路线" value={`${tripStats.freeCount}`} accent="gold" />
-          <StatCard label="最近一次保存" value={tripStats.latestLabel} accent="slate" />
-        </section>
       </header>
+
+      <section className={styles.toolbar}>
+        <Segmented
+          className={styles.scopeSwitch}
+          value={scope}
+          options={[
+            { label: "全部行程", value: "all" },
+            { label: "完整行程", value: "schedule" },
+            { label: "自由路线", value: "free" },
+          ]}
+          onChange={(value) => {
+            setScope(value as TripScope);
+            setPageNum(1);
+          }}
+        />
+
+        <div className={styles.toolbarFilters}>
+          <Select
+            size="large"
+            value={cityFilter}
+            options={cityOptions}
+            onChange={(value) => {
+              setCityFilter(value);
+              setPageNum(1);
+            }}
+          />
+          <Select
+            size="large"
+            value={sortMode}
+            options={[
+              { label: "创建时间", value: "latest" },
+              { label: "城市名称", value: "city" },
+            ]}
+            onChange={(value) => {
+              setSortMode(value as TripSortMode);
+              setPageNum(1);
+            }}
+          />
+          <Segmented
+            className={styles.viewSwitch}
+            value={viewMode}
+            options={[
+              { label: <UnorderedListOutlined />, value: "list" },
+              { label: <AppstoreOutlined />, value: "grid" },
+            ]}
+            onChange={(value) => setViewMode(value as TripViewMode)}
+          />
+        </div>
+      </section>
 
       {userTripsQuery.error ? (
         <section className={styles.feedbackCard}>
           <Alert
             type="error"
             showIcon
-            message="行程列表加载失败"
+            message="规划列表加载失败"
             description={
               userTripsQuery.error instanceof Error
                 ? userTripsQuery.error.message
-                : "暂时无法获取你的行程数据"
+                : "暂时无法获取你的规划数据"
             }
           />
         </section>
       ) : userTripsQuery.isLoading && !userTripsQuery.data ? (
         <section className={styles.feedbackCard}>
           <Spin size="large" />
-          <p>正在整理你的行程记录...</p>
+          <p>正在整理你的旅行规划...</p>
         </section>
-      ) : currentPageTrips.length === 0 ? (
+      ) : pagedTrips.length === 0 ? (
         <section className={styles.feedbackCard}>
           <Empty
-            description="你还没有保存行程，先去地图工作台规划一条路线吧"
+            description={
+              filteredTrips.length === 0 && allTrips.length > 0
+                ? "当前筛选条件下暂无匹配的行程记录"
+                : "你还没有保存行程，先去地图工作台生成一条吧"
+            }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
           <Button type="primary" onClick={() => navigate("/")}>
-            去规划行程
+            去创建行程
           </Button>
         </section>
       ) : (
         <>
-          {viewMode === "grid" ? (
-            <section className={styles.cardGrid}>
-              {currentPageTrips.map((trip) => (
-                <TripCard
-                  key={trip.id}
-                  trip={trip}
-                  deleting={deleteUserTripMutation.isPending}
-                  onOpen={() => setSelectedTripId(trip.id)}
-                  onDelete={() => void handleDeleteTrip(trip.id)}
-                />
-              ))}
-            </section>
-          ) : (
-            <section className={styles.timelineList}>
-              {currentPageTrips.map((trip) => (
-                <TimelineTripRow
-                  key={trip.id}
-                  trip={trip}
-                  deleting={deleteUserTripMutation.isPending}
-                  onOpen={() => setSelectedTripId(trip.id)}
-                  onDelete={() => void handleDeleteTrip(trip.id)}
-                />
-              ))}
-            </section>
-          )}
+          <section
+            className={`${styles.tripList} ${viewMode === "grid" ? styles.tripListGrid : ""}`}
+          >
+            {pagedTrips.map((trip) => (
+              <TripListCard
+                key={trip.id}
+                trip={trip}
+                deleting={deleteUserTripMutation.isPending}
+                onOpen={() => setSelectedTripId(trip.id)}
+                onDelete={() => void handleDeleteTrip(trip.id)}
+              />
+            ))}
+          </section>
 
           <footer className={styles.paginationBar}>
-            <span className={styles.totalText}>共 {totalTrips} 条行程</span>
+            <span className={styles.totalText}>共 {filteredTrips.length} 条行程</span>
             <Pagination
               current={pageNum}
               pageSize={pageSize}
-              total={totalTrips}
+              total={filteredTrips.length}
               showSizeChanger
               pageSizeOptions={["8", "12", "16", "24"]}
               onChange={(nextPage, nextPageSize) => {
@@ -288,29 +365,29 @@ export function MyTripsPage() {
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  accent: "blue" | "cyan" | "gold" | "slate";
-}
-
-function StatCard({ label, value, accent }: StatCardProps) {
-  return (
-    <div className={`${styles.statCard} ${styles[`statCard${capitalize(accent)}`]}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-type TripCardProps = {
+type TripListCardProps = {
   trip: UserTripSummaryDto;
   deleting: boolean;
   onOpen: () => void;
   onDelete: () => void;
 };
 
-function TripCard({ trip, deleting, onOpen, onDelete }: TripCardProps) {
+function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
+  const isSchedule = trip.planMode === "schedule";
+
+  const moreMenuItems: MenuProps["items"] = [
+    {
+      key: "delete",
+      label: "删除行程",
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: () => {
+        // Popconfirm 逻辑通常包装在 Dropdown 外层或使用 Modal.confirm
+        // 这里为了简便先直接触发，实际可用 Popconfirm 包裹 MenuItem
+      },
+    },
+  ];
+
   return (
     <article className={styles.tripCard}>
       <div
@@ -318,115 +395,87 @@ function TripCard({ trip, deleting, onOpen, onDelete }: TripCardProps) {
         style={
           trip.coverUrl
             ? {
-                backgroundImage: `linear-gradient(180deg, rgb(7 18 41 / 0%) 0%, rgb(7 18 41 / 72%) 100%), url(${trip.coverUrl})`,
+                backgroundImage: `url(${trip.coverUrl})`,
               }
             : undefined
         }
-      >
-        <div className={styles.coverTop}>
-          <Tag className={styles.modeTag} color={trip.planMode === "schedule" ? "blue" : "gold"}>
-            {trip.planMode === "schedule" ? "完整行程" : "自由路线"}
-          </Tag>
-          <span className={styles.dayBadge}>{trip.days} 天</span>
-        </div>
-
-        <div className={styles.coverBottom}>
-          <h2>{trip.tripName}</h2>
-          <p>{trip.cityName}</p>
-        </div>
-      </div>
+      />
 
       <div className={styles.cardBody}>
-        <div className={styles.routeMeta}>
-          <span>
-            <EnvironmentOutlined />
-            {trip.startName || "未设置起点"}
-          </span>
-          <RightOutlined className={styles.routeArrow} />
-          <span>{trip.endName || "按路线结束"}</span>
+        <div className={styles.cardTitleSection}>
+          <div className={styles.cardInfo}>
+            <Tag
+              className={styles.modeTag}
+              color={isSchedule ? "green" : "blue"}
+            >
+              {isSchedule ? "完整行程" : "自由路线"}
+            </Tag>
+            <h2>{trip.tripName}</h2>
+            <div className={styles.cardMeta}>
+              <span>
+                <EnvironmentOutlined />
+                {trip.cityName}
+              </span>
+              {isSchedule && trip.startDate && trip.endDate ? (
+                <span>
+                  <CalendarOutlined />
+                  {formatTripDateRange(trip.startDate, trip.endDate)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className={styles.cardActions}>
+            <Button
+              type="primary"
+              className={styles.actionButton}
+              onClick={onOpen}
+            >
+              查看行程
+            </Button>
+            <Popconfirm
+              title="确定删除这条行程？"
+              onConfirm={onDelete}
+              okText="确定"
+              cancelText="取消"
+            >
+              <button
+                type="button"
+                className={styles.moreButton}
+                disabled={deleting}
+              >
+                <DeleteOutlined />
+              </button>
+            </Popconfirm>
+          </div>
         </div>
 
-        <div className={styles.cardStats}>
+        <div className={styles.cardMetrics}>
+          <span>
+            <ClockCircleOutlined />
+            {isSchedule ? `${trip.days}天${trip.days - 1}晚` : "单日行程"}
+          </span>
           <span>
             <CarOutlined />
             {formatRouteDistance(trip.totalDistance)}
           </span>
           <span>
             <ClockCircleOutlined />
-            {formatTripDuration(trip.totalDuration)}
+            耗时 {formatTripDuration(trip.totalDuration)}
           </span>
-          <span>
-            <CalendarOutlined />
-            {formatTripDateRange(trip.startDate, trip.endDate)}
-          </span>
+          {/* todo: 后续 summary 接口补充景点/美食/酒店计数 */}
         </div>
+
+        <p className={styles.cardSummary}>
+          {trip.startName && trip.endName
+            ? `从 ${trip.startName} 出发，前往 ${trip.endName}，开启一段难忘的${trip.cityName}之旅。`
+            : `探索${trip.cityName}的魅力行程，包含${isSchedule ? trip.days + "天的深度体验" : "精心规划的路线"}。`}
+        </p>
 
         <div className={styles.cardFooter}>
-          <span className={styles.savedAt}>保存于 {formatDateTimeLabel(trip.createdAt)}</span>
-          <div className={styles.cardActions}>
-            <Button type="default" icon={<EyeOutlined />} onClick={onOpen}>
-              查看
-            </Button>
-            <Popconfirm
-              title="删除这条行程？"
-              description="删除后将无法继续在我的行程中查看。"
-              okText="删除"
-              cancelText="取消"
-              onConfirm={onDelete}
-            >
-              <Button danger icon={<DeleteOutlined />} loading={deleting}>
-                删除
-              </Button>
-            </Popconfirm>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-type TimelineTripRowProps = TripCardProps;
-
-function TimelineTripRow({ trip, deleting, onOpen, onDelete }: TimelineTripRowProps) {
-  return (
-    <article className={styles.timelineRow}>
-      <div className={styles.timelineDate}>
-        <strong>{formatShortDate(trip.createdAt)}</strong>
-        <span>{trip.cityName}</span>
-      </div>
-      <div className={styles.timelineContent}>
-        <div className={styles.timelineHeader}>
-          <div>
-            <h3>{trip.tripName}</h3>
-            <p>
-              {trip.startName || "未设置起点"} → {trip.endName || "按路线结束"}
-            </p>
-          </div>
-          <Tag color={trip.planMode === "schedule" ? "blue" : "gold"}>
-            {trip.planMode === "schedule" ? "完整行程" : "自由路线"}
-          </Tag>
-        </div>
-        <div className={styles.timelineStats}>
-          <span>{trip.days} 天</span>
-          <span>{formatRouteDistance(trip.totalDistance)}</span>
-          <span>{formatTripDuration(trip.totalDuration)}</span>
-          <span>{formatTripDateRange(trip.startDate, trip.endDate)}</span>
-        </div>
-        <div className={styles.timelineActions}>
-          <Button type="link" icon={<EyeOutlined />} onClick={onOpen}>
-            查看详情
-          </Button>
-          <Popconfirm
-            title="删除这条行程？"
-            description="删除后将无法继续在我的行程中查看。"
-            okText="删除"
-            cancelText="取消"
-            onConfirm={onDelete}
-          >
-            <Button type="link" danger icon={<DeleteOutlined />} loading={deleting}>
-              删除
-            </Button>
-          </Popconfirm>
+          <span className={styles.savedAt}>
+            创建于 {formatDateTimeLabel(trip.createdAt)}
+          </span>
         </div>
       </div>
     </article>
@@ -434,22 +483,21 @@ function TimelineTripRow({ trip, deleting, onOpen, onDelete }: TimelineTripRowPr
 }
 
 function TripDetailPanel({ trip }: { trip: UserTripDetailDto }) {
+  const isSchedule = trip.planMode === "schedule";
+
   return (
     <div className={styles.detailPanel}>
       <div className={styles.detailHero}>
         <div>
           <div className={styles.detailTitleRow}>
             <h2>{trip.tripName}</h2>
-            <Button type="text" icon={<ShareAltOutlined />} className={styles.shareButton}>
-              分享
-            </Button>
           </div>
           <p>{trip.cityName}</p>
         </div>
         <div className={styles.detailMetrics}>
           <div>
-            <span>里程</span>
-            <strong>{formatRouteDistance(trip.totalDistance)}</strong>
+            <span>类型</span>
+            <strong>{isSchedule ? "完整行程" : "自由路线"}</strong>
           </div>
           <div>
             <span>总时长</span>
@@ -458,62 +506,81 @@ function TripDetailPanel({ trip }: { trip: UserTripDetailDto }) {
         </div>
       </div>
 
-      <section className={styles.detailRoute}>
-        <div>
-          <small>起点</small>
-          <strong>{trip.startName || "未设置起点"}</strong>
-        </div>
-        <RightOutlined />
-        <div>
-          <small>终点</small>
-          <strong>{trip.endName || "按路线结束"}</strong>
-        </div>
-      </section>
+      {trip.startName || trip.endName ? (
+        <section className={styles.detailRoute}>
+          <div>
+            <small>起点</small>
+            <strong>{trip.startName || "未设置起点"}</strong>
+          </div>
+          <RightOutlined style={{ color: "#dce7f5", fontSize: "12px" }} />
+          <div>
+            <small>终点</small>
+            <strong>{trip.endName || "按路线结束"}</strong>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.detailMetaStrip}>
-        <Tag color="geekblue">{trip.planMode === "schedule" ? "完整行程" : "自由路线"}</Tag>
-        <Tag>{getTransportLabel(trip.transportType)}</Tag>
-        <Tag>{trip.days} 天</Tag>
-        <Tag>{formatTripDateRange(trip.startDate, trip.endDate)}</Tag>
+        <Tag color={isSchedule ? "green" : "blue"}>
+          {isSchedule ? "完整行程" : "自由路线"}
+        </Tag>
+        <Tag>{formatRouteDistance(trip.totalDistance)}</Tag>
+        {isSchedule && trip.startDate && trip.endDate ? (
+          <Tag>{formatTripDateRange(trip.startDate, trip.endDate)}</Tag>
+        ) : null}
       </section>
 
       <section className={styles.dayList}>
         {trip.itineraryDays.map((day) => (
-          <TripDaySection key={day.dayIndex} day={day} />
+          <TripDaySection
+            key={day.dayIndex}
+            day={day}
+            isSchedule={isSchedule}
+          />
         ))}
       </section>
     </div>
   );
 }
 
-function TripDaySection({ day }: { day: UserTripDayDetailDto }) {
+function TripDaySection({
+  day,
+  isSchedule,
+}: {
+  day: UserTripDayDetailDto;
+  isSchedule: boolean;
+}) {
   return (
     <section className={styles.daySection}>
       <div className={styles.dayHeader}>
         <div>
-          <h3>Day {day.dayIndex}</h3>
+          <h3>{isSchedule ? `Day ${day.dayIndex}` : `路线节点 ${day.dayIndex}`}</h3>
           <p>{day.items.length} 个节点</p>
         </div>
       </div>
 
       <div className={styles.dayTimeline}>
         {day.items.map((item) => (
-          <div key={`${day.dayIndex}-${item.sortOrder}-${item.itemName}`} className={styles.dayItem}>
-            <div className={`${styles.itemMarker} ${styles[`itemMarker${capitalize(item.itemType)}`]}`}>
+          <div
+            key={`${day.dayIndex}-${item.sortOrder}-${item.itemName}`}
+            className={styles.dayItem}
+          >
+            <div
+              className={`${styles.itemMarker} ${styles[`itemMarker${capitalize(item.itemType)}`]}`}
+            >
               {resolveTripItemLabel(item.itemType)}
             </div>
             <div className={styles.itemContent}>
               <div className={styles.itemTitleRow}>
                 <strong>{item.itemName}</strong>
-                <span>{formatTimeRange(item.startTime, item.endTime)}</span>
+                {isSchedule && (item.startTime || item.endTime) ? (
+                  <span>{formatTimeRange(item.startTime, item.endTime)}</span>
+                ) : null}
               </div>
               <div className={styles.itemMeta}>
-                <span>{resolveTripItemTypeText(item.itemType)}</span>
-                {item.suggestedDuration ? <span>{formatTripDuration(item.suggestedDuration)}</span> : null}
-                {item.lng != null && item.lat != null ? (
-                  <span>
-                    坐标 {item.lng.toFixed(3)}, {item.lat.toFixed(3)}
-                  </span>
+                <span>{resolveTripItemTypeText(item.itemType, isSchedule)}</span>
+                {item.suggestedDuration ? (
+                  <span>建议游玩 {formatTripDuration(item.suggestedDuration)}</span>
                 ) : null}
               </div>
             </div>
@@ -549,7 +616,7 @@ function buildUserMenuItems(
     },
     {
       key: "trips",
-      label: "我的行程",
+      label: "我的规划",
       icon: <ReadOutlined />,
       onClick: onTripsClick,
     },
@@ -573,18 +640,6 @@ function buildUserMenuItems(
   ];
 }
 
-function buildTripStats(trips: UserTripSummaryDto[], totalTrips: number) {
-  const scheduleCount = trips.filter((trip) => trip.planMode === "schedule").length;
-  const freeCount = trips.filter((trip) => trip.planMode === "free").length;
-  const latest = trips[0]?.createdAt;
-  return {
-    total: totalTrips,
-    scheduleCount,
-    freeCount,
-    latestLabel: latest ? formatShortDate(latest) : "--",
-  };
-}
-
 function getUserTypeLabel(userType: AppUserDto["userType"]) {
   switch (userType) {
     case "admin":
@@ -593,19 +648,6 @@ function getUserTypeLabel(userType: AppUserDto["userType"]) {
       return "会员";
     default:
       return "普通用户";
-  }
-}
-
-function getTransportLabel(transportType: UserTripSummaryDto["transportType"]) {
-  switch (transportType) {
-    case "driving":
-      return "驾车";
-    case "walking":
-      return "步行";
-    case "bicycling":
-      return "骑行";
-    default:
-      return "公共交通";
   }
 }
 
@@ -622,7 +664,10 @@ function resolveTripItemLabel(itemType: UserTripItemDetailDto["itemType"]) {
   }
 }
 
-function resolveTripItemTypeText(itemType: UserTripItemDetailDto["itemType"]) {
+function resolveTripItemTypeText(
+  itemType: UserTripItemDetailDto["itemType"],
+  isSchedule: boolean,
+) {
   switch (itemType) {
     case "lunch":
       return "用餐节点";
@@ -631,7 +676,7 @@ function resolveTripItemTypeText(itemType: UserTripItemDetailDto["itemType"]) {
     case "hotel":
       return "住宿节点";
     default:
-      return "景点节点";
+      return isSchedule ? "景点节点" : "路线节点";
   }
 }
 
@@ -650,15 +695,7 @@ function formatDateTimeLabel(value: string) {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-function formatShortDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function formatTimeRange(startTime?: string | null, endTime?: string | null) {
