@@ -67,7 +67,6 @@ import type {
   RouteLocation,
   RouteSegmentDto,
   RoutePlanResponseDto,
-  SaveTripRequestDto,
   SchedulePlanConfig,
   SpotTag,
   SpotTagDto,
@@ -82,6 +81,7 @@ import type {
 import { wgs84ToGcj02 } from "../../utils/map-workbench/coordinate";
 import { getItineraryActivityColor } from "../../utils/map-workbench/routePalette";
 import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
+import { buildSaveTripPayload } from "../../utils/map-workbench/tripPayload";
 import styles from "./MapWorkbenchPage.module.css";
 
 const transportTypes = [
@@ -1399,139 +1399,6 @@ function reorderByIndex<T>(items: T[], fromIndex: number, toIndex: number) {
   const [movedItem] = nextItems.splice(fromIndex, 1);
   nextItems.splice(toIndex, 0, movedItem);
   return nextItems;
-}
-
-interface SaveTripPayloadContext {
-  city: TravelCity;
-  routePlan: RoutePlanResponseDto;
-  tripSpots: TravelSpot[];
-  startPoint: string;
-  startPointPosition: GeoPoint;
-  scheduleConfig: SchedulePlanConfig;
-}
-
-// 规划结果与保存接口结构不同，这里统一做一次映射，避免页面层散落转换逻辑。
-function buildSaveTripPayload(
-  context: SaveTripPayloadContext,
-): SaveTripRequestDto {
-  const {
-    city,
-    routePlan,
-    tripSpots,
-    startPoint,
-    startPointPosition,
-    scheduleConfig,
-  } = context;
-  const items =
-    routePlan.planMode === "schedule"
-      ? routePlan.itineraryDays.flatMap((day) =>
-          day.items.map((item, index) => ({
-            spotId: item.itemType === "spot" ? item.relatedSpotId : undefined,
-            itemName: item.placeName || item.title,
-            itemType: item.itemType,
-            position: item.position ?? undefined,
-            dayIndex: day.dayIndex,
-            sortOrder: index + 1,
-            startTime: item.suggestedStartTime,
-            endTime: item.suggestedEndTime,
-            suggestedDuration: item.durationMinutes,
-          })),
-        )
-      : routePlan.spotStayPlans.map((spot, index) => {
-          const currentSpot = tripSpots.find(
-            (tripSpot) => tripSpot.id === spot.spotId,
-          );
-          return {
-            spotId: spot.spotId,
-            itemName: spot.spotName,
-            itemType: "spot" as const,
-            position: currentSpot?.position,
-            dayIndex: 1,
-            sortOrder: index + 1,
-            startTime: spot.suggestedStartTime,
-            endTime: spot.suggestedEndTime,
-            suggestedDuration: spot.suggestedDurationMinutes,
-          };
-        });
-  const allSegments =
-    routePlan.planMode === "schedule"
-      ? routePlan.itineraryDays.flatMap((day) =>
-          day.segments.map((segment) => ({
-            dayIndex: day.dayIndex,
-            segmentIndex: segment.segmentIndex,
-            fromName: segment.fromName,
-            fromPosition: segment.fromPosition,
-            toName: segment.toName,
-            toPosition: segment.toPosition,
-            transportType: segment.transportType,
-            distance: segment.distanceMeters,
-            duration: segment.durationSeconds,
-            instruction: segment.instruction,
-            polyline: segment.polyline,
-            steps: segment.stepTexts,
-          })),
-        )
-      : routePlan.segments.map((segment) => ({
-          dayIndex: 1,
-          segmentIndex: segment.segmentIndex,
-          fromName: segment.fromName,
-          fromPosition: segment.fromPosition,
-          toName: segment.toName,
-          toPosition: segment.toPosition,
-          transportType: segment.transportType,
-          distance: segment.distanceMeters,
-          duration: segment.durationSeconds,
-          instruction: segment.instruction,
-          polyline: segment.polyline,
-          steps: segment.stepTexts,
-        }));
-  const lastSegment = allSegments[allSegments.length - 1];
-  const scheduleDayCount =
-    routePlan.itineraryDays.length || scheduleConfig.tripDays || 1;
-
-  return {
-    cityId: city.id,
-    tripName: buildDefaultTripName(
-      city.name,
-      routePlan.planMode,
-      scheduleDayCount,
-    ),
-    startName: startPoint,
-    endName: lastSegment?.toName,
-    startPosition: startPointPosition,
-    endPosition: lastSegment?.toPosition,
-    startDate:
-      routePlan.planMode === "schedule"
-        ? scheduleConfig.tripStartDate
-        : undefined,
-    endDate:
-      routePlan.planMode === "schedule"
-        ? scheduleConfig.tripEndDate
-        : undefined,
-    days: routePlan.planMode === "schedule" ? scheduleDayCount : 1,
-    transportType: routePlan.transportType,
-    planMode: routePlan.planMode,
-    totalDistance: routePlan.totalDistanceMeters,
-    totalTravelDuration: routePlan.totalTravelDurationSeconds,
-    totalStayDuration: routePlan.totalStayDurationMinutes,
-    totalTripDuration: routePlan.totalTripDurationMinutes,
-    routeSummary: routePlan.routeSummary,
-    routeRecordId: routePlan.routeRecordId,
-    coverUrl: tripSpots[0]?.coverUrl || undefined,
-    items,
-    segments: allSegments,
-  };
-}
-
-function buildDefaultTripName(
-  cityName: string,
-  planMode: PlanMode,
-  days: number,
-) {
-  if (planMode === "schedule") {
-    return `${cityName}${days}天行程`;
-  }
-  return `${cityName}路线规划`;
 }
 
 function mapCity(city?: TravelCity | TravelCityDto) {
