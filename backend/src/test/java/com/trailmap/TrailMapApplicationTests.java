@@ -312,6 +312,167 @@ class TrailMapApplicationTests {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
+    @Test
+    void shouldSaveTripAndReturnFullItineraryItems() throws Exception {
+        String userToken = registerAndLogin("trip_owner_user", "行程用户");
+        String saveBody = """
+                {
+                  "cityId": 1,
+                  "tripName": "成都两日慢游",
+                  "startName": "春熙路地铁站",
+                  "startPosition": {
+                    "lng": 104.081757,
+                    "lat": 30.657429
+                  },
+                  "endName": "宽窄巷子附近酒店",
+                  "endPosition": {
+                    "lng": 104.053572,
+                    "lat": 30.663689
+                  },
+                  "startDate": "2026-05-20",
+                  "endDate": "2026-05-21",
+                  "days": 2,
+                  "transportType": "transit",
+                  "planMode": "schedule",
+                  "totalDistance": 9200,
+                  "totalTravelDuration": 4200,
+                  "totalStayDuration": 360,
+                  "totalTripDuration": 430,
+                  "items": [
+                    {
+                      "spotId": 101,
+                      "itemName": "宽窄巷子",
+                      "itemType": "spot",
+                      "dayIndex": 1,
+                      "sortOrder": 1,
+                      "startTime": "09:00",
+                      "endTime": "11:00",
+                      "suggestedDuration": 120
+                    },
+                    {
+                      "itemName": "午餐",
+                      "itemType": "lunch",
+                      "position": {
+                        "lng": 104.054000,
+                        "lat": 30.664000
+                      },
+                      "dayIndex": 1,
+                      "sortOrder": 2,
+                      "startTime": "12:00",
+                      "endTime": "13:00",
+                      "suggestedDuration": 60
+                    }
+                  ]
+                }
+                """;
+
+        String saveResponse = mockMvc.perform(post("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content(saveBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Integer tripId = JsonPath.read(saveResponse, "$.data");
+
+        mockMvc.perform(get("/api/user-trips/{id}", tripId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.tripName").value("成都两日慢游"))
+                .andExpect(jsonPath("$.data.itineraryDays[0].spots[0].spotName").value("宽窄巷子"))
+                .andExpect(jsonPath("$.data.itineraryDays[0].items[1].itemType").value("lunch"))
+                .andExpect(jsonPath("$.data.itineraryDays[0].items[1].itemName").value("午餐"))
+                .andExpect(jsonPath("$.data.itineraryDays[0].items[1].startTime").value("12:00"))
+                .andExpect(jsonPath("$.data.itineraryDays[0].items[1].lng").value(104.054))
+                .andExpect(jsonPath("$.data.itineraryDays[0].items[1].lat").value(30.664));
+    }
+
+    @Test
+    void shouldRejectTripWithCrossCitySpotOrMissingSegmentPosition() throws Exception {
+        String userToken = registerAndLogin("trip_invalid_user", "非法行程用户");
+        String badBody = """
+                {
+                  "cityId": 1,
+                  "tripName": "非法行程",
+                  "startName": "春熙路地铁站",
+                  "days": 1,
+                  "transportType": "transit",
+                  "planMode": "schedule",
+                  "items": [
+                    {
+                      "spotId": 201,
+                      "itemName": "陕西历史博物馆",
+                      "itemType": "spot",
+                      "dayIndex": 1,
+                      "sortOrder": 1
+                    }
+                  ],
+                  "segments": [
+                    {
+                      "dayIndex": 1,
+                      "segmentIndex": 0,
+                      "fromName": "春熙路地铁站",
+                      "toName": "陕西历史博物馆",
+                      "transportType": "transit"
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content(badBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void shouldRejectDeletedTripDetail() throws Exception {
+        String userToken = registerAndLogin("trip_delete_user", "删除行程用户");
+        String saveBody = """
+                {
+                  "cityId": 1,
+                  "tripName": "待删除行程",
+                  "days": 1,
+                  "transportType": "walk",
+                  "planMode": "free",
+                  "items": [
+                    {
+                      "spotId": 101,
+                      "itemName": "宽窄巷子",
+                      "itemType": "spot",
+                      "dayIndex": 1,
+                      "sortOrder": 1,
+                      "suggestedDuration": 120
+                    }
+                  ]
+                }
+                """;
+
+        String saveResponse = mockMvc.perform(post("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content(saveBody))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Integer tripId = JsonPath.read(saveResponse, "$.data");
+
+        mockMvc.perform(delete("/api/user-trips/{id}", tripId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/user-trips/{id}", tripId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
     /**
      * 测试里复用正常注册流程拿 token，避免手写不一致的密码哈希。
      */

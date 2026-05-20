@@ -1,5 +1,6 @@
 package com.trailmap.model.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +32,8 @@ public record TripDetailResponse(
      */
     public record TripDaySpotsResponse(
         Integer dayIndex,
-        List<TripSpotDetailResponse> spots
+        List<TripSpotDetailResponse> spots,
+        List<TripItemDetailResponse> items
     ) {
     }
 
@@ -44,6 +46,23 @@ public record TripDetailResponse(
         String coverUrl,
         Integer sortOrder,
         Integer suggestedDuration
+    ) {
+    }
+
+    /**
+     * 行程中的完整节点明细，兼容完整行程里的午餐、休息、酒店等非景点节点。
+     */
+    public record TripItemDetailResponse(
+        Long spotId,
+        String itemType,
+        String itemName,
+        String coverUrl,
+        BigDecimal lng,
+        BigDecimal lat,
+        Integer sortOrder,
+        Integer suggestedDuration,
+        String startTime,
+        String endTime
     ) {
     }
 }
