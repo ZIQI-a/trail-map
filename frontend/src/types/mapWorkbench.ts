@@ -481,4 +481,18 @@ export interface UserTripDetailDto {
   coverUrl?: string | null;
   createdAt: string;
   itineraryDays: UserTripDayDetailDto[];
+  routeSegments: {
+    dayIndex: number;
+    segmentIndex: number;
+    fromName: string;
+    fromPosition: SaveTripCoordinateDto;
+    toName: string;
+    toPosition: SaveTripCoordinateDto;
+    transportType: TransportType;
+    distance: number;
+    duration: number;
+    instruction: string;
+    polyline: string; // JSON string
+    stepsJson: string; // JSON string
+  }[];
 }

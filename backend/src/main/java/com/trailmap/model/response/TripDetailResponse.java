@@ -25,7 +25,8 @@ public record TripDetailResponse(
     Long routeRecordId,
     String coverUrl,
     LocalDateTime createdAt,
-    List<TripDaySpotsResponse> itineraryDays
+    List<TripDaySpotsResponse> itineraryDays,
+    List<RouteSegmentResponse> routeSegments
 ) {
     /**
      * 每日景点列表。
@@ -63,6 +64,27 @@ public record TripDetailResponse(
         Integer suggestedDuration,
         String startTime,
         String endTime
+    ) {
+    }
+
+    /**
+     * 路线分段明细，用于地图还原。
+     */
+    public record RouteSegmentResponse(
+        Integer dayIndex,
+        Integer segmentIndex,
+        String fromName,
+        BigDecimal fromLng,
+        BigDecimal fromLat,
+        String toName,
+        BigDecimal toLng,
+        BigDecimal toLat,
+        String transportType,
+        Integer distance,
+        Integer duration,
+        String instruction,
+        String polyline,
+        String stepsJson
     ) {
     }
 }

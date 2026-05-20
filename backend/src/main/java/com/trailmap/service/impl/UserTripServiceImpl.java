@@ -409,6 +409,31 @@ public class UserTripServiceImpl implements UserTripService {
                     return new TripDetailResponse.TripDaySpotsResponse(entry.getKey(), daySpots, dayItems);
                 }).toList();
 
+        // 加载路线分段用于地图还原
+        List<TripDetailResponse.RouteSegmentResponse> routeSegments = List.of();
+        if (trip.getRouteRecordId() != null) {
+            routeSegments = routeSegmentMapper.selectList(
+                    new LambdaQueryWrapper<RouteSegment>()
+                            .eq(RouteSegment::getRouteRecordId, trip.getRouteRecordId())
+                            .orderByAsc(RouteSegment::getDayIndex, RouteSegment::getSegmentIndex)
+            ).stream().map(rs -> new TripDetailResponse.RouteSegmentResponse(
+                    rs.getDayIndex(),
+                    rs.getSegmentIndex(),
+                    rs.getFromName(),
+                    rs.getFromLng(),
+                    rs.getFromLat(),
+                    rs.getToName(),
+                    rs.getToLng(),
+                    rs.getToLat(),
+                    rs.getTransportType(),
+                    rs.getDistance(),
+                    rs.getDuration(),
+                    rs.getInstruction(),
+                    rs.getPolyline(),
+                    rs.getStepsJson()
+            )).toList();
+        }
+
         return new TripDetailResponse(
                 trip.getId(),
                 trip.getCityId(),
@@ -426,7 +451,9 @@ public class UserTripServiceImpl implements UserTripService {
                 trip.getRouteRecordId(),
                 trip.getCoverUrl(),
                 trip.getCreatedAt(),
-                itineraryDays);
+                itineraryDays,
+                routeSegments
+        );
     }
 
     @Override

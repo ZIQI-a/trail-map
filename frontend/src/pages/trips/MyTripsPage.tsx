@@ -5,11 +5,10 @@ import {
   CarOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
-  EllipsisOutlined,
   EnvironmentOutlined,
-  EyeOutlined,
   HeartOutlined,
   ReadOutlined,
+  RightOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
@@ -374,19 +373,6 @@ type TripListCardProps = {
 
 function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
   const isSchedule = trip.planMode === "schedule";
-
-  const moreMenuItems: MenuProps["items"] = [
-    {
-      key: "delete",
-      label: "删除行程",
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: () => {
-        // Popconfirm 逻辑通常包装在 Dropdown 外层或使用 Modal.confirm
-        // 这里为了简便先直接触发，实际可用 Popconfirm 包裹 MenuItem
-      },
-    },
-  ];
 
   return (
     <article className={styles.tripCard}>
