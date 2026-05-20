@@ -162,6 +162,7 @@ export function MapWorkbenchPage() {
   const [dragOverTripDock, setDragOverTripDock] = useState(false);
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
+
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
   const saveUserTripMutation = useSaveUserTripMutation();
@@ -170,6 +171,7 @@ export function MapWorkbenchPage() {
   const favoriteSpotMutation = useFavoriteSpotMutation();
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
+
   const cities = useMemo(
     () =>
       (citiesQuery.data?.list ?? [])
@@ -177,6 +179,7 @@ export function MapWorkbenchPage() {
         .filter((city): city is TravelCity => Boolean(city)),
     [citiesQuery.data?.list],
   );
+
   // 用户未主动切换时默认使用第一个城市；如果当前选择不在列表中，也回退到第一个城市。
   const activeCityId = cities.some((city) => city.id === selectedCityId)
     ? selectedCityId
@@ -891,34 +894,36 @@ export function MapWorkbenchPage() {
           </div>
         ) : null}
 
-        <div className={styles.leftFloatPanel}>
-          {spots.length === 0 ? (
-            <aside className={styles.inlineStatePanel}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="当前城市暂无景点数据"
+        {!showingScheduleResult ? (
+          <div className={styles.leftFloatPanel}>
+            {spots.length === 0 ? (
+              <aside className={styles.inlineStatePanel}>
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="当前城市暂无景点数据"
+                />
+              </aside>
+            ) : (
+              <SpotRecommendList
+                cityName={city.name}
+                spots={visibleSpots}
+                tags={tags}
+                activeTab={activeRecommendTab}
+                selectedSpotId={effectiveSelectedSpotId}
+                onActiveTabChange={setActiveRecommendTab}
+                onSelectSpot={(spotId) => {
+                  setSelectedSpotId(spotId);
+                  setSearchParams((currentParams) => {
+                    const nextParams = new URLSearchParams(currentParams);
+                    nextParams.set("spotId", String(spotId));
+                    return nextParams;
+                  });
+                }}
+                onDragSpotStart={handleDragRecommendSpot}
               />
-            </aside>
-          ) : (
-            <SpotRecommendList
-              cityName={city.name}
-              spots={visibleSpots}
-              tags={tags}
-              activeTab={activeRecommendTab}
-              selectedSpotId={effectiveSelectedSpotId}
-              onActiveTabChange={setActiveRecommendTab}
-              onSelectSpot={(spotId) => {
-                setSelectedSpotId(spotId);
-                setSearchParams((currentParams) => {
-                  const nextParams = new URLSearchParams(currentParams);
-                  nextParams.set("spotId", String(spotId));
-                  return nextParams;
-                });
-              }}
-              onDragSpotStart={handleDragRecommendSpot}
-            />
-          )}
-        </div>
+            )}
+          </div>
+        ) : null}
 
         {selectedSpot && !routePlanResult ? (
           <div className={styles.detailFloatPanel}>
@@ -1133,6 +1138,7 @@ export function MapWorkbenchPage() {
       <Drawer
         title="行程设置"
         open={scheduleSettingsOpen}
+        placement="left"
         width={420}
         onClose={() => setScheduleSettingsOpen(false)}
         extra={
@@ -1151,7 +1157,7 @@ export function MapWorkbenchPage() {
       >
         <div className={styles.scheduleDialogIntro}>
           <span>
-            右侧主区域保留当天详细行程，设置项收进抽屉里，避免和时间轴抢视线。
+            这里统一调整完整行程的日期、节奏、用餐、休息和住宿配置。
           </span>
         </div>
         <SchedulePlanFormFields

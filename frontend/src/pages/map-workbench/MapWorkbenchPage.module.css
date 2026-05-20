@@ -67,7 +67,7 @@
   top: 14px;
   right: 14px;
   width: min(460px, calc(100vw - 28px));
-  max-height: calc(100% - 178px);
+  max-height: calc(100% - 132px);
   overflow: auto;
   animation: slideIn 180ms ease-out;
 }
@@ -124,8 +124,8 @@
 
 .scheduleSettingsFab {
   position: absolute;
-  top: 18px;
-  right: min(486px, calc(100vw - 80px));
+  top: 14px;
+  left: 14px;
   z-index: 5;
 }
 
@@ -198,7 +198,7 @@
     top: 12px;
     right: 12px;
     width: min(400px, calc(100vw - 24px));
-    max-height: 48%;
+    max-height: calc(100% - 118px);
   }
 
   .tripFloatPanel {
@@ -208,8 +208,8 @@
   }
 
   .scheduleSettingsFab {
-    top: 76px;
-    right: 12px;
+    top: 12px;
+    left: 12px;
   }
 }
 
@@ -221,7 +221,7 @@
   }
 
   .routeDrawerPanel {
-    max-height: calc(100% - 158px);
+    max-height: calc(100% - 118px);
   }
 }
 
