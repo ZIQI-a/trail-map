@@ -1,18 +1,14 @@
-import {
-  CloseOutlined,
-  EditOutlined,
-  SettingOutlined,
-} from "@ant-design/icons";
+import { EditOutlined, SettingOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
   Drawer,
   Empty,
-  FloatButton,
   message,
   Modal,
   Segmented,
   Spin,
+  Tooltip,
 } from "antd";
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -981,18 +977,15 @@ export function MapWorkbenchPage() {
 
         {showingScheduleResult ? (
           <div className={styles.scheduleSettingsFab}>
-            <FloatButton.Group shape="circle">
-              <FloatButton
+            <Tooltip title="行程设置" placement="right">
+              <Button
+                type="default"
+                shape="circle"
+                size="large"
                 icon={<SettingOutlined />}
-                tooltip="行程设置"
                 onClick={() => setScheduleSettingsOpen(true)}
               />
-              <FloatButton
-                icon={<CloseOutlined />}
-                tooltip="关闭完整行程"
-                onClick={() => setRoutePlanResult(undefined)}
-              />
-            </FloatButton.Group>
+            </Tooltip>
           </div>
         ) : null}
 

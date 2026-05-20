@@ -129,6 +129,21 @@
   z-index: 5;
 }
 
+.scheduleSettingsFab :global(.ant-btn) {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(207, 220, 240, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(20, 56, 122, 0.16);
+  color: #2f5fd3;
+}
+
+.scheduleSettingsFab :global(.ant-btn):hover {
+  border-color: rgba(73, 122, 255, 0.32);
+  background: #ffffff;
+  color: #1d4fd7;
+}
+
 .scheduleDialogIntro {
   display: grid;
   gap: 4px;
