@@ -473,6 +473,65 @@ class TrailMapApplicationTests {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
+    @Test
+    void shouldCheckinListAndCancelSpot() throws Exception {
+        String userToken = registerAndLogin("checkin_owner_user", "足迹用户");
+        String checkinBody = """
+                {
+                  "checkinLng": 104.053572,
+                  "checkinLat": 30.663689,
+                  "remark": "第一次来宽窄巷子"
+                }
+                """;
+
+        mockMvc.perform(get("/api/checkin-spots/101/status")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checkedIn").value(false));
+
+        mockMvc.perform(post("/api/checkin-spots/101")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content(checkinBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.checkedIn").value(true))
+                .andExpect(jsonPath("$.data.remark").value("第一次来宽窄巷子"));
+
+        mockMvc.perform(get("/api/checkin-spots")
+                        .header("Authorization", "Bearer " + userToken)
+                        .param("cityName", "成都市")
+                        .param("pageNum", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.paged").value(true))
+                .andExpect(jsonPath("$.data.list[0].spotId").value(101))
+                .andExpect(jsonPath("$.data.list[0].name").value("宽窄巷子"))
+                .andExpect(jsonPath("$.data.list[0].checkedInAt").exists())
+                .andExpect(jsonPath("$.data.list[0].checkinPosition.lng").value(104.053572))
+                .andExpect(jsonPath("$.data.list[0].remark").value("第一次来宽窄巷子"));
+
+        mockMvc.perform(delete("/api/checkin-spots/101")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checkedIn").value(false));
+
+        mockMvc.perform(get("/api/checkin-spots/101/status")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checkedIn").value(false));
+    }
+
+    @Test
+    void shouldRejectCheckinWithoutToken() throws Exception {
+        mockMvc.perform(post("/api/checkin-spots/101")
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
     /**
      * 测试里复用正常注册流程拿 token，避免手写不一致的密码哈希。
      */

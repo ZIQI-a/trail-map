@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trailmap.mapper.UserCheckinSpotMapper">
+
+    <sql id="checkinSpotWhere">
+        ci.user_id = #{userId}
+        AND s.status = 1
+        <if test="query.tagCode != null and query.tagCode != ''">
+            AND EXISTS (
+                SELECT 1
+                FROM spot_tag_relation str
+                INNER JOIN spot_tag st ON str.tag_id = st.id
+                WHERE str.spot_id = s.id
+                  AND st.status = 1
+                  AND st.tag_code = #{query.tagCode}
+            )
+        </if>
+        <if test="query.cityName != null and query.cityName != ''">
+            AND c.city_name = #{query.cityName}
+        </if>
+        <if test="query.checkedInWithinDays != null">
+            AND ci.checkin_time <![CDATA[>=]]> #{checkedInAfter}
+        </if>
+    </sql>
+
+    <sql id="checkinSpotOrderBy">
+        <choose>
+            <when test="query.sortBy == 'score'">
+                ORDER BY s.recommend_score DESC, ci.checkin_time DESC, ci.id DESC
+            </when>
+            <otherwise>
+                ORDER BY ci.checkin_time DESC, ci.id DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectCheckinSpotPage" resultType="com.trailmap.model.response.CheckinSpotBaseRecord">
+        SELECT
+            ci.id AS checkinId,
+            s.id AS spotId,
+            s.city_id AS cityId,
+            c.city_name AS cityName,
+            s.spot_name AS name,
+            s.spot_type AS type,
+            s.lng AS lng,
+            s.lat AS lat,
+            s.address AS address,
+            s.cover_url AS coverUrl,
+            s.summary AS summary,
+            s.recommend_reason AS recommendReason,
+            s.opening_hours AS openingHours,
+            s.ticket_info AS ticketInfo,
+            s.suggested_duration AS suggestedDurationMinutes,
+            s.best_time AS bestTime,
+            s.recommend_score AS recommendScore,
+            s.hot_score AS hotScore,
+            s.is_free AS isFree,
+            s.is_indoor AS isIndoor,
+            s.is_night AS isNight,
+            s.is_rainy_day AS isRainyDay,
+            s.subway_friendly AS subwayFriendly,
+            s.first_visit AS firstVisit,
+            ci.checkin_time AS checkedInAt,
+            ci.checkin_lng AS checkinLng,
+            ci.checkin_lat AS checkinLat,
+            ci.remark AS remark
+        FROM user_checkin_spot ci
+        INNER JOIN spot s ON ci.spot_id = s.id
+        LEFT JOIN city c ON s.city_id = c.id
+        WHERE
+        <include refid="checkinSpotWhere"/>
+        <include refid="checkinSpotOrderBy"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countCheckinSpots" resultType="long">
+        SELECT COUNT(1)
+        FROM user_checkin_spot ci
+        INNER JOIN spot s ON ci.spot_id = s.id
+        LEFT JOIN city c ON s.city_id = c.id
+        WHERE
+        <include refid="checkinSpotWhere"/>
+    </select>
+</mapper>
