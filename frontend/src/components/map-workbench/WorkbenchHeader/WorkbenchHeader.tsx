@@ -47,12 +47,6 @@ interface WorkbenchHeaderProps {
   onLogout: () => void;
 }
 
-const quickActions = [
-  { label: "我的位置", icon: <EnvironmentOutlined /> },
-  { label: "路线规划", icon: <CompassOutlined /> },
-  { label: "收藏夹", icon: <HeartOutlined /> },
-];
-
 // WorkbenchHeader 负责顶部品牌、搜索、城市和分类筛选区域。
 export function WorkbenchHeader({
   cities,
@@ -79,6 +73,12 @@ export function WorkbenchHeader({
     label: `${city.name} · ${city.provinceName}`,
     value: city.id,
   }));
+  // 统一收口顶部快捷入口，避免在 JSX 里按文案分支判断点击行为。
+  const quickActions = [
+    { label: "我的位置", icon: <EnvironmentOutlined /> },
+    { label: "路线规划", icon: <CompassOutlined />, onClick: onTripsClick },
+    { label: "收藏夹", icon: <HeartOutlined />, onClick: onFavoritesClick },
+  ];
 
   return (
     <header className={styles.topBar}>
@@ -113,7 +113,7 @@ export function WorkbenchHeader({
               className={styles.actionButton}
               icon={action.icon}
               key={action.label}
-              onClick={action.label === "收藏夹" ? onFavoritesClick : undefined}
+              onClick={action.onClick}
             >
               {action.label}
             </Button>
