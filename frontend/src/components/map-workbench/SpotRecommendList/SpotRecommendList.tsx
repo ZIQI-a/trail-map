@@ -37,28 +37,30 @@ export function SpotRecommendList({
 }: SpotRecommendListProps) {
   return (
     <aside className={styles.panel} aria-label="景点推荐列表">
-      <div className={styles.panelHeader}>
-        <div>
-          <p className={styles.panelLabel}>{cityName}必玩推荐</p>
-          <h2>精选景点</h2>
+      <div className={styles.panelTop}>
+        <div className={styles.panelHeader}>
+          <div>
+            <p className={styles.panelLabel}>{cityName}必玩推荐</p>
+            <h2>精选景点</h2>
+          </div>
+          <Tag className={styles.countBadge} bordered={false}>
+            {spots.length} 个
+          </Tag>
         </div>
-        <Tag className={styles.countBadge} bordered={false}>
-          {spots.length} 个
-        </Tag>
-      </div>
 
-      <div className={styles.tabGroup} aria-label="推荐列表排序">
-        {recommendTabs.map((tab) => (
-          <button
-            className={`${styles.tabButton} ${activeTab === tab.value ? styles.tabButtonActive : ''}`}
-            type="button"
-            key={tab.value}
-            aria-pressed={activeTab === tab.value}
-            onClick={() => onActiveTabChange(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <div className={styles.tabGroup} aria-label="推荐列表排序">
+          {recommendTabs.map((tab) => (
+            <button
+              className={`${styles.tabButton} ${activeTab === tab.value ? styles.tabButtonActive : ''}`}
+              type="button"
+              key={tab.value}
+              aria-pressed={activeTab === tab.value}
+              onClick={() => onActiveTabChange(tab.value)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className={styles.spotList}>

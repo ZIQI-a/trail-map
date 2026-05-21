@@ -43,8 +43,8 @@
   top: 14px;
   left: 14px;
   width: min(330px, calc(100vw - 28px));
-  max-height: calc(100% - 146px);
-  overflow: auto;
+  bottom: 128px;
+  overflow: hidden;
 }
 
 .inlineStatePanel {

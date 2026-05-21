@@ -1,14 +1,26 @@
 .panel {
   min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 0;
+  padding: 0;
   border: 1px solid rgb(215 225 238 / 86%);
   border-radius: 18px;
   background: rgb(255 255 255 / 95%);
   box-shadow: 0 16px 42px rgb(31 73 125 / 12%);
   backdrop-filter: blur(16px);
+  overflow: hidden;
+}
+
+.panelTop {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  padding: 18px 14px 14px 18px;
+  background: rgb(255 255 255 / 96%);
 }
 
 .panelHeader {
@@ -48,6 +60,7 @@
 }
 
 .tabGroup {
+  flex: 0 0 auto;
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -80,12 +93,33 @@
 }
 
 .spotList {
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding: 6px 10px 14px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(131, 151, 180, 0.28) transparent;
+}
+
+.spotList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.spotList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.spotList::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(131, 151, 180, 0.26);
+  transition: background 160ms ease;
+}
+
+.spotList:hover::-webkit-scrollbar-thumb {
+  background: rgba(94, 117, 151, 0.52);
 }
 
 .spotCard,
@@ -229,7 +263,15 @@
 
 @media (max-width: 640px) {
   .panel {
-    padding: 14px;
+    min-height: 0;
+  }
+
+  .panelTop {
+    padding: 14px 12px 12px 14px;
+  }
+
+  .spotList {
+    padding: 4px 8px 12px 14px;
   }
 
   .spotList {
