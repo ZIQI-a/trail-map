@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Input, Select } from "antd";
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import type { AppUserDto } from "../../../types/auth";
 import type {
   SpotTag,
@@ -83,9 +84,13 @@ export function WorkbenchHeader({
   return (
     <header className={styles.topBar}>
       <div className={styles.topBarMain}>
-        <div className={styles.brandArea}>
+        <Link
+          className={styles.brandArea}
+          to="/"
+          aria-label="返回行迹旅图首页"
+        >
           <img className={styles.brandLogo} src="/header_logo.png" alt="行迹旅图 TrailMap" />
-        </div>
+        </Link>
 
         <Input
           className={styles.searchBox}
