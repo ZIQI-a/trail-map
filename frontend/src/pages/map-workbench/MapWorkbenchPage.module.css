@@ -61,6 +61,8 @@
   max-height: calc(100% - 146px);
   overflow: auto;
   animation: slideIn 180ms ease-out;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(131, 151, 180, 0.28) transparent;
 }
 
 .routeDrawerPanel {
@@ -70,6 +72,30 @@
   max-height: calc(100% - 132px);
   overflow: auto;
   animation: slideIn 180ms ease-out;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(131, 151, 180, 0.28) transparent;
+}
+
+.detailFloatPanel::-webkit-scrollbar,
+.routeDrawerPanel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.detailFloatPanel::-webkit-scrollbar-track,
+.routeDrawerPanel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.detailFloatPanel::-webkit-scrollbar-thumb,
+.routeDrawerPanel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(131, 151, 180, 0.26);
+  transition: background 160ms ease;
+}
+
+.detailFloatPanel:hover::-webkit-scrollbar-thumb,
+.routeDrawerPanel:hover::-webkit-scrollbar-thumb {
+  background: rgba(94, 117, 151, 0.52);
 }
 
 .tripFloatPanel {
