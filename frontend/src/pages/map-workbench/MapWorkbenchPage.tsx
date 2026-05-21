@@ -10,7 +10,13 @@ import {
   Spin,
   Tooltip,
 } from "antd";
-import { useCallback, useMemo, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthDialog } from "../../components/map-workbench/AuthDialog";
@@ -46,6 +52,7 @@ import {
   useSaveUserTripMutation,
   useSpotDetailQuery,
   useUnfavoriteSpotMutation,
+  useUserTripDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import {
@@ -73,6 +80,9 @@ import type {
   TravelSpot,
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
+  UserTripDetailDto,
+  UserTripItemDetailDto,
+  UserTripRouteSegmentDetailDto,
 } from "../../types/mapWorkbench";
 import { wgs84ToGcj02 } from "../../utils/map-workbench/coordinate";
 import { getItineraryActivityColor } from "../../utils/map-workbench/routePalette";
@@ -167,6 +177,11 @@ export function MapWorkbenchPage() {
   const favoriteSpotMutation = useFavoriteSpotMutation();
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
+  const savedTripId = parsePositiveNumber(searchParams.get("tripId"));
+  const savedTripDetailQuery = useUserTripDetailQuery(
+    savedTripId,
+    Boolean(authToken && savedTripId),
+  );
 
   const cities = useMemo(
     () =>
@@ -346,6 +361,70 @@ export function MapWorkbenchPage() {
     [activeScheduleDay?.items],
   );
 
+  // 从“我的规划”跳回工作台时，用 tripId 拉取已保存行程并回放到地图和右侧时间轴。
+  useEffect(() => {
+    if (!savedTripId) {
+      return;
+    }
+
+    if (!authToken) {
+      queueMicrotask(() => {
+        setAuthError(undefined);
+        setAuthDialogOpen(true);
+      });
+      return;
+    }
+
+    if (savedTripDetailQuery.error) {
+      queueMicrotask(() => {
+        setPlannerAssistError(
+          savedTripDetailQuery.error instanceof Error
+            ? savedTripDetailQuery.error.message
+            : "已保存行程加载失败",
+        );
+      });
+      return;
+    }
+
+    const savedTrip = savedTripDetailQuery.data;
+    if (!savedTrip) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      const nextRoutePlan = buildRoutePlanFromSavedTrip(savedTrip);
+      setSelectedCityId(savedTrip.cityId);
+      setSelectedTransport(savedTrip.transportType);
+      setSelectedPlanMode(savedTrip.planMode);
+      setTripSpotIds(resolveSavedTripSpotIds(savedTrip));
+      setStartPoint(savedTrip.startName || `${savedTrip.cityName}市中心`);
+      setStartPointPosition(
+        nextRoutePlan.segments[0]?.fromPosition ?? undefined,
+      );
+      setScheduleConfig((currentConfig) => ({
+        ...currentConfig,
+        tripStartDate: savedTrip.startDate ?? currentConfig.tripStartDate,
+        tripEndDate: savedTrip.endDate ?? currentConfig.tripEndDate,
+        tripDays: savedTrip.days || currentConfig.tripDays,
+        dailyStartTime:
+          nextRoutePlan.itineraryDays[0]?.startTime ??
+          currentConfig.dailyStartTime,
+      }));
+      setRoutePlanResult(nextRoutePlan);
+      if (
+        nextRoutePlan.planMode === "schedule" &&
+        nextRoutePlan.itineraryDays[0]
+      ) {
+        setSelectedScheduleDay(nextRoutePlan.itineraryDays[0].dayIndex);
+      }
+    });
+  }, [
+    authToken,
+    savedTripDetailQuery.data,
+    savedTripDetailQuery.error,
+    savedTripId,
+  ]);
+
   async function handleLogin(payload: LoginRequestDto) {
     setAuthError(undefined);
     try {
@@ -381,6 +460,15 @@ export function MapWorkbenchPage() {
     setAuthError(undefined);
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
     queryClient.removeQueries({ queryKey: ["favorite-spot-status"] });
+  }
+
+  // 关闭已保存行程回放时同步移除 URL 参数，避免刷新页面后又自动打开同一条行程。
+  function clearSavedTripReplayParam() {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      nextParams.delete("tripId");
+      return nextParams;
+    });
   }
 
   // 收藏按钮未登录时先拉起登录弹窗；已登录时按当前状态切换收藏关系。
@@ -573,6 +661,7 @@ export function MapWorkbenchPage() {
       returnToHotel: config?.returnToHotel,
     });
     setRoutePlanResult(result);
+    clearSavedTripReplayParam();
     if (result.planMode === "schedule" && result.itineraryDays.length > 0) {
       setSelectedScheduleDay(result.itineraryDays[0].dayIndex);
     }
@@ -970,7 +1059,10 @@ export function MapWorkbenchPage() {
               saving={saveUserTripMutation.isPending}
               onFocusLocation={handleFocusRouteTimelineLocation}
               onSaveTrip={() => void handleSaveCurrentTrip()}
-              onClose={() => setRoutePlanResult(undefined)}
+              onClose={() => {
+                setRoutePlanResult(undefined);
+                clearSavedTripReplayParam();
+              }}
             />
           </div>
         ) : null}
@@ -1035,6 +1127,7 @@ export function MapWorkbenchPage() {
             onClearTrip={() => {
               setTripSpotIds([]);
               setRoutePlanResult(undefined);
+              clearSavedTripReplayParam();
             }}
           />
         </div>
@@ -1238,6 +1331,268 @@ interface MapItineraryMarker {
   position: GeoPoint;
   itemType: "lunch" | "rest" | "hotel";
   title: string;
+}
+
+// 我的规划详情是持久化结构，这里转换成地图工作台既有的路线规划展示结构。
+function buildRoutePlanFromSavedTrip(
+  trip: UserTripDetailDto,
+): RoutePlanResponseDto {
+  const segments = trip.routeSegments
+    .slice()
+    .sort((left, right) =>
+      left.dayIndex === right.dayIndex
+        ? left.segmentIndex - right.segmentIndex
+        : left.dayIndex - right.dayIndex,
+    )
+    .map(mapSavedTripSegment)
+    .filter((segment): segment is RouteSegmentDto => Boolean(segment));
+  const spotStayPlans = trip.itineraryDays.flatMap((day) =>
+    day.items
+      .filter(
+        (item): item is UserTripItemDetailDto & { spotId: number } =>
+          item.itemType === "spot" && item.spotId != null,
+      )
+      .map((item) => ({
+        spotId: item.spotId,
+        spotName: item.itemName,
+        suggestedDurationMinutes: item.suggestedDuration ?? 0,
+        suggestedStartTime: item.startTime ?? undefined,
+        suggestedEndTime: item.endTime ?? undefined,
+        dayIndex: day.dayIndex,
+      })),
+  );
+
+  return {
+    routeRecordId: trip.routeRecordId ?? undefined,
+    cityId: trip.cityId,
+    transportType: trip.transportType,
+    planMode: trip.planMode,
+    routeSummary: buildSavedTripSummary(trip),
+    orderedSpotIds: resolveSavedTripSpotIds(trip),
+    totalDistanceMeters: trip.totalDistance,
+    totalTravelDurationSeconds: segments.reduce(
+      (total, segment) => total + segment.durationSeconds,
+      0,
+    ),
+    totalStayDurationMinutes: spotStayPlans.reduce(
+      (total, spot) => total + spot.suggestedDurationMinutes,
+      0,
+    ),
+    totalTripDurationMinutes: trip.totalDuration,
+    spotStayPlans,
+    segments,
+    itineraryDays: trip.itineraryDays.map((day) =>
+      buildSavedTripItineraryDay(trip, day.dayIndex, spotStayPlans),
+    ),
+  };
+}
+
+function buildSavedTripItineraryDay(
+  trip: UserTripDetailDto,
+  dayIndex: number,
+  spotStayPlans: RoutePlanResponseDto["spotStayPlans"],
+) {
+  const day = trip.itineraryDays.find((item) => item.dayIndex === dayIndex)!;
+  const daySegments = trip.routeSegments
+    .filter((segment) => segment.dayIndex === dayIndex)
+    .sort((left, right) => left.segmentIndex - right.segmentIndex)
+    .map(mapSavedTripSegment)
+    .filter((segment): segment is RouteSegmentDto => Boolean(segment));
+  const items = day.items
+    .slice()
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map(mapSavedTripItem);
+  const daySpotPlans = spotStayPlans.filter(
+    (spotPlan) => spotPlan.dayIndex === dayIndex,
+  );
+
+  return {
+    dayIndex,
+    title: `Day ${dayIndex}`,
+    startTime: items[0]?.suggestedStartTime ?? "09:00",
+    startPlaceName:
+      dayIndex === 1
+        ? trip.startName || `${trip.cityName}市中心`
+        : `Day ${dayIndex} 出发`,
+    totalDistanceMeters: daySegments.reduce(
+      (total, segment) => total + segment.distanceMeters,
+      0,
+    ),
+    totalTravelDurationSeconds: daySegments.reduce(
+      (total, segment) => total + segment.durationSeconds,
+      0,
+    ),
+    totalStayDurationMinutes: items.reduce(
+      (total, item) => total + item.durationMinutes,
+      0,
+    ),
+    totalTripDurationMinutes: calculateSavedDayTotalMinutes(items),
+    spots: daySpotPlans,
+    items,
+    segments: daySegments,
+  };
+}
+
+function mapSavedTripSegment(
+  segment: UserTripRouteSegmentDetailDto,
+): RouteSegmentDto | undefined {
+  const fromPosition = resolveSavedSegmentCoordinate(segment, "from");
+  const toPosition = resolveSavedSegmentCoordinate(segment, "to");
+  if (!fromPosition || !toPosition) {
+    return undefined;
+  }
+
+  const polyline = parseSavedPolyline(segment.polyline);
+  return {
+    segmentIndex: segment.segmentIndex,
+    fromName: segment.fromName,
+    fromPosition,
+    toName: segment.toName,
+    toPosition,
+    transportType: segment.transportType,
+    distanceMeters: segment.distance,
+    durationSeconds: segment.duration,
+    instruction: segment.instruction,
+    polyline: polyline.length >= 2 ? polyline : [fromPosition, toPosition],
+    stepTexts: parseSavedSteps(segment.stepsJson),
+  };
+}
+
+function mapSavedTripItem(item: UserTripItemDetailDto): ItineraryItemDto {
+  return {
+    sequence: item.sortOrder,
+    itemType: item.itemType,
+    title: item.itemName,
+    placeName: item.itemName,
+    placeType: resolveSavedTripPlaceType(item.itemType),
+    position:
+      item.lng != null && item.lat != null
+        ? { lng: item.lng, lat: item.lat }
+        : undefined,
+    durationMinutes: item.suggestedDuration ?? 0,
+    suggestedStartTime: item.startTime ?? "",
+    suggestedEndTime: item.endTime ?? "",
+    relatedSpotId: item.spotId ?? undefined,
+  };
+}
+
+function resolveSavedTripSpotIds(trip: UserTripDetailDto) {
+  return trip.itineraryDays.flatMap((day) =>
+    day.items
+      .filter((item) => item.itemType === "spot" && item.spotId != null)
+      .map((item) => item.spotId!),
+  );
+}
+
+function parsePositiveNumber(value: string | null) {
+  const numberValue = value ? Number(value) : undefined;
+  return numberValue && Number.isFinite(numberValue) && numberValue > 0
+    ? numberValue
+    : undefined;
+}
+
+// 兼容后端当前 fromLng/fromLat 字段，以及早期前端草案中的 fromPosition 对象字段。
+function resolveSavedSegmentCoordinate(
+  segment: UserTripRouteSegmentDetailDto,
+  direction: "from" | "to",
+): GeoPoint | undefined {
+  const objectPoint =
+    direction === "from" ? segment.fromPosition : segment.toPosition;
+  if (isGeoPoint(objectPoint)) {
+    return objectPoint;
+  }
+
+  const lng = parseCoordinateNumber(
+    direction === "from" ? segment.fromLng : segment.toLng,
+  );
+  const lat = parseCoordinateNumber(
+    direction === "from" ? segment.fromLat : segment.toLat,
+  );
+  if (lng == null || lat == null) {
+    return undefined;
+  }
+
+  return { lng, lat };
+}
+
+function parseCoordinateNumber(value: unknown) {
+  const numberValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function parseSavedPolyline(value: string): GeoPoint[] {
+  try {
+    const parsed = JSON.parse(value) as GeoPoint[];
+    return Array.isArray(parsed) ? parsed.filter(isGeoPoint) : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseSavedSteps(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value) as string[];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function isGeoPoint(value: unknown): value is GeoPoint {
+  return (
+    typeof value === "object" &&
+    value != null &&
+    typeof (value as GeoPoint).lng === "number" &&
+    typeof (value as GeoPoint).lat === "number"
+  );
+}
+
+function calculateSavedDayTotalMinutes(items: ItineraryItemDto[]) {
+  const firstTime = parseClockText(items[0]?.suggestedStartTime);
+  const lastTime = parseClockText(items[items.length - 1]?.suggestedEndTime);
+  if (firstTime != null && lastTime != null && lastTime >= firstTime) {
+    return lastTime - firstTime;
+  }
+
+  return items.reduce((total, item) => total + item.durationMinutes, 0);
+}
+
+function parseClockText(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return undefined;
+  }
+  return hour * 60 + minute;
+}
+
+function resolveSavedTripPlaceType(itemType: UserTripItemDetailDto["itemType"]) {
+  switch (itemType) {
+    case "lunch":
+      return "用餐";
+    case "rest":
+      return "休息";
+    case "hotel":
+      return "住宿";
+    default:
+      return "景点";
+  }
+}
+
+function buildSavedTripSummary(trip: UserTripDetailDto) {
+  return `从${trip.startName || trip.cityName}出发，回放已保存的${trip.planMode === "schedule" ? "完整行程" : "自由路线"}。`;
 }
 
 function buildMapRouteOverlays(

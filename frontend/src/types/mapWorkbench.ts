@@ -462,6 +462,26 @@ export interface UserTripDayDetailDto {
   items: UserTripItemDetailDto[];
 }
 
+// 我的行程详情里的路线段，对齐后端 TripDetailResponse.RouteSegmentResponse。
+export interface UserTripRouteSegmentDetailDto {
+  dayIndex: number;
+  segmentIndex: number;
+  fromName: string;
+  fromLng?: number | null;
+  fromLat?: number | null;
+  fromPosition?: SaveTripCoordinateDto | null;
+  toName: string;
+  toLng?: number | null;
+  toLat?: number | null;
+  toPosition?: SaveTripCoordinateDto | null;
+  transportType: TransportType;
+  distance: number;
+  duration: number;
+  instruction: string;
+  polyline: string; // JSON string
+  stepsJson: string; // JSON string
+}
+
 // 我的行程详情对象，对齐后端 TripDetailResponse。
 export interface UserTripDetailDto {
   id: number;
@@ -481,18 +501,5 @@ export interface UserTripDetailDto {
   coverUrl?: string | null;
   createdAt: string;
   itineraryDays: UserTripDayDetailDto[];
-  routeSegments: {
-    dayIndex: number;
-    segmentIndex: number;
-    fromName: string;
-    fromPosition: SaveTripCoordinateDto;
-    toName: string;
-    toPosition: SaveTripCoordinateDto;
-    transportType: TransportType;
-    distance: number;
-    duration: number;
-    instruction: string;
-    polyline: string; // JSON string
-    stepsJson: string; // JSON string
-  }[];
+  routeSegments: UserTripRouteSegmentDetailDto[];
 }

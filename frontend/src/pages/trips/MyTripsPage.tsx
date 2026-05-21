@@ -8,14 +8,12 @@ import {
   EnvironmentOutlined,
   HeartOutlined,
   ReadOutlined,
-  RightOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
   Avatar,
   Button,
-  Drawer,
   Dropdown,
   Empty,
   Pagination,
@@ -34,17 +32,11 @@ import {
   useCitiesQuery,
   useCurrentUserQuery,
   useDeleteUserTripMutation,
-  useUserTripDetailQuery,
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import type { AppUserDto } from "../../types/auth";
-import type {
-  UserTripDayDetailDto,
-  UserTripDetailDto,
-  UserTripItemDetailDto,
-  UserTripSummaryDto,
-} from "../../types/mapWorkbench";
+import type { UserTripSummaryDto } from "../../types/mapWorkbench";
 import {
   formatRouteDistance,
   formatTripDuration,
@@ -58,7 +50,6 @@ type TripSortMode = "latest" | "city";
 const EMPTY_TRIPS: UserTripSummaryDto[] = [];
 
 // MyTripsPage 负责承接“我的旅行规划”列表、详情和删除管理。
-// 已按照设计图“行程.png”和收藏页风格进行重构。
 export function MyTripsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -69,17 +60,12 @@ export function MyTripsPage() {
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [sortMode, setSortMode] = useState<TripSortMode>("latest");
   const [viewMode, setViewMode] = useState<TripViewMode>("list");
-  const [selectedTripId, setSelectedTripId] = useState<number>();
-  
+
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const citiesQuery = useCitiesQuery();
   const userTripsQuery = useUserTripsQuery(
     { pageNum, pageSize: 200 }, // 目前先拉取较多数据在前端过滤，后续可由后端支持
     Boolean(authToken),
-  );
-  const userTripDetailQuery = useUserTripDetailQuery(
-    selectedTripId,
-    Boolean(authToken && selectedTripId),
   );
   const deleteUserTripMutation = useDeleteUserTripMutation();
   const allTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
@@ -136,9 +122,6 @@ export function MyTripsPage() {
   async function handleDeleteTrip(tripId: number) {
     await deleteUserTripMutation.mutateAsync(tripId);
     message.success("规划已删除");
-    if (selectedTripId === tripId) {
-      setSelectedTripId(undefined);
-    }
     await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
   }
 
@@ -184,9 +167,9 @@ export function MyTripsPage() {
       <header className={styles.pageHeader}>
         <div className={styles.headerMain}>
           <div>
-            <h1>我的行程</h1>
+            <h1>我的旅途规划</h1>
             <span className={styles.headerHint}>
-              管理和查看你创建的所有行程
+              规划每一次出发，记录每一段旅程✨
             </span>
           </div>
 
@@ -306,14 +289,16 @@ export function MyTripsPage() {
                 key={trip.id}
                 trip={trip}
                 deleting={deleteUserTripMutation.isPending}
-                onOpen={() => setSelectedTripId(trip.id)}
+                onOpen={() => navigate(`/?tripId=${trip.id}`)}
                 onDelete={() => void handleDeleteTrip(trip.id)}
               />
             ))}
           </section>
 
           <footer className={styles.paginationBar}>
-            <span className={styles.totalText}>共 {filteredTrips.length} 条行程</span>
+            <span className={styles.totalText}>
+              共 {filteredTrips.length} 条行程
+            </span>
             <Pagination
               current={pageNum}
               pageSize={pageSize}
@@ -333,33 +318,6 @@ export function MyTripsPage() {
         </>
       )}
 
-      <Drawer
-        title={null}
-        placement="right"
-        width={520}
-        open={selectedTripId != null}
-        onClose={() => setSelectedTripId(undefined)}
-        className={styles.detailDrawer}
-      >
-        {userTripDetailQuery.isLoading ? (
-          <div className={styles.drawerState}>
-            <Spin size="large" />
-          </div>
-        ) : userTripDetailQuery.error ? (
-          <Alert
-            type="error"
-            showIcon
-            message="行程详情加载失败"
-            description={
-              userTripDetailQuery.error instanceof Error
-                ? userTripDetailQuery.error.message
-                : "暂时无法读取该行程详情"
-            }
-          />
-        ) : userTripDetailQuery.data ? (
-          <TripDetailPanel trip={userTripDetailQuery.data} />
-        ) : null}
-      </Drawer>
     </main>
   );
 }
@@ -468,115 +426,6 @@ function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
   );
 }
 
-function TripDetailPanel({ trip }: { trip: UserTripDetailDto }) {
-  const isSchedule = trip.planMode === "schedule";
-
-  return (
-    <div className={styles.detailPanel}>
-      <div className={styles.detailHero}>
-        <div>
-          <div className={styles.detailTitleRow}>
-            <h2>{trip.tripName}</h2>
-          </div>
-          <p>{trip.cityName}</p>
-        </div>
-        <div className={styles.detailMetrics}>
-          <div>
-            <span>类型</span>
-            <strong>{isSchedule ? "完整行程" : "自由路线"}</strong>
-          </div>
-          <div>
-            <span>总时长</span>
-            <strong>{formatTripDuration(trip.totalDuration)}</strong>
-          </div>
-        </div>
-      </div>
-
-      {trip.startName || trip.endName ? (
-        <section className={styles.detailRoute}>
-          <div>
-            <small>起点</small>
-            <strong>{trip.startName || "未设置起点"}</strong>
-          </div>
-          <RightOutlined style={{ color: "#dce7f5", fontSize: "12px" }} />
-          <div>
-            <small>终点</small>
-            <strong>{trip.endName || "按路线结束"}</strong>
-          </div>
-        </section>
-      ) : null}
-
-      <section className={styles.detailMetaStrip}>
-        <Tag color={isSchedule ? "green" : "blue"}>
-          {isSchedule ? "完整行程" : "自由路线"}
-        </Tag>
-        <Tag>{formatRouteDistance(trip.totalDistance)}</Tag>
-        {isSchedule && trip.startDate && trip.endDate ? (
-          <Tag>{formatTripDateRange(trip.startDate, trip.endDate)}</Tag>
-        ) : null}
-      </section>
-
-      <section className={styles.dayList}>
-        {trip.itineraryDays.map((day) => (
-          <TripDaySection
-            key={day.dayIndex}
-            day={day}
-            isSchedule={isSchedule}
-          />
-        ))}
-      </section>
-    </div>
-  );
-}
-
-function TripDaySection({
-  day,
-  isSchedule,
-}: {
-  day: UserTripDayDetailDto;
-  isSchedule: boolean;
-}) {
-  return (
-    <section className={styles.daySection}>
-      <div className={styles.dayHeader}>
-        <div>
-          <h3>{isSchedule ? `Day ${day.dayIndex}` : `路线节点 ${day.dayIndex}`}</h3>
-          <p>{day.items.length} 个节点</p>
-        </div>
-      </div>
-
-      <div className={styles.dayTimeline}>
-        {day.items.map((item) => (
-          <div
-            key={`${day.dayIndex}-${item.sortOrder}-${item.itemName}`}
-            className={styles.dayItem}
-          >
-            <div
-              className={`${styles.itemMarker} ${styles[`itemMarker${capitalize(item.itemType)}`]}`}
-            >
-              {resolveTripItemLabel(item.itemType)}
-            </div>
-            <div className={styles.itemContent}>
-              <div className={styles.itemTitleRow}>
-                <strong>{item.itemName}</strong>
-                {isSchedule && (item.startTime || item.endTime) ? (
-                  <span>{formatTimeRange(item.startTime, item.endTime)}</span>
-                ) : null}
-              </div>
-              <div className={styles.itemMeta}>
-                <span>{resolveTripItemTypeText(item.itemType, isSchedule)}</span>
-                {item.suggestedDuration ? (
-                  <span>建议游玩 {formatTripDuration(item.suggestedDuration)}</span>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function buildUserMenuItems(
   currentUser: AppUserDto | undefined,
   onFavoritesClick: () => void,
@@ -637,36 +486,10 @@ function getUserTypeLabel(userType: AppUserDto["userType"]) {
   }
 }
 
-function resolveTripItemLabel(itemType: UserTripItemDetailDto["itemType"]) {
-  switch (itemType) {
-    case "lunch":
-      return "餐";
-    case "rest":
-      return "休";
-    case "hotel":
-      return "宿";
-    default:
-      return "景";
-  }
-}
-
-function resolveTripItemTypeText(
-  itemType: UserTripItemDetailDto["itemType"],
-  isSchedule: boolean,
+function formatTripDateRange(
+  startDate?: string | null,
+  endDate?: string | null,
 ) {
-  switch (itemType) {
-    case "lunch":
-      return "用餐节点";
-    case "rest":
-      return "休息节点";
-    case "hotel":
-      return "住宿节点";
-    default:
-      return isSchedule ? "景点节点" : "路线节点";
-  }
-}
-
-function formatTripDateRange(startDate?: string | null, endDate?: string | null) {
   if (!startDate && !endDate) {
     return "日期未设置";
   }
@@ -682,15 +505,4 @@ function formatDateTimeLabel(value: string) {
     return value;
   }
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function formatTimeRange(startTime?: string | null, endTime?: string | null) {
-  if (startTime && endTime) {
-    return `${startTime} - ${endTime}`;
-  }
-  return startTime || endTime || "时间未设置";
-}
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
