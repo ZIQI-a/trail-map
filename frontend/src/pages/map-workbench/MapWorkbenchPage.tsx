@@ -167,6 +167,8 @@ export function MapWorkbenchPage() {
   const [scheduleConfigStep, setScheduleConfigStep] = useState(0);
   const [selectedScheduleDay, setSelectedScheduleDay] = useState(1);
   const [mapFocusTarget, setMapFocusTarget] = useState<MapFocusTarget>();
+  const [currentLocationPosition, setCurrentLocationPosition] =
+    useState<GeoPoint>();
   const [dragOverTripDock, setDragOverTripDock] = useState(false);
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
@@ -895,6 +897,7 @@ export function MapWorkbenchPage() {
         : undefined;
 
       setPlannerAssistError(undefined);
+      setCurrentLocationPosition(currentPosition);
       setMapFocusTarget({
         key: `current-location-${Date.now()}`,
         position: currentPosition,
@@ -1031,6 +1034,7 @@ export function MapWorkbenchPage() {
           focusTarget={mapFocusTarget}
           startPointPicking={startPointPicking}
           startPointPosition={startPointPosition}
+          currentLocationPosition={currentLocationPosition}
           onSelectSpot={(spotId) => {
             setSelectedSpotId(spotId);
             setSearchParams((currentParams) => {

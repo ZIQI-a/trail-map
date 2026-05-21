@@ -25,6 +25,7 @@ interface BaiduMapStageProps {
   focusTarget?: MapFocusTarget; // 右侧时间轴点击时的地图聚焦目标，优先级高于 selectedSpot。
   startPointPicking: boolean;
   startPointPosition?: GeoPoint;
+  currentLocationPosition?: GeoPoint;
   onSelectSpot: (spotId: number) => void;
   onPickStartPoint: (target: MapPickedStartPoint) => void;
 }
@@ -67,6 +68,7 @@ export function BaiduMapStage({
   focusTarget,
   startPointPicking,
   startPointPosition,
+  currentLocationPosition,
   onSelectSpot,
   onPickStartPoint,
 }: BaiduMapStageProps) {
@@ -160,6 +162,15 @@ export function BaiduMapStage({
       map.addOverlay(
         new window.BMapGL!.Marker(createBaiduPoint(startPointPosition), {
           icon: createStartPointIcon(),
+        }),
+      );
+    }
+
+    // 顶部“我的位置”定位成功后展示导航样式锚点，帮助用户在地图上识别当前位置。
+    if (currentLocationPosition) {
+      map.addOverlay(
+        new window.BMapGL!.Marker(createBaiduPoint(currentLocationPosition), {
+          icon: createCurrentLocationIcon(),
         }),
       );
     }
@@ -304,6 +315,7 @@ export function BaiduMapStage({
     spots,
     startPointPicking,
     startPointPosition,
+    currentLocationPosition,
     itineraryMarkers,
     onPickStartPoint,
   ]);
@@ -426,6 +438,27 @@ function createStartPointIcon() {
     new window.BMapGL!.Size(34, 42),
     {
       anchor: new window.BMapGL!.Size(17, 42),
+    },
+  );
+}
+
+function createCurrentLocationIcon() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
+      <circle cx="21" cy="21" r="17" fill="#1677ff" fill-opacity="0.16">
+        <animate attributeName="r" values="12;18;12" dur="1.8s" repeatCount="indefinite"/>
+        <animate attributeName="fill-opacity" values="0.22;0.06;0.22" dur="1.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="21" cy="21" r="10" fill="#1677ff" stroke="#ffffff" stroke-width="4"/>
+      <circle cx="21" cy="21" r="4" fill="#ffffff"/>
+    </svg>
+  `;
+
+  return new window.BMapGL!.Icon(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    new window.BMapGL!.Size(42, 42),
+    {
+      anchor: new window.BMapGL!.Size(21, 21),
     },
   );
 }
