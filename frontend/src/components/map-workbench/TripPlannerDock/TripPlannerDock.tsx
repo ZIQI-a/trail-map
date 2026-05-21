@@ -237,7 +237,7 @@ export function TripPlannerDock({
             placement="topLeft"
             trigger="click"
             content={tripPopoverContent}
-            overlayClassName={styles.tripPopover}
+            classNames={{ root: styles.tripPopover }}
           >
             <button className={styles.tripLauncher} type="button">
               <span className={styles.tripLauncherIcon}>
@@ -326,7 +326,7 @@ export function TripPlannerDock({
             规划模式
             <Tooltip
               placement="top"
-              overlayClassName={styles.planModeTooltip}
+              classNames={{ root: styles.planModeTooltip }}
               title={
                 <div className={styles.planModeHelp}>
                   <strong>自由路线</strong>

@@ -94,7 +94,7 @@ export function AuthDialog({
       width={886}
       footer={null}
       centered
-      destroyOnClose={false}
+      destroyOnHidden={false}
       onCancel={onClose}
     >
       <div className={styles.dialogShell}>
