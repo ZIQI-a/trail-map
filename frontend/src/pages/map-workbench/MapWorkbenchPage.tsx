@@ -60,6 +60,7 @@ import {
   getAuthToken,
   setAuthToken,
 } from "../../lib/authToken";
+import { createBaiduPoint, loadBaiduMapGL } from "../../lib/baiduMap";
 import type { LoginRequestDto, RegisterRequestDto } from "../../types/auth";
 import type {
   GeoPoint,
@@ -127,6 +128,7 @@ const defaultScheduleConfig: SchedulePlanConfig = {
   returnToHotel: false,
   preferenceTags: [],
 };
+
 
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
@@ -855,6 +857,83 @@ export function MapWorkbenchPage() {
     );
   }
 
+  // 顶部“我的位置”只负责地图视角定位；城市切换依据百度逆地理编码返回的真实城市名。
+  function handleFocusCurrentLocation() {
+    if (!navigator.geolocation) {
+      setPlannerAssistError("当前浏览器不支持定位，无法获取我的位置");
+      return;
+    }
+
+    setLocatingCurrentPosition(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        void focusCurrentLocationByBrowserPosition(position);
+      },
+      () => {
+        setPlannerAssistError("定位失败，请检查浏览器定位权限");
+        setLocatingCurrentPosition(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+      },
+    );
+  }
+
+  // 浏览器只给经纬度，城市归属需要交给百度逆地理编码判断，再与当前下拉城市列表匹配。
+  async function focusCurrentLocationByBrowserPosition(
+    position: GeolocationPosition,
+  ) {
+    try {
+      const currentPosition = wgs84ToGcj02({
+        lng: position.coords.longitude,
+        lat: position.coords.latitude,
+      });
+      const locatedCity = await reverseGeocodeCityByPosition(currentPosition);
+      const matchedCity = locatedCity
+        ? findKnownCityByLocation(locatedCity, cities)
+        : undefined;
+
+      setPlannerAssistError(undefined);
+      setMapFocusTarget({
+        key: `current-location-${Date.now()}`,
+        position: currentPosition,
+        zoom: 15,
+      });
+
+      if (matchedCity && matchedCity.id !== city?.id) {
+        handleCityChange(matchedCity.id);
+        setMapFocusTarget({
+          key: `current-location-city-${Date.now()}`,
+          position: currentPosition,
+          zoom: 15,
+        });
+        message.success(`已根据当前位置切换到${matchedCity.name}`);
+        return;
+      }
+
+      if (locatedCity && !matchedCity) {
+        message.warning(
+          `${locatedCity.city || locatedCity.province}暂未收录，已定位到当前位置`,
+        );
+        return;
+      }
+
+      if (matchedCity) {
+        message.success("已定位到我的位置");
+        return;
+      }
+
+      message.warning("无法识别当前位置所在城市，已定位到当前位置");
+    } catch (error) {
+      setPlannerAssistError(
+        error instanceof Error ? error.message : "定位城市识别失败",
+      );
+    } finally {
+      setLocatingCurrentPosition(false);
+    }
+  }
+
   // 右侧完整行程时间轴点击地点时，地图聚焦到该地点；景点同时同步左侧和地图选中态。
   function handleFocusRouteTimelineLocation(target: RouteTimelineFocusTarget) {
     if (target.spotId) {
@@ -916,6 +995,8 @@ export function MapWorkbenchPage() {
           setAuthError(undefined);
           setAuthDialogOpen(true);
         }}
+        locatingCurrentPosition={locatingCurrentPosition}
+        onLocateCurrentPosition={handleFocusCurrentLocation}
         onFavoritesClick={() => {
           if (!authToken) {
             setAuthError(undefined);
@@ -1965,4 +2046,55 @@ function calculateGeoDistance(left: GeoPoint, right: GeoPoint) {
   const lngDelta = left.lng - right.lng;
   const latDelta = left.lat - right.lat;
   return lngDelta * lngDelta + latDelta * latDelta;
+}
+
+function findKnownCityByLocation(
+  location: LocatedCityInfo,
+  cities: TravelCity[],
+) {
+  const locatedCityName = normalizeLocationCityName(location.city);
+  const locatedProvinceName = normalizeLocationCityName(location.province);
+  return cities.find((city) => {
+    const cityName = normalizeLocationCityName(city.name);
+    const provinceName = normalizeLocationCityName(city.provinceName);
+    return (
+      cityName === locatedCityName ||
+      (cityName && location.city.includes(cityName)) ||
+      (locatedCityName && cityName.includes(locatedCityName)) ||
+      (cityName === locatedProvinceName && provinceName === locatedProvinceName)
+    );
+  });
+}
+
+interface LocatedCityInfo {
+  province: string;
+  city: string;
+}
+
+function reverseGeocodeCityByPosition(
+  position: GeoPoint,
+): Promise<LocatedCityInfo | undefined> {
+  return loadBaiduMapGL().then(
+    () =>
+      new Promise((resolve) => {
+        const geocoder = new window.BMapGL!.Geocoder();
+        geocoder.getLocation(createBaiduPoint(position), (result) => {
+          const components = result?.addressComponents;
+          resolve(
+            components
+              ? {
+                  province: components.province ?? "",
+                  city: components.city ?? components.province ?? "",
+                }
+              : undefined,
+          );
+        });
+      }),
+  );
+}
+
+function normalizeLocationCityName(value?: string) {
+  return (value ?? "")
+    .trim()
+    .replace(/(省|市|特别行政区|地区|盟|自治州|藏族自治州|回族自治州|蒙古自治州)$/u, "");
 }

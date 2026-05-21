@@ -42,10 +42,12 @@ interface WorkbenchHeaderProps {
   onSearchKeywordChange: (keyword: string) => void;
   onActiveFilterChange: (filter: ActiveSpotFilter) => void;
   onAuthClick: () => void;
+  onLocateCurrentPosition: () => void;
   onAdminClick: () => void;
   onFavoritesClick: () => void;
   onTripsClick: () => void;
   onLogout: () => void;
+  locatingCurrentPosition?: boolean;
 }
 
 // WorkbenchHeader 负责顶部品牌、搜索、城市和分类筛选区域。
@@ -61,14 +63,24 @@ export function WorkbenchHeader({
   onSearchKeywordChange,
   onActiveFilterChange,
   onAuthClick,
+  onLocateCurrentPosition,
   onAdminClick,
   onFavoritesClick,
   onTripsClick,
   onLogout,
+  locatingCurrentPosition = false,
 }: WorkbenchHeaderProps) {
-  const filterOptions: Array<{ label: string; icon: ReactNode; value: ActiveSpotFilter }> = [
+  const filterOptions: Array<{
+    label: string;
+    icon: ReactNode;
+    value: ActiveSpotFilter;
+  }> = [
     { label: "全部", icon: <AimOutlined />, value: "all" },
-    ...tags.map((tag) => ({ label: tag.name, icon: getFilterIcon(tag.code), value: tag.code })),
+    ...tags.map((tag) => ({
+      label: tag.name,
+      icon: getFilterIcon(tag.code),
+      value: tag.code,
+    })),
   ];
   const cityOptions = cities.map((city) => ({
     label: `${city.name} · ${city.provinceName}`,
@@ -76,7 +88,11 @@ export function WorkbenchHeader({
   }));
   // 统一收口顶部快捷入口，避免在 JSX 里按文案分支判断点击行为。
   const quickActions = [
-    { label: "我的位置", icon: <EnvironmentOutlined /> },
+    {
+      label: "我的位置",
+      icon: <EnvironmentOutlined />,
+      onClick: onLocateCurrentPosition,
+    },
     { label: "路线规划", icon: <CompassOutlined />, onClick: onTripsClick },
     { label: "收藏夹", icon: <HeartOutlined />, onClick: onFavoritesClick },
   ];
@@ -84,12 +100,12 @@ export function WorkbenchHeader({
   return (
     <header className={styles.topBar}>
       <div className={styles.topBarMain}>
-        <Link
-          className={styles.brandArea}
-          to="/"
-          aria-label="返回行迹旅图首页"
-        >
-          <img className={styles.brandLogo} src="/header_logo.png" alt="行迹旅图 TrailMap" />
+        <Link className={styles.brandArea} to="/" aria-label="返回行迹旅图首页">
+          <img
+            className={styles.brandLogo}
+            src="/header_logo.png"
+            alt="行迹旅图 TrailMap"
+          />
         </Link>
 
         <Input
@@ -118,6 +134,9 @@ export function WorkbenchHeader({
               className={styles.actionButton}
               icon={action.icon}
               key={action.label}
+              loading={
+                action.label === "我的位置" ? locatingCurrentPosition : false
+              }
               onClick={action.onClick}
             >
               {action.label}
@@ -175,8 +194,16 @@ export function WorkbenchHeader({
               </button>
             </Dropdown>
           ) : (
-            <button className={styles.loginButton} type="button" onClick={onAuthClick}>
-              <Avatar className={styles.userAvatar} size={34} icon={<SmileOutlined />} />
+            <button
+              className={styles.loginButton}
+              type="button"
+              onClick={onAuthClick}
+            >
+              <Avatar
+                className={styles.userAvatar}
+                size={34}
+                icon={<SmileOutlined />}
+              />
               <span>登录</span>
             </button>
           )}
@@ -191,7 +218,9 @@ export function WorkbenchHeader({
               type="button"
               key={option.value}
               aria-pressed={activeFilter === option.value}
-              onClick={() => onActiveSpotFilterChange(option.value, onActiveFilterChange)}
+              onClick={() =>
+                onActiveSpotFilterChange(option.value, onActiveFilterChange)
+              }
             >
               {option.icon}
               <span>{option.label}</span>
