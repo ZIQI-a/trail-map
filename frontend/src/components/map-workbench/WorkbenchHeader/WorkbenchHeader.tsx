@@ -45,6 +45,7 @@ interface WorkbenchHeaderProps {
   onLocateCurrentPosition: () => void;
   onAdminClick: () => void;
   onFavoritesClick: () => void;
+  onCheckinsClick: () => void;
   onTripsClick: () => void;
   onLogout: () => void;
   locatingCurrentPosition?: boolean;
@@ -66,6 +67,7 @@ export function WorkbenchHeader({
   onLocateCurrentPosition,
   onAdminClick,
   onFavoritesClick,
+  onCheckinsClick,
   onTripsClick,
   onLogout,
   locatingCurrentPosition = false,
@@ -167,6 +169,12 @@ export function WorkbenchHeader({
                     label: "我的收藏",
                     icon: <HeartOutlined />,
                     onClick: onFavoritesClick,
+                  },
+                  {
+                    key: "checkins",
+                    label: "我的足迹",
+                    icon: <EnvironmentOutlined />,
+                    onClick: onCheckinsClick,
                   },
                   {
                     key: "trips",

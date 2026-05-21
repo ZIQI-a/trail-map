@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { deleteUserTrip, favoriteSpot, fetchAllTags, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, fetchUserTripDetail, fetchUserTrips, saveUserTrip, unfavoriteSpot } from '../api/mapWorkbench';
+import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto, SaveTripRequestDto } from '../types/mapWorkbench';
@@ -98,6 +98,48 @@ export function useFavoriteSpotsQuery(
   return useQuery({
     queryKey: ['favorite-spots', params],
     queryFn: () => fetchFavoriteSpots(params),
+    enabled,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+// 打卡状态只在已登录且已选中景点时查询，和收藏状态保持同一套触发策略。
+export function useCheckinSpotStatusQuery(spotId?: number, enabled = false) {
+  return useQuery({
+    queryKey: ['checkin-spot-status', spotId],
+    queryFn: () => fetchCheckinSpotStatus(spotId!),
+    enabled: enabled && spotId != null,
+  });
+}
+
+export function useCheckinSpotMutation() {
+  return useMutation({
+    mutationFn: (payload: { spotId: number; remark?: string }) =>
+      checkinSpot(payload.spotId, { remark: payload.remark }),
+  });
+}
+
+export function useUncheckinSpotMutation() {
+  return useMutation({
+    mutationFn: (spotId: number) => uncheckinSpot(spotId),
+  });
+}
+
+// 我的足迹列表查询，分页和筛选参数交给后端，前端只负责视图切换。
+export function useCheckinSpotsQuery(
+  params: {
+    tagCode?: string;
+    cityName?: string;
+    checkedInWithinDays?: number;
+    sortBy?: string;
+    pageNum: number;
+    pageSize: number;
+  },
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ['checkin-spots', params],
+    queryFn: () => fetchCheckinSpots(params),
     enabled,
     placeholderData: (previousData) => previousData,
   });

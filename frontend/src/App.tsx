@@ -10,6 +10,11 @@ import { NotFoundPage } from "./pages/not-found";
 const AdminPage = lazy(() =>
   import("./pages/admin").then((module) => ({ default: module.AdminPage })),
 );
+const CheckinsPage = lazy(() =>
+  import("./pages/checkins").then((module) => ({
+    default: module.CheckinsPage,
+  })),
+);
 
 // App 是前端应用根组件，当前挂载阶段 2 的地图工作台页面。
 function App() {
@@ -38,6 +43,14 @@ function App() {
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
+          <Route
+            path="/checkins"
+            element={
+              <Suspense fallback={null}>
+                <CheckinsPage />
+              </Suspense>
+            }
+          />
           <Route path="/trips" element={<MyTripsPage />} />
           <Route
             path="/admin"

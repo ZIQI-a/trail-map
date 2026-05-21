@@ -1,6 +1,8 @@
 import { request } from '../lib/http';
 import type {
   PageResponse,
+  CheckinSpotItemDto,
+  CheckinSpotStatusDto,
   FavoriteSpotStatusDto,
   FavoriteSpotItemDto,
   PoiCalibrationCandidateDto,
@@ -106,6 +108,58 @@ export function fetchFavoriteSpots(params?: {
   }
   const queryString = searchParams.toString();
   return request<PageResponse<FavoriteSpotItemDto>>(`/api/favorite-spots${queryString ? `?${queryString}` : ''}`);
+}
+
+// 获取当前登录用户对指定景点的打卡状态。
+export function fetchCheckinSpotStatus(spotId: number) {
+  return request<CheckinSpotStatusDto>(`/api/checkin-spots/${spotId}/status`);
+}
+
+// 打卡指定景点，备注和坐标为可选信息。
+export function checkinSpot(spotId: number, payload?: { checkinLng?: number; checkinLat?: number; remark?: string }) {
+  return request<CheckinSpotStatusDto>(`/api/checkin-spots/${spotId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
+// 取消指定景点打卡。
+export function uncheckinSpot(spotId: number) {
+  return request<CheckinSpotStatusDto>(`/api/checkin-spots/${spotId}`, {
+    method: 'DELETE',
+  });
+}
+
+// 获取当前登录用户的打卡景点列表，筛选、排序和分页统一交给后端处理。
+export function fetchCheckinSpots(params?: {
+  tagCode?: string;
+  cityName?: string;
+  checkedInWithinDays?: number;
+  sortBy?: string;
+  pageNum?: number;
+  pageSize?: number;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.tagCode) {
+    searchParams.set('tagCode', params.tagCode);
+  }
+  if (params?.cityName) {
+    searchParams.set('cityName', params.cityName);
+  }
+  if (params?.checkedInWithinDays) {
+    searchParams.set('checkedInWithinDays', String(params.checkedInWithinDays));
+  }
+  if (params?.sortBy) {
+    searchParams.set('sortBy', params.sortBy);
+  }
+  if (params?.pageNum) {
+    searchParams.set('pageNum', String(params.pageNum));
+  }
+  if (params?.pageSize) {
+    searchParams.set('pageSize', String(params.pageSize));
+  }
+  const queryString = searchParams.toString();
+  return request<PageResponse<CheckinSpotItemDto>>(`/api/checkin-spots${queryString ? `?${queryString}` : ''}`);
 }
 
 // 用百度地点检索把用户输入的起点名称解析成候选坐标。

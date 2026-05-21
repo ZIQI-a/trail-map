@@ -59,6 +59,11 @@
   background: rgb(255 240 242 / 96%);
 }
 
+.checkinButtonActive {
+  color: #0f9f82;
+  background: rgb(232 251 247 / 96%);
+}
+
 .panelLabel,
 .titleBlock h2,
 .summaryText,

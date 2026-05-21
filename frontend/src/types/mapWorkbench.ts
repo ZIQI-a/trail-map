@@ -184,6 +184,13 @@ export interface FavoriteSpotStatusDto {
   favorited: boolean;
 }
 
+// 打卡状态接口响应对象，供景点详情和足迹页状态展示。
+export interface CheckinSpotStatusDto {
+  checkedIn: boolean;
+  checkedInAt: string | null;
+  remark: string | null;
+}
+
 // 我的收藏景点列表项，对齐后端收藏页接口结构。
 export interface FavoriteSpotItemDto {
   favoriteId: number;
@@ -210,6 +217,37 @@ export interface FavoriteSpotItemDto {
   subwayFriendly: boolean;
   firstVisit: boolean;
   favoritedAt: string;
+  tags: SpotTagDto[];
+}
+
+// 我的打卡景点列表项，对齐后端“我的足迹”接口结构。
+export interface CheckinSpotItemDto {
+  checkinId: number;
+  spotId: number;
+  cityId: number;
+  cityName: string;
+  name: string;
+  type: SpotType;
+  position: GeoPoint;
+  address: string;
+  coverUrl: string;
+  summary: string;
+  recommendReason: string;
+  openingHours: string;
+  ticketInfo: string;
+  suggestedDurationMinutes: number;
+  bestTime: string;
+  recommendScore: number;
+  hotScore: number;
+  free: boolean;
+  indoor: boolean;
+  night: boolean;
+  rainyDay: boolean;
+  subwayFriendly: boolean;
+  firstVisit: boolean;
+  checkedInAt: string;
+  checkinPosition: GeoPoint | null;
+  remark: string | null;
   tags: SpotTagDto[];
 }
 

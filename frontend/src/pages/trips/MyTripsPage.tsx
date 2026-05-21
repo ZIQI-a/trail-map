@@ -108,6 +108,7 @@ export function MyTripsPage() {
   const userMenuItems = buildUserMenuItems(
     currentUserQuery.data,
     () => navigate("/favorites"),
+    () => navigate("/checkins"),
     () => navigate("/trips"),
     () => navigate("/admin"),
     () => {
@@ -429,6 +430,7 @@ function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
 function buildUserMenuItems(
   currentUser: AppUserDto | undefined,
   onFavoritesClick: () => void,
+  onCheckinsClick: () => void,
   onTripsClick: () => void,
   onAdminClick: () => void,
   onLogout: () => void,
@@ -448,6 +450,12 @@ function buildUserMenuItems(
       label: "我的收藏",
       icon: <HeartOutlined />,
       onClick: onFavoritesClick,
+    },
+    {
+      key: "checkins",
+      label: "我的足迹",
+      icon: <EnvironmentOutlined />,
+      onClick: onCheckinsClick,
     },
     {
       key: "trips",

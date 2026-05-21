@@ -1,4 +1,6 @@
 import {
+  CheckCircleFilled,
+  CheckCircleOutlined,
   ClockCircleOutlined,
   CompassOutlined,
   EnvironmentOutlined,
@@ -15,6 +17,8 @@ import styles from './SpotDetailPanel.module.css';
 
 interface SpotDetailPanelProps {
   favoriteLoading: boolean;
+  checkinLoading: boolean;
+  isCheckedIn: boolean;
   isFavorite: boolean;
   isLoggedIn: boolean;
   spot?: TravelSpot;
@@ -22,6 +26,7 @@ interface SpotDetailPanelProps {
   nearbySpots: TravelSpot[];
   isInTrip: boolean;
   onAddToTrip: (spotId: number) => void;
+  onToggleCheckin: (spotId: number) => void;
   onToggleFavorite: (spotId: number) => void;
   onSelectSpot: (spotId: number) => void;
 }
@@ -29,6 +34,8 @@ interface SpotDetailPanelProps {
 // SpotDetailPanel 负责右侧选中景点详情和加入行程入口。
 export function SpotDetailPanel({
   favoriteLoading,
+  checkinLoading,
+  isCheckedIn,
   isFavorite,
   isLoggedIn,
   spot,
@@ -36,6 +43,7 @@ export function SpotDetailPanel({
   nearbySpots,
   isInTrip,
   onAddToTrip,
+  onToggleCheckin,
   onToggleFavorite,
   onSelectSpot,
 }: SpotDetailPanelProps) {
@@ -64,6 +72,16 @@ export function SpotDetailPanel({
             onClick={() => onToggleFavorite(spot.id)}
           >
             {isFavorite ? <HeartFilled /> : <HeartOutlined />}
+          </button>
+          <button
+            className={`${styles.favoriteButton} ${isCheckedIn ? styles.checkinButtonActive : ''}`}
+            type="button"
+            aria-label={isLoggedIn ? (isCheckedIn ? '取消景点打卡' : '打卡景点') : '登录后打卡景点'}
+            aria-pressed={isCheckedIn}
+            disabled={checkinLoading}
+            onClick={() => onToggleCheckin(spot.id)}
+          >
+            {isCheckedIn ? <CheckCircleFilled /> : <CheckCircleOutlined />}
           </button>
         </div>
       </div>

@@ -38,6 +38,8 @@ import {
   type ActiveSpotFilter,
 } from "../../components/map-workbench/WorkbenchHeader";
 import {
+  useCheckinSpotMutation,
+  useCheckinSpotStatusQuery,
   useFavoriteSpotMutation,
   useFavoriteSpotStatusQuery,
   useCitiesQuery,
@@ -51,6 +53,7 @@ import {
   useRoutePlanMutation,
   useSaveUserTripMutation,
   useSpotDetailQuery,
+  useUncheckinSpotMutation,
   useUnfavoriteSpotMutation,
   useUserTripDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
@@ -180,6 +183,8 @@ export function MapWorkbenchPage() {
   const registerMutation = useRegisterMutation();
   const favoriteSpotMutation = useFavoriteSpotMutation();
   const unfavoriteSpotMutation = useUnfavoriteSpotMutation();
+  const checkinSpotMutation = useCheckinSpotMutation();
+  const uncheckinSpotMutation = useUncheckinSpotMutation();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const savedTripId = parsePositiveNumber(searchParams.get("tripId"));
   const savedTripDetailQuery = useUserTripDetailQuery(
@@ -253,6 +258,10 @@ export function MapWorkbenchPage() {
     : undefined;
   const spotDetailQuery = useSpotDetailQuery(effectiveSelectedSpotId);
   const favoriteSpotStatusQuery = useFavoriteSpotStatusQuery(
+    effectiveSelectedSpotId,
+    Boolean(authToken),
+  );
+  const checkinSpotStatusQuery = useCheckinSpotStatusQuery(
     effectiveSelectedSpotId,
     Boolean(authToken),
   );
@@ -464,6 +473,8 @@ export function MapWorkbenchPage() {
     setAuthError(undefined);
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
     queryClient.removeQueries({ queryKey: ["favorite-spot-status"] });
+    queryClient.removeQueries({ queryKey: ["checkin-spot-status"] });
+    queryClient.removeQueries({ queryKey: ["checkin-spots"] });
   }
 
   // 关闭已保存行程回放时同步移除 URL 参数，避免刷新页面后又自动打开同一条行程。
@@ -495,6 +506,31 @@ export function MapWorkbenchPage() {
     } catch (error) {
       setPlannerAssistError(
         error instanceof Error ? error.message : "收藏操作失败",
+      );
+    }
+  }
+
+  // 打卡按钮未登录时先拉起登录弹窗；已登录时按当前状态切换足迹关系。
+  async function handleToggleCheckin(spotId: number) {
+    if (!authToken) {
+      setAuthError(undefined);
+      setAuthDialogOpen(true);
+      return;
+    }
+
+    try {
+      if (checkinSpotStatusQuery.data?.checkedIn) {
+        await uncheckinSpotMutation.mutateAsync(spotId);
+      } else {
+        await checkinSpotMutation.mutateAsync({ spotId });
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ["checkin-spot-status", spotId],
+      });
+      await queryClient.invalidateQueries({ queryKey: ["checkin-spots"] });
+    } catch (error) {
+      setPlannerAssistError(
+        error instanceof Error ? error.message : "打卡操作失败",
       );
     }
   }
@@ -1008,6 +1044,14 @@ export function MapWorkbenchPage() {
           }
           navigate("/favorites");
         }}
+        onCheckinsClick={() => {
+          if (!authToken) {
+            setAuthError(undefined);
+            setAuthDialogOpen(true);
+            return;
+          }
+          navigate("/checkins");
+        }}
         onTripsClick={() => {
           if (!authToken) {
             setAuthError(undefined);
@@ -1102,6 +1146,11 @@ export function MapWorkbenchPage() {
                 favoriteSpotMutation.isPending ||
                 unfavoriteSpotMutation.isPending
               }
+              checkinLoading={
+                checkinSpotMutation.isPending ||
+                uncheckinSpotMutation.isPending
+              }
+              isCheckedIn={checkinSpotStatusQuery.data?.checkedIn ?? false}
               isFavorite={favoriteSpotStatusQuery.data?.favorited ?? false}
               isLoggedIn={Boolean(authToken)}
               spot={selectedSpot}
@@ -1109,6 +1158,7 @@ export function MapWorkbenchPage() {
               nearbySpots={nearbySpots}
               isInTrip={tripSpotIds.includes(selectedSpot.id)}
               onAddToTrip={handleAddToTrip}
+              onToggleCheckin={handleToggleCheckin}
               onToggleFavorite={handleToggleFavorite}
               onSelectSpot={(spotId) => {
                 setSelectedSpotId(spotId);
