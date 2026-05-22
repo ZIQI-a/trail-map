@@ -6,6 +6,7 @@ import { MapWorkbenchPage } from "./pages/map-workbench";
 import { FavoritesPage } from "./pages/favorites";
 import { MyTripsPage } from "./pages/trips";
 import { NotFoundPage } from "./pages/not-found";
+import { ProfilePage } from "./pages/profile";
 
 const AdminPage = lazy(() =>
   import("./pages/admin").then((module) => ({ default: module.AdminPage })),
@@ -42,6 +43,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route
             path="/checkins"

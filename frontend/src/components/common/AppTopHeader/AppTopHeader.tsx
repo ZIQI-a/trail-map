@@ -2,6 +2,7 @@ import {
   AppstoreOutlined,
   EnvironmentOutlined,
   HeartOutlined,
+  IdcardOutlined,
   LogoutOutlined,
   ReadOutlined,
   SmileOutlined,
@@ -129,9 +130,15 @@ function buildAccountMenuItems({
 
   return [
     {
-      key: "profile",
+      key: "account",
       label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
       disabled: true,
+    },
+    {
+      key: "profile",
+      label: "个人主页",
+      icon: <IdcardOutlined />,
+      onClick: () => navigate("/profile"),
     },
     ...(currentUser.userType === "admin"
       ? [

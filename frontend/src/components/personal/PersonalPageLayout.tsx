@@ -27,6 +27,7 @@ export function PersonalPageLayout({
   const navigate = useNavigate();
   const location = useLocation();
   const personalNavItems = [
+    { label: "个人主页", path: "/profile" },
     { label: "我的收藏", path: "/favorites" },
     { label: "我的足迹", path: "/checkins" },
     { label: "我的行程", path: "/trips" },
