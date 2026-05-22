@@ -1,0 +1,1 @@
+export { PersonalPageLayout } from "./PersonalPageLayout";

@@ -1,20 +1,15 @@
 import {
   AppstoreOutlined,
-  ArrowLeftOutlined,
   CalendarOutlined,
   CarOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
   EnvironmentOutlined,
-  HeartOutlined,
-  ReadOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
-  Avatar,
   Button,
-  Dropdown,
   Empty,
   Pagination,
   Popconfirm,
@@ -24,10 +19,10 @@ import {
   Tag,
   message,
 } from "antd";
-import type { MenuProps } from "antd";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { PersonalPageLayout } from "../../components/personal";
 import {
   useCitiesQuery,
   useCurrentUserQuery,
@@ -35,7 +30,6 @@ import {
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
-import type { AppUserDto } from "../../types/auth";
 import type { UserTripSummaryDto } from "../../types/mapWorkbench";
 import {
   formatRouteDistance,
@@ -105,20 +99,13 @@ export function MyTripsPage() {
     return filteredTrips.slice(startIndex, startIndex + pageSize);
   }, [filteredTrips, pageNum, pageSize]);
 
-  const userMenuItems = buildUserMenuItems(
-    currentUserQuery.data,
-    () => navigate("/favorites"),
-    () => navigate("/checkins"),
-    () => navigate("/trips"),
-    () => navigate("/admin"),
-    () => {
-      clearAuthToken();
-      queryClient.removeQueries({ queryKey: ["auth", "me"] });
-      queryClient.removeQueries({ queryKey: ["favorite-spots"] });
-      queryClient.removeQueries({ queryKey: ["user-trips"] });
-      navigate("/");
-    },
-  );
+  function handleLogout() {
+    clearAuthToken();
+    queryClient.removeQueries({ queryKey: ["auth", "me"] });
+    queryClient.removeQueries({ queryKey: ["favorite-spots"] });
+    queryClient.removeQueries({ queryKey: ["user-trips"] });
+    navigate("/");
+  }
 
   async function handleDeleteTrip(tripId: number) {
     await deleteUserTripMutation.mutateAsync(tripId);
@@ -164,40 +151,12 @@ export function MyTripsPage() {
   }
 
   return (
-    <main className={styles.pageShell}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerMain}>
-          <div>
-            <h1>我的旅途规划</h1>
-            <span className={styles.headerHint}>
-              规划每一次出发，记录每一段旅程✨
-            </span>
-          </div>
-
-          <div className={styles.headerActions}>
-            <Button
-              className={styles.ghostButton}
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/")}
-            >
-              返回首页
-            </Button>
-            <Dropdown trigger={["click"]} menu={{ items: userMenuItems }}>
-              <button type="button" className={styles.userButton}>
-                <Avatar
-                  size={42}
-                  src={currentUserQuery.data.avatarUrl || undefined}
-                  className={styles.userAvatar}
-                />
-                <div className={styles.userMeta}>
-                  <strong>{currentUserQuery.data.nickname}</strong>
-                  <span>@{currentUserQuery.data.username}</span>
-                </div>
-              </button>
-            </Dropdown>
-          </div>
-        </div>
-      </header>
+    <PersonalPageLayout
+      currentUser={currentUserQuery.data}
+      title="我的旅途规划"
+      description="规划每一次出发，记录每一段旅程。"
+      onLogout={handleLogout}
+    >
 
       <section className={styles.toolbar}>
         <Segmented
@@ -319,7 +278,7 @@ export function MyTripsPage() {
         </>
       )}
 
-    </main>
+    </PersonalPageLayout>
   );
 }
 
@@ -425,73 +384,6 @@ function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
       </div>
     </article>
   );
-}
-
-function buildUserMenuItems(
-  currentUser: AppUserDto | undefined,
-  onFavoritesClick: () => void,
-  onCheckinsClick: () => void,
-  onTripsClick: () => void,
-  onAdminClick: () => void,
-  onLogout: () => void,
-): MenuProps["items"] {
-  if (!currentUser) {
-    return [];
-  }
-
-  return [
-    {
-      key: "profile",
-      label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-      disabled: true,
-    },
-    {
-      key: "favorites",
-      label: "我的收藏",
-      icon: <HeartOutlined />,
-      onClick: onFavoritesClick,
-    },
-    {
-      key: "checkins",
-      label: "我的足迹",
-      icon: <EnvironmentOutlined />,
-      onClick: onCheckinsClick,
-    },
-    {
-      key: "trips",
-      label: "我的规划",
-      icon: <ReadOutlined />,
-      onClick: onTripsClick,
-    },
-    ...(currentUser.userType === "admin"
-      ? [
-          {
-            key: "admin",
-            label: "后台管理",
-            icon: <AppstoreOutlined />,
-            onClick: onAdminClick,
-          },
-        ]
-      : []),
-    {
-      key: "logout",
-      label: "退出登录",
-      icon: <ArrowLeftOutlined />,
-      danger: true,
-      onClick: onLogout,
-    },
-  ];
-}
-
-function getUserTypeLabel(userType: AppUserDto["userType"]) {
-  switch (userType) {
-    case "admin":
-      return "管理员";
-    case "member":
-      return "会员";
-    default:
-      return "普通用户";
-  }
 }
 
 function formatTripDateRange(

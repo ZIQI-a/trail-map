@@ -19,7 +19,7 @@ import {
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Input, Select } from "antd";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { AppTopHeader } from "../../common";
 import type { AppUserDto } from "../../../types/auth";
 import type {
   SpotTag,
@@ -101,122 +101,119 @@ export function WorkbenchHeader({
 
   return (
     <header className={styles.topBar}>
-      <div className={styles.topBarMain}>
-        <Link className={styles.brandArea} to="/" aria-label="返回行迹旅图首页">
-          <img
-            className={styles.brandLogo}
-            src="/header_logo.png"
-            alt="行迹旅图 TrailMap"
-          />
-        </Link>
+      <AppTopHeader
+        centerSlot={
+          <>
+            <Input
+              className={styles.searchBox}
+              aria-label="搜索城市、景点或美食"
+              value={searchKeyword}
+              prefix={<SearchOutlined />}
+              placeholder="搜索城市 / 景点 / 美食"
+              allowClear
+              onChange={(event) => onSearchKeywordChange(event.target.value)}
+            />
 
-        <Input
-          className={styles.searchBox}
-          aria-label="搜索城市、景点或美食"
-          value={searchKeyword}
-          prefix={<SearchOutlined />}
-          placeholder="搜索城市 / 景点 / 美食"
-          allowClear
-          onChange={(event) => onSearchKeywordChange(event.target.value)}
-        />
-
-        <Select
-          className={styles.citySelect}
-          aria-label="切换当前城市"
-          value={selectedCityId}
-          options={cityOptions}
-          suffixIcon={<EnvironmentOutlined />}
-          placeholder={cityName}
-          onChange={onCityChange}
-        />
-
-        <div className={styles.actionGroup} aria-label="快捷操作">
-          {quickActions.map((action) => (
-            <Button
-              className={styles.actionButton}
-              icon={action.icon}
-              key={action.label}
-              loading={
-                action.label === "我的位置" ? locatingCurrentPosition : false
-              }
-              onClick={action.onClick}
-            >
-              {action.label}
-            </Button>
-          ))}
-          {currentUser ? (
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: [
-                  {
-                    key: "profile",
-                    label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-                    disabled: true,
-                  },
-                  ...(currentUser.userType === "admin"
-                    ? [
-                        {
-                          key: "admin",
-                          label: "后台管理",
-                          icon: <DashboardOutlined />,
-                          onClick: onAdminClick,
-                        },
-                      ]
-                    : []),
-                  {
-                    key: "favorites",
-                    label: "我的收藏",
-                    icon: <HeartOutlined />,
-                    onClick: onFavoritesClick,
-                  },
-                  {
-                    key: "checkins",
-                    label: "我的足迹",
-                    icon: <EnvironmentOutlined />,
-                    onClick: onCheckinsClick,
-                  },
-                  {
-                    key: "trips",
-                    label: "我的行程",
-                    icon: <ReadOutlined />,
-                    onClick: onTripsClick,
-                  },
-                  {
-                    key: "logout",
-                    label: "退出登录",
-                    icon: <LogoutOutlined />,
-                    onClick: onLogout,
-                  },
-                ],
-              }}
-            >
-              <button className={styles.userButton} type="button">
+            <Select
+              className={styles.citySelect}
+              aria-label="切换当前城市"
+              value={selectedCityId}
+              options={cityOptions}
+              suffixIcon={<EnvironmentOutlined />}
+              placeholder={cityName}
+              onChange={onCityChange}
+            />
+          </>
+        }
+        rightSlot={
+          <div className={styles.actionGroup} aria-label="快捷操作">
+            {quickActions.map((action) => (
+              <Button
+                className={styles.actionButton}
+                icon={action.icon}
+                key={action.label}
+                loading={
+                  action.label === "我的位置" ? locatingCurrentPosition : false
+                }
+                onClick={action.onClick}
+              >
+                {action.label}
+              </Button>
+            ))}
+            {currentUser ? (
+              <Dropdown
+                trigger={["click"]}
+                menu={{
+                  items: [
+                    {
+                      key: "profile",
+                      label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
+                      disabled: true,
+                    },
+                    ...(currentUser.userType === "admin"
+                      ? [
+                          {
+                            key: "admin",
+                            label: "后台管理",
+                            icon: <DashboardOutlined />,
+                            onClick: onAdminClick,
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "favorites",
+                      label: "我的收藏",
+                      icon: <HeartOutlined />,
+                      onClick: onFavoritesClick,
+                    },
+                    {
+                      key: "checkins",
+                      label: "我的足迹",
+                      icon: <EnvironmentOutlined />,
+                      onClick: onCheckinsClick,
+                    },
+                    {
+                      key: "trips",
+                      label: "我的行程",
+                      icon: <ReadOutlined />,
+                      onClick: onTripsClick,
+                    },
+                    {
+                      key: "logout",
+                      label: "退出登录",
+                      icon: <LogoutOutlined />,
+                      onClick: onLogout,
+                    },
+                  ],
+                }}
+              >
+                <button className={styles.userButton} type="button">
+                  <Avatar
+                    className={styles.userAvatar}
+                    size={34}
+                    src={currentUser.avatarUrl || undefined}
+                    icon={<SmileOutlined />}
+                  />
+                  <span>{currentUser.nickname}</span>
+                </button>
+              </Dropdown>
+            ) : (
+              <button
+                className={styles.loginButton}
+                type="button"
+                onClick={onAuthClick}
+              >
                 <Avatar
                   className={styles.userAvatar}
-                  size={36}
-                  src={currentUser.avatarUrl || undefined}
+                  size={32}
                   icon={<SmileOutlined />}
                 />
-                <span>{currentUser.nickname}</span>
+                <span>登录</span>
               </button>
-            </Dropdown>
-          ) : (
-            <button
-              className={styles.loginButton}
-              type="button"
-              onClick={onAuthClick}
-            >
-              <Avatar
-                className={styles.userAvatar}
-                size={34}
-                icon={<SmileOutlined />}
-              />
-              <span>登录</span>
-            </button>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        }
+      />
 
       <nav className={styles.filterRail} aria-label="景点分类筛选">
         <div className={styles.filterGroup}>

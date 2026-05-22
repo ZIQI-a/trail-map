@@ -1,19 +1,14 @@
 import {
   AppstoreOutlined,
-  ArrowLeftOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
   EnvironmentOutlined,
   EyeOutlined,
-  HeartOutlined,
-  ReadOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
-  Avatar,
   Button,
-  Dropdown,
   Empty,
   Pagination,
   Popconfirm,
@@ -22,11 +17,11 @@ import {
   Spin,
   Tag,
 } from "antd";
-import type { MenuProps } from "antd";
 import { Scene, Map as L7Map, PointLayer } from "@antv/l7";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { PersonalPageLayout } from "../../components/personal";
 import {
   useAllTagsQuery,
   useCheckinSpotsQuery,
@@ -36,7 +31,6 @@ import {
   useUncheckinSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
-import type { AppUserDto } from "../../types/auth";
 import type {
   CheckinSpotItemDto,
   GeoPoint,
@@ -119,20 +113,13 @@ export function CheckinsPage() {
     [citiesQuery.data?.list],
   );
 
-  const userMenuItems = buildUserMenuItems(
-    currentUserQuery.data,
-    () => navigate("/favorites"),
-    () => navigate("/checkins"),
-    () => navigate("/trips"),
-    () => navigate("/admin"),
-    () => {
-      clearAuthToken();
-      queryClient.removeQueries({ queryKey: ["auth", "me"] });
-      queryClient.removeQueries({ queryKey: ["checkin-spots"] });
-      queryClient.removeQueries({ queryKey: ["checkin-spot-status"] });
-      navigate("/");
-    },
-  );
+  function handleLogout() {
+    clearAuthToken();
+    queryClient.removeQueries({ queryKey: ["auth", "me"] });
+    queryClient.removeQueries({ queryKey: ["checkin-spots"] });
+    queryClient.removeQueries({ queryKey: ["checkin-spot-status"] });
+    navigate("/");
+  }
 
   async function handleCancelCheckin(spotId: number) {
     await uncheckinSpotMutation.mutateAsync(spotId);
@@ -180,36 +167,12 @@ export function CheckinsPage() {
   }
 
   return (
-    <main className={styles.pageShell}>
-      <header className={styles.pageHeader}>
-        <div>
-          <h1>我的足迹</h1>
-          <span>每一次去过的地方，都会在地图上留下一个点。</span>
-        </div>
-
-        <div className={styles.headerActions}>
-          <Button
-            className={styles.ghostButton}
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/")}
-          >
-            返回首页
-          </Button>
-          <Dropdown trigger={["click"]} menu={{ items: userMenuItems }}>
-            <button type="button" className={styles.userButton}>
-              <Avatar
-                size={42}
-                src={currentUserQuery.data.avatarUrl || undefined}
-                className={styles.userAvatar}
-              />
-              <div className={styles.userMeta}>
-                <strong>{currentUserQuery.data.nickname}</strong>
-                <span>@{currentUserQuery.data.username}</span>
-              </div>
-            </button>
-          </Dropdown>
-        </div>
-      </header>
+    <PersonalPageLayout
+      currentUser={currentUserQuery.data}
+      title="我的足迹"
+      description="记录去过的景点，回看每一次旅行足迹。"
+      onLogout={handleLogout}
+    >
 
       <section className={styles.workspace}>
         <CheckinL7Map
@@ -355,7 +318,7 @@ export function CheckinsPage() {
           </footer>
         </section>
       </section>
-    </main>
+    </PersonalPageLayout>
   );
 }
 
@@ -594,62 +557,6 @@ function CheckinRecordCard({
   );
 }
 
-function buildUserMenuItems(
-  currentUser: AppUserDto | undefined,
-  onFavoritesClick: () => void,
-  onCheckinsClick: () => void,
-  onTripsClick: () => void,
-  onAdminClick: () => void,
-  onLogout: () => void,
-): MenuProps["items"] {
-  if (!currentUser) {
-    return [];
-  }
-
-  return [
-    {
-      key: "profile",
-      label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-      disabled: true,
-    },
-    {
-      key: "favorites",
-      label: "我的收藏",
-      icon: <HeartOutlined />,
-      onClick: onFavoritesClick,
-    },
-    {
-      key: "checkins",
-      label: "我的足迹",
-      icon: <EnvironmentOutlined />,
-      onClick: onCheckinsClick,
-    },
-    {
-      key: "trips",
-      label: "我的行程",
-      icon: <ReadOutlined />,
-      onClick: onTripsClick,
-    },
-    ...(currentUser.userType === "admin"
-      ? [
-          {
-            key: "admin",
-            label: "后台管理",
-            icon: <AppstoreOutlined />,
-            onClick: onAdminClick,
-          },
-        ]
-      : []),
-    {
-      key: "logout",
-      label: "退出登录",
-      icon: <ArrowLeftOutlined />,
-      danger: true,
-      onClick: onLogout,
-    },
-  ];
-}
-
 function resolveCheckedInWithinDays(dateFilter: CheckinDateFilter) {
   if (dateFilter === "7d") {
     return 7;
@@ -737,15 +644,4 @@ function formatDayLabel(value: string) {
     return "足迹";
   }
   return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function getUserTypeLabel(userType: AppUserDto["userType"]) {
-  switch (userType) {
-    case "admin":
-      return "管理员";
-    case "member":
-      return "会员";
-    default:
-      return "普通用户";
-  }
 }

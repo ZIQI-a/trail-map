@@ -1,29 +1,24 @@
 import {
   AppstoreOutlined,
-  ArrowLeftOutlined,
   CalendarOutlined,
   EnvironmentOutlined,
   EyeOutlined,
   HeartFilled,
-  HeartOutlined,
-  ReadOutlined,
   StarFilled,
 } from "@ant-design/icons";
 import {
   Alert,
-  Avatar,
   Button,
-  Dropdown,
   Empty,
   Pagination,
   Segmented,
   Select,
   Spin,
 } from "antd";
-import type { MenuProps } from "antd";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { PersonalPageLayout } from "../../components/personal";
 import {
   useCurrentUserQuery,
   useCitiesQuery,
@@ -33,7 +28,6 @@ import {
   useUnfavoriteSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
-import type { AppUserDto } from "../../types/auth";
 import type {
   FavoriteSpotItemDto,
   SpotTagCode,
@@ -124,20 +118,13 @@ export function FavoritesPage() {
     [citiesQuery.data?.list],
   );
 
-  const userMenuItems = buildUserMenuItems(
-    currentUserQuery.data,
-    () => navigate("/favorites"),
-    () => navigate("/checkins"),
-    () => navigate("/trips"),
-    () => navigate("/admin"),
-    () => {
-      clearAuthToken();
-      queryClient.removeQueries({ queryKey: ["auth", "me"] });
-      queryClient.removeQueries({ queryKey: ["favorite-spots"] });
-      queryClient.removeQueries({ queryKey: ["favorite-spot-status"] });
-      navigate("/");
-    },
-  );
+  function handleLogout() {
+    clearAuthToken();
+    queryClient.removeQueries({ queryKey: ["auth", "me"] });
+    queryClient.removeQueries({ queryKey: ["favorite-spots"] });
+    queryClient.removeQueries({ queryKey: ["favorite-spot-status"] });
+    navigate("/");
+  }
 
   async function handleUnfavorite(spotId: number) {
     await unfavoriteSpotMutation.mutateAsync(spotId);
@@ -185,76 +172,31 @@ export function FavoritesPage() {
   }
 
   return (
-    <main className={styles.pageShell}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerMain}>
-          <div>
-            <h1>我的收藏</h1>
-            <span className={styles.headerHint}>
-              收藏的美好，期待下一次出发✨
-            </span>
-          </div>
-
-          <div className={styles.headerActions}>
-            <Button
-              className={styles.ghostButton}
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/")}
-            >
-              返回首页
-            </Button>
-            <Segmented
-              className={styles.viewSwitch}
-              value={viewMode}
-              options={[
-                {
-                  label: "卡片模式",
-                  value: "grid",
-                  icon: <AppstoreOutlined />,
-                },
-                {
-                  label: "地图模式",
-                  value: "map",
-                  icon: <EnvironmentOutlined />,
-                },
-              ]}
-              onChange={(value) => setViewMode(value as FavoriteViewMode)}
-            />
-            <Dropdown trigger={["click"]} menu={{ items: userMenuItems }}>
-              <button type="button" className={styles.userButton}>
-                <Avatar
-                  size={42}
-                  src={currentUserQuery.data.avatarUrl || undefined}
-                  className={styles.userAvatar}
-                />
-                <div className={styles.userMeta}>
-                  <strong>{currentUserQuery.data.nickname}</strong>
-                  <span>@{currentUserQuery.data.username}</span>
-                </div>
-              </button>
-            </Dropdown>
-          </div>
-        </div>
-
-        {/* todo 暂时去掉 <div className={styles.categoryRail}>
-          {categoryItems.map((item) => {
-            const count =
-              item.key === "all" || item.key === "spot" ? totalFavorites : 0;
-            const disabled = item.key !== "all" && item.key !== "spot";
-            return (
-              <button
-                key={item.key}
-                type="button"
-                className={`${styles.categoryItem} ${item.key === "spot" || item.key === "all" ? styles.categoryItemActive : ""}`}
-                disabled={disabled}
-              >
-                <span>{item.label}</span>
-                <strong>{count}</strong>
-              </button>
-            );
-          })}
-        </div> */}
-      </header>
+    <PersonalPageLayout
+      currentUser={currentUserQuery.data}
+      title="我的收藏"
+      description="收藏的美好，期待下一次出发。"
+      onLogout={handleLogout}
+      actions={
+        <Segmented
+          className={styles.viewSwitch}
+          value={viewMode}
+          options={[
+            {
+              label: "卡片模式",
+              value: "grid",
+              icon: <AppstoreOutlined />,
+            },
+            {
+              label: "地图模式",
+              value: "map",
+              icon: <EnvironmentOutlined />,
+            },
+          ]}
+          onChange={(value) => setViewMode(value as FavoriteViewMode)}
+        />
+      }
+    >
 
       <section className={styles.toolbar}>
         <div className={styles.filterGroup}>
@@ -384,7 +326,7 @@ export function FavoritesPage() {
           </footer>
         </>
       )}
-    </main>
+    </PersonalPageLayout>
   );
 }
 
@@ -477,73 +419,6 @@ function FavoriteSpotCard({
       </div>
     </article>
   );
-}
-
-function buildUserMenuItems(
-  currentUser: AppUserDto | undefined,
-  onFavoritesClick: () => void,
-  onCheckinsClick: () => void,
-  onTripsClick: () => void,
-  onAdminClick: () => void,
-  onLogout: () => void,
-): MenuProps["items"] {
-  if (!currentUser) {
-    return [];
-  }
-
-  return [
-    {
-      key: "profile",
-      label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-      disabled: true,
-    },
-    {
-      key: "favorites",
-      label: "我的收藏",
-      icon: <HeartOutlined />,
-      onClick: onFavoritesClick,
-    },
-    {
-      key: "checkins",
-      label: "我的足迹",
-      icon: <EnvironmentOutlined />,
-      onClick: onCheckinsClick,
-    },
-    {
-      key: "trips",
-      label: "我的行程",
-      icon: <ReadOutlined />,
-      onClick: onTripsClick,
-    },
-    ...(currentUser.userType === "admin"
-      ? [
-          {
-            key: "admin",
-            label: "后台管理",
-            icon: <AppstoreOutlined />,
-            onClick: onAdminClick,
-          },
-        ]
-      : []),
-    {
-      key: "logout",
-      label: "退出登录",
-      icon: <ArrowLeftOutlined />,
-      danger: true,
-      onClick: onLogout,
-    },
-  ];
-}
-
-function getUserTypeLabel(userType: AppUserDto["userType"]) {
-  switch (userType) {
-    case "admin":
-      return "管理员";
-    case "member":
-      return "会员";
-    default:
-      return "普通用户";
-  }
 }
 
 function resolveSpotTypeLabel(type: FavoriteSpotItemDto["type"]) {
