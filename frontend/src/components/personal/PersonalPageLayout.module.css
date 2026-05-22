@@ -5,42 +5,6 @@
     linear-gradient(180deg, #f8fbff 0%, #eff5fc 100%);
 }
 
-.primaryNav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 34px;
-  min-width: 0;
-}
-
-.navLink {
-  position: relative;
-  padding: 19px 4px 16px;
-  border: 0;
-  color: #203856;
-  background: transparent;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 900;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.navLinkActive {
-  color: #2266e8;
-}
-
-.navLinkActive::after {
-  position: absolute;
-  right: 2px;
-  bottom: 8px;
-  left: 2px;
-  height: 3px;
-  border-radius: 999px;
-  content: "";
-  background: #2266e8;
-}
-
 .headerActions {
   display: flex;
   align-items: center;
@@ -95,31 +59,38 @@
 
 .personalTabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  min-width: 0;
 }
 
 .personalTab {
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  border: 1px solid #dae6f5;
-  border-radius: 999px;
-  color: #526983;
-  background: #ffffff;
+  position: relative;
+  padding: 19px 4px 16px;
+  border: 0;
+  color: #203856;
+  background: transparent;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .personalTabActive {
-  color: #ffffff;
-  border-color: #2266e8;
+  color: #2266e8;
+}
+
+.personalTabActive::after {
+  position: absolute;
+  right: 2px;
+  bottom: 8px;
+  left: 2px;
+  height: 3px;
+  border-radius: 999px;
+  content: "";
   background: #2266e8;
-  box-shadow: 0 10px 22px rgb(34 102 232 / 18%);
 }
 
 .subHeader h1 {
@@ -150,7 +121,7 @@
 }
 
 @media (max-width: 1120px) {
-  .primaryNav {
+  .personalTabs {
     justify-content: flex-start;
     overflow-x: auto;
   }
@@ -172,7 +143,7 @@
 }
 
 @media (max-width: 720px) {
-  .primaryNav {
+  .personalTabs {
     gap: 22px;
   }
 

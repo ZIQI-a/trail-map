@@ -1,10 +1,4 @@
-import {
-  BellOutlined,
-  EnvironmentOutlined,
-  HeartOutlined,
-  HomeOutlined,
-  ReadOutlined,
-} from "@ant-design/icons";
+import { BellOutlined, HomeOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,40 +27,26 @@ export function PersonalPageLayout({
   const navigate = useNavigate();
   const location = useLocation();
   const personalNavItems = [
-    { label: "我的收藏", path: "/favorites", icon: <HeartOutlined /> },
-    { label: "我的足迹", path: "/checkins", icon: <EnvironmentOutlined /> },
-    { label: "我的行程", path: "/trips", icon: <ReadOutlined /> },
+    { label: "我的收藏", path: "/favorites" },
+    { label: "我的足迹", path: "/checkins" },
+    { label: "我的行程", path: "/trips" },
   ];
 
   return (
     <main className={styles.pageShell}>
       <AppTopHeader
         centerSlot={
-          <nav className={styles.primaryNav} aria-label="个人页主导航">
-            <button
-              type="button"
-              className={styles.navLink}
-              onClick={() => navigate("/")}
-            >
-              首页
-            </button>
-            <button
-              type="button"
-              className={styles.navLink}
-              onClick={() => navigate("/?panel=explore")}
-            >
-              探索
-            </button>
-            <button
-              type="button"
-              className={styles.navLink}
-              onClick={() => navigate("/?panel=planner")}
-            >
-              行程规划
-            </button>
-            <span className={`${styles.navLink} ${styles.navLinkActive}`}>
-              我的
-            </span>
+          <nav className={styles.personalTabs} aria-label="个人中心页面切换">
+            {personalNavItems.map((item) => (
+              <button
+                className={`${styles.personalTab} ${location.pathname === item.path ? styles.personalTabActive : ""}`}
+                type="button"
+                key={item.path}
+                onClick={() => navigate(item.path)}
+              >
+                <span>{item.label}</span>
+              </button>
+            ))}
           </nav>
         }
         currentUser={currentUser}
@@ -93,19 +73,6 @@ export function PersonalPageLayout({
 
       <section className={styles.subHeader}>
         <div>
-          <div className={styles.personalTabs}>
-            {personalNavItems.map((item) => (
-              <button
-                className={`${styles.personalTab} ${location.pathname === item.path ? styles.personalTabActive : ""}`}
-                type="button"
-                key={item.path}
-                onClick={() => navigate(item.path)}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
