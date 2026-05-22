@@ -3,13 +3,10 @@ import {
   BankOutlined,
   CameraOutlined,
   CompassOutlined,
-  DashboardOutlined,
   EnvironmentOutlined,
   HeartOutlined,
   HomeOutlined,
-  LogoutOutlined,
   PictureOutlined,
-  ReadOutlined,
   SearchOutlined,
   StarOutlined,
   TagOutlined,
@@ -17,7 +14,6 @@ import {
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { Button, Input, Select } from "antd";
-import type { MenuProps } from "antd";
 import type { ReactNode } from "react";
 import { AppTopHeader } from "../../common";
 import type { AppUserDto } from "../../../types/auth";
@@ -43,9 +39,7 @@ interface WorkbenchHeaderProps {
   onActiveFilterChange: (filter: ActiveSpotFilter) => void;
   onAuthClick: () => void;
   onLocateCurrentPosition: () => void;
-  onAdminClick: () => void;
   onFavoritesClick: () => void;
-  onCheckinsClick: () => void;
   onTripsClick: () => void;
   onLogout: () => void;
   locatingCurrentPosition?: boolean;
@@ -65,9 +59,7 @@ export function WorkbenchHeader({
   onActiveFilterChange,
   onAuthClick,
   onLocateCurrentPosition,
-  onAdminClick,
   onFavoritesClick,
-  onCheckinsClick,
   onTripsClick,
   onLogout,
   locatingCurrentPosition = false,
@@ -98,55 +90,10 @@ export function WorkbenchHeader({
     { label: "路线规划", icon: <CompassOutlined />, onClick: onTripsClick },
     { label: "收藏夹", icon: <HeartOutlined />, onClick: onFavoritesClick },
   ];
-  // 账号菜单交给通用 Header 渲染，首页只维护具体菜单内容和跳转行为。
-  const accountMenuItems: MenuProps["items"] = currentUser
-    ? [
-        {
-          key: "profile",
-          label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-          disabled: true,
-        },
-        ...(currentUser.userType === "admin"
-          ? [
-              {
-                key: "admin",
-                label: "后台管理",
-                icon: <DashboardOutlined />,
-                onClick: onAdminClick,
-              },
-            ]
-          : []),
-        {
-          key: "favorites",
-          label: "我的收藏",
-          icon: <HeartOutlined />,
-          onClick: onFavoritesClick,
-        },
-        {
-          key: "checkins",
-          label: "我的足迹",
-          icon: <EnvironmentOutlined />,
-          onClick: onCheckinsClick,
-        },
-        {
-          key: "trips",
-          label: "我的行程",
-          icon: <ReadOutlined />,
-          onClick: onTripsClick,
-        },
-        {
-          key: "logout",
-          label: "退出登录",
-          icon: <LogoutOutlined />,
-          onClick: onLogout,
-        },
-      ]
-    : undefined;
 
   return (
     <header className={styles.topBar}>
       <AppTopHeader
-        accountMenuItems={accountMenuItems}
         centerSlot={
           <>
             <Input
@@ -172,6 +119,7 @@ export function WorkbenchHeader({
         }
         currentUser={currentUser}
         onAuthClick={onAuthClick}
+        onLogout={onLogout}
         rightSlot={
           <div className={styles.actionGroup} aria-label="快捷操作">
             {quickActions.map((action) => (
@@ -212,17 +160,6 @@ export function WorkbenchHeader({
       </nav>
     </header>
   );
-}
-
-function getUserTypeLabel(userType: AppUserDto["userType"]) {
-  switch (userType) {
-    case "admin":
-      return "管理员";
-    case "member":
-      return "会员";
-    default:
-      return "普通用户";
-  }
 }
 
 function onActiveSpotFilterChange(

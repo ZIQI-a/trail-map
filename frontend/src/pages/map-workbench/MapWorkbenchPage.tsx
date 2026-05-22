@@ -1044,14 +1044,6 @@ export function MapWorkbenchPage() {
           }
           navigate("/favorites");
         }}
-        onCheckinsClick={() => {
-          if (!authToken) {
-            setAuthError(undefined);
-            setAuthDialogOpen(true);
-            return;
-          }
-          navigate("/checkins");
-        }}
         onTripsClick={() => {
           if (!authToken) {
             setAuthError(undefined);
@@ -1060,9 +1052,6 @@ export function MapWorkbenchPage() {
           }
           navigate("/trips");
         }}
-        onAdminClick={() =>
-          window.open("/admin", "_blank", "noopener,noreferrer")
-        }
         onLogout={handleLogout}
       />
 
