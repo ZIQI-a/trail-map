@@ -12,6 +12,13 @@
   backdrop-filter: blur(16px);
 }
 
+.workbenchSurface {
+  border-bottom: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 .brandArea {
   display: flex;
   align-items: center;
@@ -32,6 +39,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
+  gap: 18px;
 }
 
 .rightSlot {
@@ -39,6 +47,44 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 10px;
+}
+
+.accountAvatar {
+  flex: 0 0 auto;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1b5ee8, #22bfd4);
+  box-shadow: 0 8px 18px rgb(31 73 125 / 12%);
+}
+
+.accountButton {
+  min-width: 0;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px 2px 3px;
+  border: 1px solid #dbe6f4;
+  border-radius: 999px;
+  color: #1f426d;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgb(31 73 125 / 7%);
+}
+
+.accountButton span {
+  max-width: 96px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountButton:hover {
+  color: #155bd4;
+  border-color: #b9ccef;
+  background: #f2f7ff;
 }
 
 @media (max-width: 1180px) {
@@ -51,6 +97,7 @@
   .rightSlot {
     justify-content: flex-start;
     width: 100%;
+    flex-wrap: wrap;
   }
 }
 

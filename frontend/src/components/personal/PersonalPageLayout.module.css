@@ -81,34 +81,6 @@
   background: #ff4d4f;
 }
 
-.userButton {
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 2px 12px 2px 3px;
-  border: 1px solid #dbe6f4;
-  border-radius: 999px;
-  color: #1f426d;
-  background: #ffffff;
-  cursor: pointer;
-  box-shadow: 0 8px 18px rgb(31 73 125 / 7%);
-}
-
-.userAvatar {
-  color: #ffffff;
-  background: linear-gradient(135deg, #2266e8, #18b8a8);
-}
-
-.userName {
-  max-width: 96px;
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .subHeader {
   min-height: 142px;
   display: flex;

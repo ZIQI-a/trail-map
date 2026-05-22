@@ -6,9 +6,9 @@ import {
   HomeOutlined,
   LogoutOutlined,
   ReadOutlined,
-  SmileOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Dropdown } from "antd";
+import { Button } from "antd";
+import type { MenuProps } from "antd";
 import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppTopHeader } from "../common";
@@ -40,10 +40,42 @@ export function PersonalPageLayout({
     { label: "我的足迹", path: "/checkins", icon: <EnvironmentOutlined /> },
     { label: "我的行程", path: "/trips", icon: <ReadOutlined /> },
   ];
+  // 个人页复用通用账号入口，只保留本页需要的菜单配置。
+  const accountMenuItems: MenuProps["items"] = [
+    {
+      key: "profile",
+      label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
+      disabled: true,
+    },
+    ...personalNavItems.map((item) => ({
+      key: item.path,
+      label: item.label,
+      icon: item.icon,
+      onClick: () => navigate(item.path),
+    })),
+    ...(currentUser.userType === "admin"
+      ? [
+          {
+            key: "admin",
+            label: "后台管理",
+            icon: <AppstoreOutlined />,
+            onClick: () => navigate("/admin"),
+          },
+        ]
+      : []),
+    {
+      key: "logout",
+      label: "退出登录",
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: onLogout,
+    },
+  ];
 
   return (
     <main className={styles.pageShell}>
       <AppTopHeader
+        accountMenuItems={accountMenuItems}
         centerSlot={
           <nav className={styles.primaryNav} aria-label="个人页主导航">
             <button
@@ -72,6 +104,7 @@ export function PersonalPageLayout({
             </span>
           </nav>
         }
+        currentUser={currentUser}
         rightSlot={
           <div className={styles.headerActions}>
             <Button
@@ -88,51 +121,6 @@ export function PersonalPageLayout({
             >
               <BellOutlined />
             </button>
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: [
-                  {
-                    key: "profile",
-                    label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-                    disabled: true,
-                  },
-                  ...personalNavItems.map((item) => ({
-                    key: item.path,
-                    label: item.label,
-                    icon: item.icon,
-                    onClick: () => navigate(item.path),
-                  })),
-                  ...(currentUser.userType === "admin"
-                    ? [
-                        {
-                          key: "admin",
-                          label: "后台管理",
-                          icon: <AppstoreOutlined />,
-                          onClick: () => navigate("/admin"),
-                        },
-                      ]
-                    : []),
-                  {
-                    key: "logout",
-                    label: "退出登录",
-                    icon: <LogoutOutlined />,
-                    danger: true,
-                    onClick: onLogout,
-                  },
-                ],
-              }}
-            >
-              <button type="button" className={styles.userButton}>
-                <Avatar
-                  className={styles.userAvatar}
-                  size={34}
-                  src={currentUser.avatarUrl || undefined}
-                  icon={<SmileOutlined />}
-                />
-                <span className={styles.userName}>{currentUser.nickname}</span>
-              </button>
-            </Dropdown>
           </div>
         }
       />

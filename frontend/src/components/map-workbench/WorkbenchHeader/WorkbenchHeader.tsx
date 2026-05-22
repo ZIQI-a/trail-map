@@ -11,13 +11,13 @@ import {
   PictureOutlined,
   ReadOutlined,
   SearchOutlined,
-  SmileOutlined,
   StarOutlined,
   TagOutlined,
   TeamOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Dropdown, Input, Select } from "antd";
+import { Button, Input, Select } from "antd";
+import type { MenuProps } from "antd";
 import type { ReactNode } from "react";
 import { AppTopHeader } from "../../common";
 import type { AppUserDto } from "../../../types/auth";
@@ -98,10 +98,55 @@ export function WorkbenchHeader({
     { label: "路线规划", icon: <CompassOutlined />, onClick: onTripsClick },
     { label: "收藏夹", icon: <HeartOutlined />, onClick: onFavoritesClick },
   ];
+  // 账号菜单交给通用 Header 渲染，首页只维护具体菜单内容和跳转行为。
+  const accountMenuItems: MenuProps["items"] = currentUser
+    ? [
+        {
+          key: "profile",
+          label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
+          disabled: true,
+        },
+        ...(currentUser.userType === "admin"
+          ? [
+              {
+                key: "admin",
+                label: "后台管理",
+                icon: <DashboardOutlined />,
+                onClick: onAdminClick,
+              },
+            ]
+          : []),
+        {
+          key: "favorites",
+          label: "我的收藏",
+          icon: <HeartOutlined />,
+          onClick: onFavoritesClick,
+        },
+        {
+          key: "checkins",
+          label: "我的足迹",
+          icon: <EnvironmentOutlined />,
+          onClick: onCheckinsClick,
+        },
+        {
+          key: "trips",
+          label: "我的行程",
+          icon: <ReadOutlined />,
+          onClick: onTripsClick,
+        },
+        {
+          key: "logout",
+          label: "退出登录",
+          icon: <LogoutOutlined />,
+          onClick: onLogout,
+        },
+      ]
+    : undefined;
 
   return (
     <header className={styles.topBar}>
       <AppTopHeader
+        accountMenuItems={accountMenuItems}
         centerSlot={
           <>
             <Input
@@ -125,6 +170,8 @@ export function WorkbenchHeader({
             />
           </>
         }
+        currentUser={currentUser}
+        onAuthClick={onAuthClick}
         rightSlot={
           <div className={styles.actionGroup} aria-label="快捷操作">
             {quickActions.map((action) => (
@@ -140,79 +187,9 @@ export function WorkbenchHeader({
                 {action.label}
               </Button>
             ))}
-            {currentUser ? (
-              <Dropdown
-                trigger={["click"]}
-                menu={{
-                  items: [
-                    {
-                      key: "profile",
-                      label: `${getUserTypeLabel(currentUser.userType)} · ${currentUser.username}`,
-                      disabled: true,
-                    },
-                    ...(currentUser.userType === "admin"
-                      ? [
-                          {
-                            key: "admin",
-                            label: "后台管理",
-                            icon: <DashboardOutlined />,
-                            onClick: onAdminClick,
-                          },
-                        ]
-                      : []),
-                    {
-                      key: "favorites",
-                      label: "我的收藏",
-                      icon: <HeartOutlined />,
-                      onClick: onFavoritesClick,
-                    },
-                    {
-                      key: "checkins",
-                      label: "我的足迹",
-                      icon: <EnvironmentOutlined />,
-                      onClick: onCheckinsClick,
-                    },
-                    {
-                      key: "trips",
-                      label: "我的行程",
-                      icon: <ReadOutlined />,
-                      onClick: onTripsClick,
-                    },
-                    {
-                      key: "logout",
-                      label: "退出登录",
-                      icon: <LogoutOutlined />,
-                      onClick: onLogout,
-                    },
-                  ],
-                }}
-              >
-                <button className={styles.userButton} type="button">
-                  <Avatar
-                    className={styles.userAvatar}
-                    size={34}
-                    src={currentUser.avatarUrl || undefined}
-                    icon={<SmileOutlined />}
-                  />
-                  <span>{currentUser.nickname}</span>
-                </button>
-              </Dropdown>
-            ) : (
-              <button
-                className={styles.loginButton}
-                type="button"
-                onClick={onAuthClick}
-              >
-                <Avatar
-                  className={styles.userAvatar}
-                  size={32}
-                  icon={<SmileOutlined />}
-                />
-                <span>登录</span>
-              </button>
-            )}
           </div>
         }
+        surface="workbench"
       />
 
       <nav className={styles.filterRail} aria-label="景点分类筛选">
