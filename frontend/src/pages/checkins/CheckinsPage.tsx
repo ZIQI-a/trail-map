@@ -173,7 +173,6 @@ export function CheckinsPage() {
       description="记录去过的景点，回看每一次旅行足迹。"
       onLogout={handleLogout}
     >
-
       <section className={styles.workspace}>
         <CheckinL7Map
           spots={currentPageCheckins}

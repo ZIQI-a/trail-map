@@ -153,11 +153,10 @@ export function MyTripsPage() {
   return (
     <PersonalPageLayout
       currentUser={currentUserQuery.data}
-      title="我的旅途规划"
+      title="我的行程"
       description="规划每一次出发，记录每一段旅程。"
       onLogout={handleLogout}
     >
-
       <section className={styles.toolbar}>
         <Segmented
           className={styles.scopeSwitch}

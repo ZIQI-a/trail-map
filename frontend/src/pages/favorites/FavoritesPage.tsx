@@ -197,7 +197,6 @@ export function FavoritesPage() {
         />
       }
     >
-
       <section className={styles.toolbar}>
         <div className={styles.filterGroup}>
           <Select
