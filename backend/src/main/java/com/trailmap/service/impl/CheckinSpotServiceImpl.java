@@ -54,7 +54,8 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
     }
 
     @Override
-    public PageResponse<CheckinSpotItemResponse> listCheckinSpots(Long userId, CheckinSpotQuery query, PageQuery pageQuery) {
+    public PageResponse<CheckinSpotItemResponse> listCheckinSpots(Long userId, CheckinSpotQuery query,
+            PageQuery pageQuery) {
         Map<Long, List<SpotTagResponse>> tagMapping = buildSpotTagMapping();
         validateSortBy(query.sortBy());
         LocalDateTime checkedInAfter = query.checkedInWithinDays() == null
@@ -63,11 +64,11 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
 
         if (!pageQuery.isPaged()) {
             List<CheckinSpotItemResponse> items = userCheckinSpotMapper.selectCheckinSpotPage(
-                            userId,
-                            query,
-                            checkedInAfter,
-                            0,
-                            Integer.MAX_VALUE)
+                    userId,
+                    query,
+                    checkedInAfter,
+                    0,
+                    Integer.MAX_VALUE)
                     .stream()
                     .map(record -> toCheckinItemResponse(record, tagMapping))
                     .toList();
@@ -77,11 +78,11 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
         long total = userCheckinSpotMapper.countCheckinSpots(userId, query, checkedInAfter);
         long offset = (pageQuery.resolvedPageNum() - 1) * pageQuery.resolvedPageSize();
         List<CheckinSpotItemResponse> pagedItems = userCheckinSpotMapper.selectCheckinSpotPage(
-                        userId,
-                        query,
-                        checkedInAfter,
-                        offset,
-                        pageQuery.resolvedPageSize())
+                userId,
+                query,
+                checkedInAfter,
+                offset,
+                pageQuery.resolvedPageSize())
                 .stream()
                 .map(record -> toCheckinItemResponse(record, tagMapping))
                 .toList();
@@ -182,8 +183,7 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
                 record.checkedInAt(),
                 toCheckinPosition(record.checkinLng(), record.checkinLat()),
                 record.remark(),
-                sortTags(tagMapping.getOrDefault(record.spotId(), List.of()))
-        );
+                sortTags(tagMapping.getOrDefault(record.spotId(), List.of())));
     }
 
     private CoordinateResponse toCheckinPosition(BigDecimal lng, BigDecimal lat) {
@@ -195,7 +195,7 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
 
     private Map<Long, List<SpotTagResponse>> buildSpotTagMapping() {
         Map<Long, SpotTag> tagMap = spotTagMapper.selectList(new LambdaQueryWrapper<SpotTag>()
-                        .eq(SpotTag::getStatus, 1))
+                .eq(SpotTag::getStatus, 1))
                 .stream()
                 .collect(Collectors.toMap(SpotTag::getId, Function.identity()));
 
@@ -204,12 +204,13 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
                 .filter(relation -> tagMap.containsKey(relation.getTagId()))
                 .collect(Collectors.groupingBy(
                         SpotTagRelation::getSpotId,
-                        Collectors.mapping(relation -> toTagResponse(tagMap.get(relation.getTagId())), Collectors.toList())
-                ));
+                        Collectors.mapping(relation -> toTagResponse(tagMap.get(relation.getTagId())),
+                                Collectors.toList())));
     }
 
     private SpotTagResponse toTagResponse(SpotTag tag) {
-        return new SpotTagResponse(tag.getId(), tag.getTagName(), tag.getTagCode(), tag.getTagType(), tag.getSortOrder());
+        return new SpotTagResponse(tag.getId(), tag.getTagName(), tag.getTagCode(), tag.getTagType(),
+                tag.getSortOrder());
     }
 
     private List<SpotTagResponse> sortTags(List<SpotTagResponse> tags) {
