@@ -27,7 +27,6 @@ export function PersonalPageLayout({
   const navigate = useNavigate();
   const location = useLocation();
   const hasHeaderText = Boolean(title || description);
-  const shouldRenderSubHeader = hasHeaderText || Boolean(actions);
   const personalNavItems = [
     { label: "个人主页", path: "/profile" },
     { label: "我的收藏", path: "/favorites" },
@@ -74,20 +73,18 @@ export function PersonalPageLayout({
         }
       />
 
-      {shouldRenderSubHeader ? (
-        <section
-          className={`${styles.subHeader} ${!hasHeaderText ? styles.subHeaderActionsOnly : ""}`}
-        >
-          {hasHeaderText ? (
-            <div className={styles.subHeaderText}>
-              {title ? <h1>{title}</h1> : null}
-              {description ? <p>{description}</p> : null}
-            </div>
-          ) : null}
+      <section
+        className={`${styles.subHeader} ${!hasHeaderText ? styles.subHeaderActionsOnly : ""}`}
+      >
+        {hasHeaderText ? (
+          <div className={styles.subHeaderText}>
+            {title ? <h1>{title}</h1> : null}
+            {description ? <p>{description}</p> : null}
+          </div>
+        ) : null}
 
-          {actions ? <div className={styles.subActions}>{actions}</div> : null}
-        </section>
-      ) : null}
+        {actions ? <div className={styles.subActions}>{actions}</div> : null}
+      </section>
 
       <section className={styles.contentArea}>{children}</section>
     </main>

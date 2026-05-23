@@ -141,12 +141,7 @@ export function ProfilePage() {
   if (!currentUser) return null;
 
   return (
-    <PersonalPageLayout
-      currentUser={currentUser}
-      title="个人主页"
-      description="汇总你的旅行收藏、足迹和路线记录。"
-      onLogout={handleLogout}
-    >
+    <PersonalPageLayout currentUser={currentUser} onLogout={handleLogout}>
       {/* 顶部 Hero 卡片 */}
       <section className={styles.heroCard}>
         <Button className={styles.editBtn} icon={<EditOutlined />}>
