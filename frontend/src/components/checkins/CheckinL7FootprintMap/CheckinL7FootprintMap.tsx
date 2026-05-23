@@ -8,6 +8,8 @@ import type {
 } from "../../../types/mapWorkbench";
 import styles from "./CheckinL7FootprintMap.module.css";
 
+const FOOTPRINT_MAP_STYLE = "dark";
+
 interface CheckinL7FootprintMapProps {
   onSpotSelect: (spotId: number) => void;
   selectedSpotId?: number;
@@ -37,7 +39,8 @@ export function CheckinL7FootprintMap({
         center: [center.lng, center.lat],
         zoom: spots.length > 1 ? 9 : 11,
         pitch: 0,
-        style: "light",
+        // 深色底图能压低道路和地名干扰，让打卡点、后续轨迹线更突出。
+        style: FOOTPRINT_MAP_STYLE,
       }),
       logoVisible: false,
     });

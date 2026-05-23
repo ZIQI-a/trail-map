@@ -78,21 +78,21 @@
 }
 
 .workspace {
-  min-height: calc(100vh - 126px);
+  min-height: calc(100vh - 248px);
   display: grid;
-  grid-template-columns: minmax(420px, 1.35fr) minmax(390px, 0.95fr);
-  gap: 18px;
+  grid-template-columns: minmax(380px, 1.25fr) minmax(360px, 0.9fr);
+  gap: 14px;
 }
 
 .recordPanel {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 150px);
+  min-height: calc(100vh - 248px);
   border: 1px solid #dbe6f3;
-  border-radius: 24px;
+  border-radius: 20px;
   background: rgb(255 255 255 / 96%);
-  box-shadow: 0 20px 52px rgb(28 64 118 / 8%);
+  box-shadow: 0 16px 38px rgb(28 64 118 / 7%);
 }
 
 .panelTop {
@@ -100,14 +100,14 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 14px;
-  padding: 20px 20px 14px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid #edf2f8;
 }
 
 .panelTop h2 {
   margin: 0;
   color: #173159;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .panelTop span {
@@ -131,8 +131,8 @@
 .filterBar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 14px 20px 12px;
+  gap: 8px;
+  padding: 12px 18px 10px;
   border-bottom: 1px solid #edf2f8;
 }
 
@@ -145,26 +145,26 @@
 .timelineList {
   overflow: auto;
   display: grid;
-  gap: 12px;
-  padding: 16px 18px 10px;
+  gap: 10px;
+  padding: 12px 14px 8px;
 }
 
 .cardGrid {
   overflow: auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 16px 18px 10px;
+  gap: 10px;
+  padding: 12px 14px 8px;
 }
 
 .recordCard {
   position: relative;
   display: grid;
-  grid-template-columns: 58px 112px minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px;
+  grid-template-columns: 52px 96px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
   border: 1px solid #dfe9f5;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #ffffff;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -192,8 +192,8 @@
 
 .timelineNode::before {
   position: absolute;
-  top: 30px;
-  bottom: -32px;
+  top: 28px;
+  bottom: -28px;
   left: 50%;
   width: 2px;
   content: "";
@@ -204,8 +204,8 @@
 .timelineNode span {
   position: relative;
   z-index: 1;
-  width: 48px;
-  height: 28px;
+  width: 44px;
+  height: 26px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -216,8 +216,8 @@
 }
 
 .recordCover {
-  min-height: 116px;
-  border-radius: 14px;
+  min-height: 94px;
+  border-radius: 12px;
   background:
     linear-gradient(135deg, #dce8ff, #bfe8df);
   background-position: center;
@@ -225,18 +225,18 @@
 }
 
 .recordCardGrid .recordCover {
-  min-height: 142px;
+  min-height: 116px;
   border-radius: 0;
 }
 
 .recordBody {
   min-width: 0;
   display: grid;
-  gap: 7px;
+  gap: 6px;
 }
 
 .recordCardGrid .recordBody {
-  padding: 13px;
+  padding: 11px;
 }
 
 .recordTitleRow {
@@ -249,7 +249,7 @@
 .recordTitleRow h3 {
   margin: 0;
   color: #173159;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.25;
 }
 
@@ -290,8 +290,8 @@
   overflow: hidden;
   color: #425b7d;
   font-size: 13px;
-  line-height: 1.55;
-  -webkit-line-clamp: 2;
+  line-height: 1.45;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -334,7 +334,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px 18px;
+  padding: 12px 18px 14px;
   border-top: 1px solid #edf2f8;
   color: #71839d;
   font-size: 13px;
