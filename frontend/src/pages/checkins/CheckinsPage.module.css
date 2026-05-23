@@ -84,83 +84,6 @@
   gap: 18px;
 }
 
-.mapPanel {
-  position: sticky;
-  top: 20px;
-  overflow: hidden;
-  min-height: calc(100vh - 150px);
-  border: 1px solid #d8e4f2;
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 62%), rgb(245 250 255 / 70%)),
-    #edf5f1;
-  box-shadow: 0 20px 52px rgb(28 64 118 / 9%);
-}
-
-.mapCanvas {
-  position: absolute;
-  inset: 0;
-}
-
-.mapCanvas :global(.l7-control-logo),
-.mapCanvas :global(.l7-logo) {
-  display: none !important;
-}
-
-.mapEmpty {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 10px;
-  color: #7589a5;
-  background: linear-gradient(135deg, #f7fbff, #edf6f3);
-}
-
-.mapEmpty :global(.anticon) {
-  color: #2266e8;
-  font-size: 34px;
-}
-
-.mapLegend {
-  position: absolute;
-  left: 18px;
-  bottom: 18px;
-  display: inline-flex;
-  gap: 14px;
-  padding: 10px 13px;
-  border: 1px solid rgb(207 220 237 / 85%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 88%);
-  box-shadow: 0 14px 28px rgb(31 76 132 / 12%);
-  backdrop-filter: blur(12px);
-}
-
-.mapLegend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #50637f;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.mapLegend i {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-}
-
-.legendChecked {
-  background: #14b8a6;
-}
-
-.legendSelected {
-  background: #2266e8;
-  box-shadow: 0 0 0 4px rgb(34 102 232 / 18%);
-}
-
 .recordPanel {
   overflow: hidden;
   display: flex;
@@ -430,12 +353,6 @@
 @media (max-width: 1120px) {
   .workspace {
     grid-template-columns: 1fr;
-  }
-
-  .mapPanel {
-    position: relative;
-    top: auto;
-    min-height: 420px;
   }
 }
 

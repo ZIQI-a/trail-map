@@ -17,10 +17,10 @@ import {
   Spin,
   Tag,
 } from "antd";
-import { Scene, Map as L7Map, PointLayer } from "@antv/l7";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { CheckinL7FootprintMap } from "../../components/checkins";
 import { PersonalPageLayout } from "../../components/personal";
 import {
   useAllTagsQuery,
@@ -33,7 +33,6 @@ import {
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
 import type {
   CheckinSpotItemDto,
-  GeoPoint,
   SpotTagCode,
   SpotType,
 } from "../../types/mapWorkbench";
@@ -174,7 +173,7 @@ export function CheckinsPage() {
       onLogout={handleLogout}
     >
       <section className={styles.workspace}>
-        <CheckinL7Map
+        <CheckinL7FootprintMap
           spots={currentPageCheckins}
           selectedSpotId={selectedSpotId}
           onSpotSelect={setSelectedSpotId}
@@ -183,8 +182,7 @@ export function CheckinsPage() {
         <section className={styles.recordPanel}>
           <div className={styles.panelTop}>
             <div>
-              <h2>打卡记录</h2>
-              <span>按时间查看已去过的景点</span>
+              <h2>旅行记录</h2>
             </div>
             <Segmented
               className={styles.viewSwitch}
@@ -321,101 +319,6 @@ export function CheckinsPage() {
   );
 }
 
-type CheckinL7MapProps = {
-  onSpotSelect: (spotId: number) => void;
-  selectedSpotId?: number;
-  spots: CheckinSpotItemDto[];
-};
-
-function CheckinL7Map({ onSpotSelect, selectedSpotId, spots }: CheckinL7MapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const sceneRef = useRef<Scene | null>(null);
-
-  // L7 场景由 DOM 容器承载，列表分页或筛选变化时重建图层，保证点位和右侧记录一致。
-  useEffect(() => {
-    if (!containerRef.current) {
-      return undefined;
-    }
-
-    sceneRef.current?.destroy();
-    const center = resolveMapCenter(spots);
-    const scene = new Scene({
-      id: containerRef.current,
-      map: new L7Map({
-        center: [center.lng, center.lat],
-        zoom: spots.length > 1 ? 9 : 11,
-        pitch: 0,
-        style: "light",
-      }),
-      logoVisible: false,
-    });
-    sceneRef.current = scene;
-
-    scene.on("loaded", () => {
-      if (spots.length === 0) {
-        return;
-      }
-
-      const layerData = spots.map((spot) => ({
-        ...spot,
-        lng: spot.position.lng,
-        lat: spot.position.lat,
-        selected: spot.spotId === selectedSpotId ? 1 : 0,
-        color: resolveSpotColor(spot.type),
-      }));
-      const pointLayer = new PointLayer({ name: "checkin-points" })
-        .source(layerData, {
-          parser: {
-            type: "json",
-            x: "lng",
-            y: "lat",
-          },
-        })
-        .shape("circle")
-        .size("selected", (selected: number) => (selected ? 24 : 16))
-        .color("color")
-        .style({
-          opacity: 0.9,
-          strokeWidth: 3,
-          stroke: "#ffffff",
-          offsets: [0, 0],
-        });
-
-      // L7 图层事件类型较宽，这里只取 feature 原始数据用于联动右侧列表。
-      (pointLayer as unknown as { on: (event: string, handler: (event: { feature?: CheckinSpotItemDto }) => void) => void }).on(
-        "click",
-        (event) => {
-          if (event.feature?.spotId) {
-            onSpotSelect(event.feature.spotId);
-          }
-        },
-      );
-      scene.addLayer(pointLayer);
-    });
-
-    return () => {
-      scene.destroy();
-      sceneRef.current = null;
-    };
-  }, [onSpotSelect, selectedSpotId, spots]);
-
-  return (
-    <section className={styles.mapPanel}>
-      <div className={styles.mapCanvas} ref={containerRef} />
-      {spots.length === 0 ? (
-        <div className={styles.mapEmpty}>
-          <EnvironmentOutlined />
-          <span>暂无可展示的打卡点</span>
-        </div>
-      ) : null}
-      <div className={styles.mapLegend}>
-        <span><i className={styles.legendChecked} />已打卡景点</span>
-        <span><i className={styles.legendSelected} />当前选中</span>
-      </div>
-    </section>
-  );
-}
-
 type CheckinListProps = {
   onCancel: (spotId: number) => void;
   onOpen: (spotId: number) => void;
@@ -501,7 +404,11 @@ function CheckinRecordCard({
       ) : null}
       <div
         className={styles.recordCover}
-        style={spot.coverUrl ? { backgroundImage: `url(${spot.coverUrl})` } : undefined}
+        style={
+          spot.coverUrl
+            ? { backgroundImage: `url(${spot.coverUrl})` }
+            : undefined
+        }
       />
       <div className={styles.recordBody}>
         <div className={styles.recordTitleRow}>
@@ -525,10 +432,14 @@ function CheckinRecordCard({
           ))}
         </div>
         <div className={styles.recordActions}>
-          <Button size="small" icon={<EyeOutlined />} onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}>
+          <Button
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen();
+            }}
+          >
             查看景点
           </Button>
           <Popconfirm
@@ -567,38 +478,6 @@ function resolveCheckedInWithinDays(dateFilter: CheckinDateFilter) {
     return 365;
   }
   return undefined;
-}
-
-function resolveMapCenter(spots: CheckinSpotItemDto[]): GeoPoint {
-  if (spots.length === 0) {
-    return { lng: 104.066541, lat: 30.572269 };
-  }
-  const totals = spots.reduce(
-    (acc, spot) => ({
-      lng: acc.lng + spot.position.lng,
-      lat: acc.lat + spot.position.lat,
-    }),
-    { lng: 0, lat: 0 },
-  );
-  return {
-    lng: totals.lng / spots.length,
-    lat: totals.lat / spots.length,
-  };
-}
-
-function resolveSpotColor(type: SpotType) {
-  switch (type) {
-    case "food":
-    case "night":
-      return "#ff8a1f";
-    case "museum":
-    case "history":
-      return "#2266e8";
-    case "family":
-      return "#10b981";
-    default:
-      return "#14b8a6";
-  }
 }
 
 function resolveSpotTypeLabel(type: SpotType) {
