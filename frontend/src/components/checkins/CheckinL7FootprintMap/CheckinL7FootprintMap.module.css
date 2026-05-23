@@ -39,6 +39,35 @@
   font-size: 34px;
 }
 
+.mapHeader {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: grid;
+  gap: 3px;
+  max-width: calc(100% - 28px);
+  padding: 10px 13px;
+  border: 1px solid rgb(139 170 213 / 42%);
+  border-radius: 14px;
+  color: #eaf4ff;
+  background: rgb(8 22 40 / 82%);
+  box-shadow: 0 14px 30px rgb(0 0 0 / 22%);
+  backdrop-filter: blur(12px);
+}
+
+.mapHeader strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mapHeader span {
+  color: #9fb3cf;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .mapLegend {
   position: absolute;
   left: 14px;
@@ -70,6 +99,22 @@
 
 .legendChecked {
   background: #14b8a6;
+}
+
+.legendLocked {
+  background: #243149;
+}
+
+.legendLow {
+  background: #2a82ff;
+}
+
+.legendMid {
+  background: #00b8a9;
+}
+
+.legendHigh {
+  background: #ff9f24;
 }
 
 .legendSelected {

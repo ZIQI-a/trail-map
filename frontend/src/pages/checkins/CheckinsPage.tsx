@@ -86,8 +86,17 @@ export function CheckinsPage() {
     checkinQueryParams,
     Boolean(authToken),
   );
+  const mapCheckinsQuery = useCheckinSpotsQuery(
+    {
+      ...checkinQueryParams,
+      pageNum: 1,
+      pageSize: 500,
+    },
+    Boolean(authToken),
+  );
   const uncheckinSpotMutation = useUncheckinSpotMutation();
   const currentPageCheckins = checkinSpotsQuery.data?.list ?? [];
+  const mapCheckins = mapCheckinsQuery.data?.list ?? currentPageCheckins;
   const totalCheckins = checkinSpotsQuery.data?.total ?? 0;
 
   const typeOptions = useMemo(
@@ -174,7 +183,9 @@ export function CheckinsPage() {
     >
       <section className={styles.workspace}>
         <CheckinL7FootprintMap
-          spots={currentPageCheckins}
+          mode={cityFilter === "all" ? "country" : "city"}
+          selectedCityName={cityFilter === "all" ? undefined : cityFilter}
+          spots={mapCheckins}
           selectedSpotId={selectedSpotId}
           onSpotSelect={setSelectedSpotId}
         />
