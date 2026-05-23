@@ -1,14 +1,14 @@
 .mapPanel {
   position: sticky;
-  top: 16px;
+  top: 20px;
   overflow: hidden;
-  min-height: calc(100vh - 248px);
+  min-height: calc(100vh - 150px);
   border: 1px solid #1d3558;
-  border-radius: 20px;
+  border-radius: 24px;
   background:
     radial-gradient(circle at 26% 18%, rgb(34 102 232 / 22%), transparent 28%),
     linear-gradient(135deg, #10233d 0%, #071426 100%);
-  box-shadow: 0 18px 42px rgb(10 28 56 / 20%);
+  box-shadow: 0 22px 56px rgb(10 28 56 / 22%);
 }
 
 .mapCanvas {
