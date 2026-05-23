@@ -318,14 +318,22 @@ function addCountryLayers(
     // 仅当切换省份时才更新 HTML，减少 DOM 操作压力
     if (name !== lastFeatureName) {
       lastFeatureName = name;
+      const unlockedDot =
+        count > 0
+          ? `<span style="background: #10b981; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>`
+          : "";
+      const summaryText =
+        count > 0
+          ? `已解锁 ${cityCount} 城 · ${count} 景点`
+          : "探索尚未到达此处";
       popup.setHTML(`
         <div style="padding: 8px 12px; color: #fff; background: rgba(15, 32, 55, 0.45); border-radius: 10px; border: 1px solid rgba(139, 170, 213, 0.2); backdrop-filter: blur(12px); pointer-events: none; min-width: 120px;">
           <div style="font-weight: 700; font-size: 13px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
-            \${name}
-            \${count > 0 ? \`<span style="background: #10b981; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>\` : ""}
+            ${name}
+            ${unlockedDot}
           </div>
           <div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); font-weight: 500;">
-            \${count > 0 ? \`已解锁 \${cityCount} 城 · \${count} 景点\` : "探索尚未到达此处"}
+            ${summaryText}
           </div>
         </div>
       `);

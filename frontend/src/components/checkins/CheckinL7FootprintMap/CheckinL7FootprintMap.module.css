@@ -21,6 +21,14 @@
   display: none !important;
 }
 
+/* Popup 只做信息展示，整体穿透鼠标事件，避免挡住省份 hover 命中。 */
+.mapCanvas :global(.l7-popup),
+.mapCanvas :global(.l7-popup-custom),
+.mapCanvas :global(.l7-popup-content),
+.mapCanvas :global(.l7-popup-tip) {
+  pointer-events: none !important;
+}
+
 /* 移除 L7 Popup 默认的白色背景和尖角 */
 .mapCanvas :global(.l7-popup-content) {
   padding: 0 !important;
