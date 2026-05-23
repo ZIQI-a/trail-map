@@ -1,5 +1,5 @@
 import { EnvironmentOutlined } from "@ant-design/icons";
-import { Scene, Map as L7Map, PointLayer, PolygonLayer } from "@antv/l7";
+import { Scene, Map as L7Map, PointLayer, PolygonLayer, Popup } from "@antv/l7";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CheckinSpotItemDto,
@@ -51,6 +51,14 @@ interface ProvinceStatistic {
 
 const FOOTPRINT_MAP_STYLE = "dark";
 const CHINA_PROVINCES_GEOJSON_URL = "/geo/china-provinces.json";
+
+// 锁定状态的图标 SVG (参考 Ant Design LockOutlined 风格)
+const LOCK_ICON_SVG = `data:image/svg+xml;base64,${btoa(`
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M832 448H192c-17.7 0-32 14.3-32 32v448c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V480c0-17.7-14.3-32-32-32zM512 704c-35.3 0-64-28.7-64-64s28.7-64 64-64 64 28.7 64 64-28.7 64-64 64z" fill="#8090a7"/>
+  <path d="M512 128c-106 0-192 86-192 192v128h384V320c0-106-86-192-192-192z" stroke="#8090a7" stroke-width="64" fill="none"/>
+</svg>
+`)}`;
 
 const CITY_PROVINCE_MAP: Record<string, string> = {
   北京: "北京",
@@ -144,6 +152,9 @@ export function CheckinL7FootprintMap({
     sceneRef.current = scene;
 
     scene.on("loaded", () => {
+      // 注册极简锁定图标
+      scene.addImage("lock-icon", LOCK_ICON_SVG);
+
       if (mode === "country") {
         if (chinaGeoJson) {
           addCountryLayers(scene, provinceStats, chinaGeoJson);
@@ -246,35 +257,94 @@ function addCountryLayers(
     provinceStats,
     chinaGeoJson,
   );
+
   const polygonLayer = new PolygonLayer({ name: "checkin-province-tiles" })
     .source(provinceGeoJson)
     .shape("fill")
     .color("color")
+    .active({
+      color: "#2e6cff",
+      mix: 0.2,
+    })
     .style({
       opacity: 0.9,
       stroke: "#29486f",
       strokeWidth: 0.8,
     });
-  const labelLayer = new PointLayer({ name: "checkin-province-labels" })
-    .source(buildProvinceLabelData(provinceStats, provinceGeoJson), {
-      parser: {
-        type: "json",
-        x: "lng",
-        y: "lat",
-      },
+
+  const labelData = buildProvinceLabelData(provinceStats, provinceGeoJson);
+
+  // 省份名称图层
+  const nameLayer = new PointLayer({ name: "province-names" })
+    .source(labelData, {
+      parser: { type: "json", x: "lng", y: "lat" },
     })
-    .shape("label", "text")
+    .shape("name", "text")
     .size(11)
     .color("labelColor")
     .style({
-      opacity: 0.95,
-      textAllowOverlap: true,
+      opacity: 0.9,
       textAnchor: "center",
-      textOffset: [0, 0],
+      textOffset: [0, -10],
+      stroke: "#081628",
+      strokeWidth: 2,
     });
 
+  // 状态图标层（锁或状态点）
+  const statusIconLayer = new PointLayer({ name: "province-status-icons" })
+    .source(labelData, {
+      parser: { type: "json", x: "lng", y: "lat" },
+    })
+    .shape("shape")
+    .size("iconSize")
+    .color("statusColor")
+    .style({
+      opacity: 0.8,
+      offsets: [0, 8],
+    });
+
+  // 鼠标悬停提示 (优化为透明质感，降低视觉压迫)
+  const popup = new Popup({
+    offsets: [0, 0],
+    closeButton: false,
+    className: "l7-popup-custom",
+  });
+
+  let lastFeatureName = "";
+
+  polygonLayer.on("mousemove", (e) => {
+    const { name, count, cityCount } = e.feature.properties;
+
+    // 仅当切换省份时才更新 HTML，减少 DOM 操作压力
+    if (name !== lastFeatureName) {
+      lastFeatureName = name;
+      popup.setHTML(`
+        <div style="padding: 8px 12px; color: #fff; background: rgba(15, 32, 55, 0.45); border-radius: 10px; border: 1px solid rgba(139, 170, 213, 0.2); backdrop-filter: blur(12px); pointer-events: none; min-width: 120px;">
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
+            \${name}
+            \${count > 0 ? \`<span style="background: #10b981; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>\` : ""}
+          </div>
+          <div style="font-size: 11px; color: rgba(255, 255, 255, 0.6); font-weight: 500;">
+            \${count > 0 ? \`已解锁 \${cityCount} 城 · \${count} 景点\` : "探索尚未到达此处"}
+          </div>
+        </div>
+      `);
+    }
+
+    popup.setLnglat(e.lngLat);
+    if (!popup.isOpen()) {
+      scene.addPopup(popup);
+    }
+  });
+
+  polygonLayer.on("mouseout", () => {
+    lastFeatureName = "";
+    popup.remove();
+  });
+
   scene.addLayer(polygonLayer);
-  scene.addLayer(labelLayer);
+  scene.addLayer(statusIconLayer);
+  scene.addLayer(nameLayer);
 }
 
 function addCityPointLayer(
@@ -371,14 +441,18 @@ function buildProvinceFeatureCollection(
 
 function buildProvinceLabelData(
   provinceStats: Map<string, ProvinceStatistic>,
-  chinaGeoJson: ProvinceFeatureCollection,
+  provinceGeoJson: ProvinceFeatureCollection,
 ) {
-  return chinaGeoJson.features.map((feature) => {
+  return provinceGeoJson.features.map((feature) => {
     const provinceName = normalizeProvinceName(feature.properties.name);
     const count = provinceStats.get(provinceName)?.count ?? 0;
     const labelPoint = feature.properties.centroid ?? feature.properties.center;
     return {
-      label: `${provinceName}\n${count > 0 ? count : "未解锁"}`,
+      name: provinceName,
+      count,
+      shape: count > 0 ? "circle" : "lock-icon",
+      iconSize: count > 0 ? 12 : 14,
+      statusColor: count > 0 ? resolveProvinceColor(count) : "#455a7a",
       labelColor: count > 0 ? "#eaf4ff" : "#8090a7",
       lat: labelPoint?.[1] ?? 35.8,
       lng: labelPoint?.[0] ?? 104.6,
