@@ -138,6 +138,7 @@ function resolveMapCenter(spots: CheckinSpotItemDto[]): GeoPoint {
   };
 }
 
+// 根据打卡类型，返回对应的图例颜色。
 function resolveSpotColor(type: SpotType) {
   switch (type) {
     case "food":

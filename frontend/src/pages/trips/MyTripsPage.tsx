@@ -159,6 +159,7 @@ export function MyTripsPage() {
     >
       <section className={styles.toolbar}>
         <Segmented
+          size="large"
           className={styles.scopeSwitch}
           value={scope}
           options={[
@@ -195,6 +196,7 @@ export function MyTripsPage() {
             }}
           />
           <Segmented
+            size="large"
             className={styles.viewSwitch}
             value={viewMode}
             options={[
