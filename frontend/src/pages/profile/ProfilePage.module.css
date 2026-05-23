@@ -1,3 +1,13 @@
+/* 未登录/加载状态容器 */
+.stateShell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 24px;
+}
+
 .heroCard {
   position: relative;
   min-height: 380px;
@@ -215,6 +225,11 @@
 }
 
 /* 行程列表 */
+.tripList {
+  display: flex;
+  flex-direction: column;
+}
+
 .tripItem {
   display: flex;
   gap: 16px;

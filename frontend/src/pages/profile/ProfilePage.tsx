@@ -4,13 +4,12 @@ import {
   EditOutlined,
   EnvironmentOutlined,
   HeartFilled,
-  HeartOutlined,
   PushpinFilled,
   ReadOutlined,
   RightOutlined,
   RocketOutlined,
 } from "@ant-design/icons";
-import { Alert, Avatar, Button, Empty, Spin, Tag } from "antd";
+import { Avatar, Button, Empty, Spin, Tag } from "antd";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,11 +21,6 @@ import {
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
-import type {
-  CheckinSpotItemDto,
-  FavoriteSpotItemDto,
-  UserTripSummaryDto,
-} from "../../types/mapWorkbench";
 import styles from "./ProfilePage.module.css";
 
 const PROFILE_FAVORITE_PAGE_SIZE = 6;
@@ -44,7 +38,7 @@ export function ProfilePage() {
     Boolean(authToken)
   );
   const checkinSpotsQuery = useCheckinSpotsQuery(
-    { sortBy: "latest", pageNum: 1, pageSize: 20 },
+    { sortBy: "latest", pageNum: 1, pageSize: PROFILE_CHECKIN_PAGE_SIZE },
     Boolean(authToken)
   );
   const userTripsQuery = useUserTripsQuery(
@@ -53,8 +47,8 @@ export function ProfilePage() {
   );
 
   const favoriteSpots = favoriteSpotsQuery.data?.list ?? [];
-  const checkinSpots = checkinSpotsQuery.data?.list ?? [];
-  const userTrips = userTripsQuery.data?.list ?? [];
+  const checkinSpots = useMemo(() => checkinSpotsQuery.data?.list ?? [], [checkinSpotsQuery.data?.list]);
+  const userTrips = useMemo(() => userTripsQuery.data?.list ?? [], [userTripsQuery.data?.list]);
   
   const profileStats = useMemo(() => {
     const visitedCityCount = new Set([
@@ -117,14 +111,14 @@ export function ProfilePage() {
               size={120} 
               src={currentUser.avatarUrl || undefined}
             >
-              {currentUser.nickname.slice(0, 1)}
+              {currentUser.nickname?.slice(0, 1) ?? "旅"}
             </Avatar>
             <div className={styles.levelBadge}>Lv.3</div>
           </div>
           
           <div className={styles.userInfo}>
             <div className={styles.titleRow}>
-              <h2>Hi, {currentUser.nickname} 👋</h2>
+              <h2>Hi, {currentUser.nickname || "旅行者"} 👋</h2>
               <Tag className={styles.userTag}>旅行达人 Lv.3</Tag>
             </div>
             <p className={styles.slogan}>用脚步丈量世界，用地图记录美好✨</p>
@@ -175,7 +169,7 @@ export function ProfilePage() {
             <div className={styles.tripList}>
               {userTrips.map(trip => (
                 <div key={trip.id} className={styles.tripItem}>
-                  <img className={styles.tripImg} src={trip.coverUrl || ""} alt={trip.tripName} />
+                  <img className={styles.tripImg} src={trip.coverUrl || undefined} alt={trip.tripName} />
                   <div className={styles.tripInfo}>
                     <h4>{trip.tripName}</h4>
                     <p>{trip.cityName} · {trip.days}天 · {trip.planMode === 'schedule' ? '完整行程' : '自由路线'}</p>
@@ -199,7 +193,7 @@ export function ProfilePage() {
               {checkinSpots.slice(0, 4).map(spot => (
                 <div key={spot.checkinId} className={styles.checkinItem}>
                   <div className={styles.checkinDot} />
-                  <img className={styles.checkinAvatar} src={spot.coverUrl} alt={spot.name} />
+                  <img className={styles.checkinAvatar} src={spot.coverUrl || undefined} alt={spot.name} />
                   <div className={styles.checkinDetail}>
                     <h5>{spot.name}</h5>
                     <span>{spot.cityName} · {formatDate(spot.checkedInAt)}</span>
