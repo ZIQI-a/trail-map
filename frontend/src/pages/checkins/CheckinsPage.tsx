@@ -47,7 +47,7 @@ export function CheckinsPage() {
   const queryClient = useQueryClient();
   const authToken = getAuthToken();
   const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  const [pageSize, setPageSize] = useState(4);
   const [viewMode, setViewMode] = useState<CheckinViewMode>("timeline");
   const [tagFilter, setTagFilter] = useState<"all" | SpotTagCode>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -313,7 +313,7 @@ export function CheckinsPage() {
               pageSize={pageSize}
               total={totalCheckins}
               showSizeChanger
-              pageSizeOptions={["8", "12", "16"]}
+              pageSizeOptions={["3", "4"]}
               onChange={(nextPage, nextPageSize) => {
                 setPageNum(nextPage);
                 setPageSize(nextPageSize);
