@@ -10,9 +10,9 @@ interface PersonalPageLayoutProps {
   actions?: ReactNode;
   children: ReactNode;
   currentUser: AppUserDto;
-  description: string;
+  description?: string;
   onLogout: () => void;
-  title: string;
+  title?: string;
 }
 
 // PersonalPageLayout 统一个人相关页面的顶部导航和二级标题区，页面只传内容和局部操作。
@@ -26,6 +26,8 @@ export function PersonalPageLayout({
 }: PersonalPageLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const hasHeaderText = Boolean(title || description);
+  const shouldRenderSubHeader = hasHeaderText || Boolean(actions);
   const personalNavItems = [
     { label: "个人主页", path: "/profile" },
     { label: "我的收藏", path: "/favorites" },
@@ -72,14 +74,20 @@ export function PersonalPageLayout({
         }
       />
 
-      <section className={styles.subHeader}>
-        <div>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div>
+      {shouldRenderSubHeader ? (
+        <section
+          className={`${styles.subHeader} ${!hasHeaderText ? styles.subHeaderActionsOnly : ""}`}
+        >
+          {hasHeaderText ? (
+            <div className={styles.subHeaderText}>
+              {title ? <h1>{title}</h1> : null}
+              {description ? <p>{description}</p> : null}
+            </div>
+          ) : null}
 
-        {actions ? <div className={styles.subActions}>{actions}</div> : null}
-      </section>
+          {actions ? <div className={styles.subActions}>{actions}</div> : null}
+        </section>
+      ) : null}
 
       <section className={styles.contentArea}>{children}</section>
     </main>

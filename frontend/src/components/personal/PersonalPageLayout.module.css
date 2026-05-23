@@ -73,6 +73,14 @@
   /* 移除边框，改用微妙的内发光或背景层级 */
 }
 
+.subHeaderActionsOnly {
+  justify-content: flex-end;
+}
+
+.subHeaderText {
+  min-width: 0;
+}
+
 .subHeader h1 {
   margin: 0;
   color: #172b4d;
