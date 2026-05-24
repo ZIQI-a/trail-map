@@ -3,12 +3,37 @@ import { Scene, Map as L7Map, PointLayer, PolygonLayer, Popup } from "@antv/l7";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CheckinSpotItemDto,
-  GeoPoint,
   TravelCityDto,
 } from "../../../types/mapWorkbench";
+import {
+  CHINA_PROVINCES_GEOJSON_URL,
+  COUNTRY_MAP_OPTIONS,
+  FOOTPRINT_MAP_STYLE,
+  PROVINCE_CITY_GEOJSON_BASE_URL,
+  PROVINCE_VIEW_CONFIG,
+} from "./constants";
+import {
+  buildCityFeatureCollection,
+  buildCityLabelData,
+  buildCityStats,
+  buildProvinceFeatureCollection,
+  buildProvinceLabelData,
+  buildProvinceStats,
+} from "./geoData";
+import {
+  normalizeCityName,
+  normalizeProvinceName,
+  resolveMapCenter,
+  resolveProvinceAdcodeFromCityCode,
+  resolveProvinceName,
+} from "./geoUtils";
 import styles from "./CheckinL7FootprintMap.module.css";
-
-type FootprintMapMode = "country" | "province";
+import type {
+  CityStatistic,
+  FootprintMapMode,
+  ProvinceFeatureCollection,
+  ProvinceStatistic,
+} from "./types";
 
 interface CheckinL7FootprintMapProps {
   availableCities: TravelCityDto[];
@@ -19,99 +44,9 @@ interface CheckinL7FootprintMapProps {
   spots: CheckinSpotItemDto[];
 }
 
-interface ProvinceFeatureProperties {
-  adcode?: number;
-  center?: [number, number];
-  centroid?: [number, number];
-  cityCount: number;
-  color: string;
-  count: number;
-  name: string;
-  statusText: string;
-  [key: string]: unknown;
-}
-
-interface ProvinceFeature {
-  geometry: {
-    coordinates: unknown;
-    type: "Polygon" | "MultiPolygon";
-  };
-  properties: ProvinceFeatureProperties;
-  type: "Feature";
-}
-
-interface ProvinceFeatureCollection {
-  features: ProvinceFeature[];
-  type: "FeatureCollection";
-}
-
-interface ProvinceStatistic {
-  cityNames: Set<string>;
-  count: number;
-}
-
-interface CityStatistic {
-  count: number;
-  firstSpotId?: number;
-  position: GeoPoint;
-}
-
-const FOOTPRINT_MAP_STYLE = "dark";
-const CHINA_PROVINCES_GEOJSON_URL = "/geo/china-provinces.json";
-const PROVINCE_CITY_GEOJSON_BASE_URL = "/geo/provinces";
-
-const PROVINCE_VIEW_CONFIG: Record<
-  string,
-  { center: [number, number]; zoom: number }
-> = {
-  "510000": { center: [102.7, 30.6], zoom: 5.7 },
-  "610000": { center: [108.9, 35.2], zoom: 6.35 },
-};
-
-const CITY_PROVINCE_MAP: Record<string, string> = {
-  北京: "北京",
-  北京市: "北京",
-  上海: "上海",
-  上海市: "上海",
-  天津: "天津",
-  天津市: "天津",
-  重庆: "重庆",
-  重庆市: "重庆",
-  成都: "四川",
-  成都市: "四川",
-  西安: "陕西",
-  西安市: "陕西",
-  杭州: "浙江",
-  杭州市: "浙江",
-  广州: "广东",
-  广州市: "广东",
-  深圳: "广东",
-  深圳市: "广东",
-  南京: "江苏",
-  南京市: "江苏",
-  苏州: "江苏",
-  苏州市: "江苏",
-  武汉: "湖北",
-  武汉市: "湖北",
-  长沙: "湖南",
-  长沙市: "湖南",
-  厦门: "福建",
-  厦门市: "福建",
-  青岛: "山东",
-  青岛市: "山东",
-  济南: "山东",
-  济南市: "山东",
-  昆明: "云南",
-  昆明市: "云南",
-  桂林: "广西",
-  桂林市: "广西",
-  拉萨: "西藏",
-  拉萨市: "西藏",
-  乌鲁木齐: "新疆",
-  乌鲁木齐市: "新疆",
-};
-
-// CheckinL7FootprintMap 专注承载 AntV L7 地理可视化，页面层只负责传入打卡数据和选中状态。
+/**
+ * CheckinL7FootprintMap 专注承载 AntV L7 地理可视化，页面层只负责传入打卡数据和选中状态。
+ */
 export function CheckinL7FootprintMap({
   availableCities,
   mode,
@@ -122,8 +57,7 @@ export function CheckinL7FootprintMap({
 }: CheckinL7FootprintMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<Scene | null>(null);
-  const [chinaGeoJson, setChinaGeoJson] =
-    useState<ProvinceFeatureCollection>();
+  const [chinaGeoJson, setChinaGeoJson] = useState<ProvinceFeatureCollection>();
   const [provinceCityGeoJson, setProvinceCityGeoJson] = useState<{
     adcode: string;
     data: ProvinceFeatureCollection;
@@ -138,13 +72,17 @@ export function CheckinL7FootprintMap({
     () =>
       selectedProvinceName
         ? spots.filter(
-            (spot) => resolveProvinceName(spot.cityName) === selectedProvinceName,
+            (spot) =>
+              resolveProvinceName(spot.cityName) === selectedProvinceName,
           )
         : spots,
     [selectedProvinceName, spots],
   );
   const provinceStats = useMemo(() => buildProvinceStats(spots), [spots]);
-  const cityStats = useMemo(() => buildCityStats(provinceSpots), [provinceSpots]);
+  const cityStats = useMemo(
+    () => buildCityStats(provinceSpots),
+    [provinceSpots],
+  );
   const activeProvinceCityGeoJson =
     provinceCityGeoJson && provinceCityGeoJson.adcode === selectedProvinceAdcode
       ? provinceCityGeoJson.data
@@ -177,7 +115,9 @@ export function CheckinL7FootprintMap({
     }
 
     let ignore = false;
-    fetch(`${PROVINCE_CITY_GEOJSON_BASE_URL}/${selectedProvinceAdcode}_full.json`)
+    fetch(
+      `${PROVINCE_CITY_GEOJSON_BASE_URL}/${selectedProvinceAdcode}_full.json`,
+    )
       .then((response) => response.json() as Promise<ProvinceFeatureCollection>)
       .then((data) => {
         if (!ignore) {
@@ -320,6 +260,9 @@ export function CheckinL7FootprintMap({
   );
 }
 
+/**
+ * 根据当前地图层级生成 L7 内置底图参数，避免组件主体混入视口计算细节。
+ */
 function resolveMapOptions({
   mode,
   provinceSpots,
@@ -333,9 +276,7 @@ function resolveMapOptions({
 }) {
   if (mode === "country") {
     return {
-      center: [104.6, 35.8] as [number, number],
-      zoom: 3.05,
-      pitch: 0,
+      ...COUNTRY_MAP_OPTIONS,
       style: FOOTPRINT_MAP_STYLE,
     };
   }
@@ -359,6 +300,9 @@ function resolveMapOptions({
   };
 }
 
+/**
+ * 添加全国视图图层：省份轮廓、分级填色、名称标签和悬浮提示。
+ */
 function addCountryLayers(
   scene: Scene,
   provinceStats: Map<string, ProvinceStatistic>,
@@ -485,6 +429,9 @@ function addCountryLayers(
   scene.addLayer(nameLayer);
 }
 
+/**
+ * 添加省份视图图层：城市轮廓、城市分级填色、聚合点和点击跳转。
+ */
 function addProvinceLayers({
   availableCities,
   cityStats,
@@ -575,7 +522,9 @@ function addProvinceLayers({
         count > 0
           ? `${selectedProvinceName} · ${count} 条足迹`
           : `${selectedProvinceName} · 暂未打卡`;
-      const actionText = supportedCity ? "点击进入主页查看城市景点" : "暂无主页城市数据";
+      const actionText = supportedCity
+        ? "点击进入主页查看城市景点"
+        : "暂无主页城市数据";
       popup.setHTML(`
         <div style="padding: 8px 12px; color: #fff; background: rgba(15, 32, 55, 0.45); border-radius: 10px; border: 1px solid rgba(139, 170, 213, 0.2); backdrop-filter: blur(12px); pointer-events: none; min-width: 132px;">
           <div style="font-weight: 700; font-size: 13px; margin-bottom: 2px;">${name}</div>
@@ -595,7 +544,9 @@ function addProvinceLayers({
     popup.remove();
   });
   cityFillLayer.on("click", (event) => {
-    const city = cityByName.get(normalizeCityName(event.feature.properties.name));
+    const city = cityByName.get(
+      normalizeCityName(event.feature.properties.name),
+    );
     if (city) {
       onOpenCity?.(city.id);
     }
@@ -605,178 +556,4 @@ function addProvinceLayers({
   scene.addLayer(cityFillLayer);
   scene.addLayer(cityPointLayer);
   scene.addLayer(cityLabelLayer);
-}
-
-function buildProvinceStats(spots: CheckinSpotItemDto[]) {
-  return spots.reduce((stats, spot) => {
-    const provinceName = resolveProvinceName(spot.cityName);
-    const current = stats.get(provinceName) ?? {
-      cityNames: new Set<string>(),
-      count: 0,
-    };
-    current.count += 1;
-    current.cityNames.add(spot.cityName);
-    stats.set(provinceName, current);
-    return stats;
-  }, new Map<string, ProvinceStatistic>());
-}
-
-function buildCityStats(spots: CheckinSpotItemDto[]) {
-  return spots.reduce((stats, spot) => {
-    const cityName = normalizeCityName(spot.cityName);
-    const current = stats.get(cityName) ?? {
-      count: 0,
-      firstSpotId: spot.spotId,
-      position: spot.position,
-    };
-    current.count += 1;
-    stats.set(cityName, current);
-    return stats;
-  }, new Map<string, CityStatistic>());
-}
-
-function buildProvinceFeatureCollection(
-  provinceStats: Map<string, ProvinceStatistic>,
-  chinaGeoJson: ProvinceFeatureCollection,
-): ProvinceFeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: chinaGeoJson.features.map((feature) => {
-      const provinceName = normalizeProvinceName(feature.properties.name);
-      const stat = provinceStats.get(provinceName);
-      const count = stat?.count ?? 0;
-      return {
-        ...feature,
-        type: "Feature",
-        properties: {
-          ...feature.properties,
-          cityCount: stat?.cityNames.size ?? 0,
-          color: resolveProvinceColor(count),
-          count,
-          name: provinceName,
-          statusText: count > 0 ? `${count} 个足迹` : "未解锁",
-        },
-      };
-    }),
-  };
-}
-
-function buildCityFeatureCollection(
-  cityStats: Map<string, CityStatistic>,
-  cityGeoJson: ProvinceFeatureCollection,
-): ProvinceFeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: cityGeoJson.features.map((feature) => {
-      const cityName = normalizeCityName(feature.properties.name);
-      const stat = cityStats.get(cityName);
-      const count = stat?.count ?? 0;
-      return {
-        ...feature,
-        type: "Feature",
-        properties: {
-          ...feature.properties,
-          color: resolveProvinceColor(count),
-          count,
-          name: cityName,
-          statusText: count > 0 ? `${count} 条足迹` : "未打卡",
-        },
-      };
-    }),
-  };
-}
-
-function buildProvinceLabelData(
-  provinceStats: Map<string, ProvinceStatistic>,
-  provinceGeoJson: ProvinceFeatureCollection,
-) {
-  return provinceGeoJson.features.map((feature) => {
-    const provinceName = normalizeProvinceName(feature.properties.name);
-    const count = provinceStats.get(provinceName)?.count ?? 0;
-    const labelPoint = feature.properties.centroid ?? feature.properties.center;
-    return {
-      name: provinceName,
-      labelText: count > 0 ? provinceName : `🔒\n${provinceName}`,
-      count,
-      iconSize: 12,
-      statusColor: resolveProvinceColor(count),
-      labelColor: count > 0 ? "#eaf4ff" : "#8090a7",
-      lat: labelPoint?.[1] ?? 35.8,
-      lng: labelPoint?.[0] ?? 104.6,
-    };
-  });
-}
-
-function buildCityLabelData(
-  cityStats: Map<string, CityStatistic>,
-  cityGeoJson: ProvinceFeatureCollection,
-) {
-  return cityGeoJson.features.map((feature) => {
-    const cityName = normalizeCityName(feature.properties.name);
-    const count = cityStats.get(cityName)?.count ?? 0;
-    const labelPoint = feature.properties.centroid ?? feature.properties.center;
-    return {
-      name: cityName,
-      labelText: count > 0 ? `${cityName}\n${count}` : cityName,
-      count,
-      pointSize: count > 0 ? Math.min(18, 10 + count * 2) : 0,
-      statusColor: resolveProvinceColor(count),
-      labelColor: count > 0 ? "#eaf4ff" : "#8090a7",
-      lat: labelPoint?.[1] ?? 35.8,
-      lng: labelPoint?.[0] ?? 104.6,
-    };
-  });
-}
-
-function resolveProvinceName(cityName: string) {
-  return normalizeProvinceName(CITY_PROVINCE_MAP[cityName] ?? cityName);
-}
-
-function resolveProvinceAdcodeFromCityCode(cityCode: string) {
-  return `${cityCode.slice(0, 2)}0000`;
-}
-
-function normalizeProvinceName(value: string) {
-  return value
-    .replace(/省$/, "")
-    .replace(/市$/, "")
-    .replace(/自治区$/, "")
-    .replace(/壮族$/, "")
-    .replace(/回族$/, "")
-    .replace(/维吾尔$/, "")
-    .replace(/特别行政区$/, "");
-}
-
-function normalizeCityName(value: string) {
-  return value.replace(/市$/, "");
-}
-
-function resolveProvinceColor(count: number) {
-  if (count <= 0) {
-    return "#243149";
-  }
-  if (count <= 3) {
-    return "#2a82ff";
-  }
-  if (count <= 9) {
-    return "#00b8a9";
-  }
-  return "#ff9f24";
-}
-
-function resolveMapCenter(spots: CheckinSpotItemDto[]): GeoPoint {
-  if (spots.length === 0) {
-    return { lng: 104.066541, lat: 30.572269 };
-  }
-  const totals = spots.reduce(
-    (acc, spot) => ({
-      lng: acc.lng + spot.position.lng,
-      lat: acc.lat + spot.position.lat,
-    }),
-    { lng: 0, lat: 0 },
-  );
-  return {
-    lng: totals.lng / spots.length,
-    lat: totals.lat / spots.length,
-  };
 }
