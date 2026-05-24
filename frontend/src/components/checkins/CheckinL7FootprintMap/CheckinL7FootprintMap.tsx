@@ -52,14 +52,6 @@ interface ProvinceStatistic {
 const FOOTPRINT_MAP_STYLE = "dark";
 const CHINA_PROVINCES_GEOJSON_URL = "/geo/china-provinces.json";
 
-// 锁定状态的图标 SVG (参考 Ant Design LockOutlined 风格)
-const LOCK_ICON_SVG = `data:image/svg+xml;base64,${btoa(`
-<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <path d="M832 448H192c-17.7 0-32 14.3-32 32v448c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V480c0-17.7-14.3-32-32-32zM512 704c-35.3 0-64-28.7-64-64s28.7-64 64-64 64 28.7 64 64-28.7 64-64 64z" fill="#8090a7"/>
-  <path d="M512 128c-106 0-192 86-192 192v128h384V320c0-106-86-192-192-192z" stroke="#8090a7" stroke-width="64" fill="none"/>
-</svg>
-`)}`;
-
 const CITY_PROVINCE_MAP: Record<string, string> = {
   北京: "北京",
   北京市: "北京",
@@ -152,9 +144,6 @@ export function CheckinL7FootprintMap({
     sceneRef.current = scene;
 
     scene.on("loaded", () => {
-      // 注册极简锁定图标
-      scene.addImage("lock-icon", LOCK_ICON_SVG);
-
       if (mode === "country") {
         if (chinaGeoJson) {
           addCountryLayers(scene, provinceStats, chinaGeoJson);
@@ -294,7 +283,7 @@ function addCountryLayers(
     .source(labelData, {
       parser: { type: "json", x: "lng", y: "lat" },
     })
-    .shape("name", "text")
+    .shape("labelText", "text")
     .size(11)
     .color("labelColor")
     .style({
@@ -305,12 +294,15 @@ function addCountryLayers(
       strokeWidth: 2,
     });
 
-  // 状态图标层（锁或状态点）
+  // 状态图标层只展示已解锁省份，未解锁锁标识合并进文字标签，避免相邻省份出现重复锁图标。
   const statusIconLayer = new PointLayer({ name: "province-status-icons" })
-    .source(labelData, {
-      parser: { type: "json", x: "lng", y: "lat" },
-    })
-    .shape("shape")
+    .source(
+      labelData.filter((item) => item.count > 0),
+      {
+        parser: { type: "json", x: "lng", y: "lat" },
+      },
+    )
+    .shape("circle")
     .size("iconSize")
     .color("statusColor")
     .style({
@@ -473,10 +465,10 @@ function buildProvinceLabelData(
     const labelPoint = feature.properties.centroid ?? feature.properties.center;
     return {
       name: provinceName,
+      labelText: count > 0 ? provinceName : `🔒\n${provinceName}`,
       count,
-      shape: count > 0 ? "circle" : "lock-icon",
-      iconSize: count > 0 ? 12 : 14,
-      statusColor: count > 0 ? resolveProvinceColor(count) : "#455a7a",
+      iconSize: 12,
+      statusColor: resolveProvinceColor(count),
       labelColor: count > 0 ? "#eaf4ff" : "#8090a7",
       lat: labelPoint?.[1] ?? 35.8,
       lng: labelPoint?.[0] ?? 104.6,
