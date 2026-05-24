@@ -41,7 +41,9 @@ import styles from "./CheckinsPage.module.css";
 type CheckinViewMode = "timeline" | "grid";
 type CheckinDateFilter = "all" | "7d" | "30d" | "365d";
 
-// CheckinsPage 承接“我的足迹”页面：左侧 L7 点位图，右侧列表/卡片视图。
+/**
+ * CheckinsPage 承接“我的足迹”页面：左侧 L7 足迹地图，右侧列表/卡片视图。
+ */
 export function CheckinsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -129,6 +131,9 @@ export function CheckinsPage() {
     [citiesQuery.data?.list],
   );
 
+  /**
+   * 退出登录后清理个人相关缓存，并回到首页。
+   */
   function handleLogout() {
     clearAuthToken();
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
@@ -137,6 +142,9 @@ export function CheckinsPage() {
     navigate("/");
   }
 
+  /**
+   * 取消指定景点打卡，并刷新足迹列表和景点打卡状态。
+   */
   async function handleCancelCheckin(spotId: number) {
     await uncheckinSpotMutation.mutateAsync(spotId);
     await queryClient.invalidateQueries({ queryKey: ["checkin-spots"] });
@@ -185,8 +193,6 @@ export function CheckinsPage() {
   return (
     <PersonalPageLayout
       currentUser={currentUserQuery.data}
-      title="我的足迹"
-      description="记录去过的景点，回看每一次旅行足迹。"
       onLogout={handleLogout}
     >
       <section className={styles.workspace}>
@@ -348,6 +354,9 @@ type CheckinListProps = {
   spots: CheckinSpotItemDto[];
 };
 
+/**
+ * 时间轴列表展示当前页足迹，列表自身滚动，不撑高右侧面板。
+ */
 function CheckinTimeline({
   onCancel,
   onOpen,
@@ -374,6 +383,9 @@ function CheckinTimeline({
   );
 }
 
+/**
+ * 卡片网格展示当前页足迹，用于和时间轴视图切换。
+ */
 function CheckinCardGrid(props: CheckinListProps) {
   return (
     <section className={styles.cardGrid}>
@@ -403,6 +415,9 @@ type CheckinRecordCardProps = {
   spot: CheckinSpotItemDto;
 };
 
+/**
+ * 单条足迹记录卡片，承载选择、查看景点和取消打卡操作。
+ */
 function CheckinRecordCard({
   layout,
   onCancel,
@@ -487,6 +502,9 @@ function CheckinRecordCard({
   );
 }
 
+/**
+ * 将页面日期筛选项转换为后端需要的最近天数参数。
+ */
 function resolveCheckedInWithinDays(dateFilter: CheckinDateFilter) {
   if (dateFilter === "7d") {
     return 7;
@@ -500,6 +518,9 @@ function resolveCheckedInWithinDays(dateFilter: CheckinDateFilter) {
   return undefined;
 }
 
+/**
+ * 将景点类型枚举转换为足迹卡片上的中文标签。
+ */
 function resolveSpotTypeLabel(type: SpotType) {
   switch (type) {
     case "history":
@@ -523,6 +544,9 @@ function resolveSpotTypeLabel(type: SpotType) {
   }
 }
 
+/**
+ * 格式化完整打卡时间，非法时间直接返回原始值方便排查数据问题。
+ */
 function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -536,6 +560,9 @@ function formatDateTime(value: string) {
   return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 
+/**
+ * 格式化时间轴节点日期，只展示月日以减少列表占用空间。
+ */
 function formatDayLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

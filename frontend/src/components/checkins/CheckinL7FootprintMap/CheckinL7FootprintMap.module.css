@@ -1,8 +1,8 @@
 .mapPanel {
-  position: sticky;
-  top: 20px;
+  position: relative;
   overflow: hidden;
-  min-height: calc(100vh - 150px);
+  height: 100%;
+  min-height: 0;
   border: 1px solid #1d3558;
   border-radius: 24px;
   background:
@@ -193,6 +193,7 @@
   .mapPanel {
     position: relative;
     top: auto;
-    min-height: 360px;
+    height: 360px;
+    min-height: 0;
   }
 }
