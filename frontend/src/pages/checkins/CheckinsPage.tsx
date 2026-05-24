@@ -31,15 +31,15 @@ import {
   useUncheckinSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
-import type {
-  CheckinSpotItemDto,
-  SpotTagCode,
-  SpotType,
-} from "../../types/mapWorkbench";
+import type { CheckinSpotItemDto, SpotTagCode } from "../../types/mapWorkbench";
+import {
+  formatDateTime,
+  formatDayLabel,
+  resolveCheckedInWithinDays,
+  resolveSpotTypeLabel,
+} from "./helpers";
 import styles from "./CheckinsPage.module.css";
-
-type CheckinViewMode = "timeline" | "grid";
-type CheckinDateFilter = "all" | "7d" | "30d" | "365d";
+import type { CheckinDateFilter, CheckinViewMode } from "./types";
 
 /**
  * CheckinsPage 承接“我的足迹”页面：左侧 L7 足迹地图，右侧列表/卡片视图。
@@ -500,73 +500,4 @@ function CheckinRecordCard({
       </div>
     </article>
   );
-}
-
-/**
- * 将页面日期筛选项转换为后端需要的最近天数参数。
- */
-function resolveCheckedInWithinDays(dateFilter: CheckinDateFilter) {
-  if (dateFilter === "7d") {
-    return 7;
-  }
-  if (dateFilter === "30d") {
-    return 30;
-  }
-  if (dateFilter === "365d") {
-    return 365;
-  }
-  return undefined;
-}
-
-/**
- * 将景点类型枚举转换为足迹卡片上的中文标签。
- */
-function resolveSpotTypeLabel(type: SpotType) {
-  switch (type) {
-    case "history":
-      return "历史文化";
-    case "nature":
-      return "自然风光";
-    case "landmark":
-      return "城市地标";
-    case "museum":
-      return "博物馆";
-    case "food":
-      return "美食";
-    case "night":
-      return "夜游";
-    case "family":
-      return "亲子";
-    case "business":
-      return "商圈";
-    default:
-      return "景点";
-  }
-}
-
-/**
- * 格式化完整打卡时间，非法时间直接返回原始值方便排查数据问题。
- */
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hour = String(date.getHours()).padStart(2, "0");
-  const minute = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hour}:${minute}`;
-}
-
-/**
- * 格式化时间轴节点日期，只展示月日以减少列表占用空间。
- */
-function formatDayLabel(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "足迹";
-  }
-  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
