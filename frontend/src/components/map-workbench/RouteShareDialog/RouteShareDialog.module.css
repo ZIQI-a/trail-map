@@ -1,0 +1,96 @@
+.shareShell {
+  display: grid;
+  gap: 16px;
+}
+
+.routeSummaryCard {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dfe8f5;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.summaryIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #2d6bff;
+  background: #edf4ff;
+  font-size: 18px;
+}
+
+.routeSummaryCard strong,
+.routeSummaryCard p,
+.linkPanel span,
+.unsavedPanel strong,
+.unsavedPanel p,
+.linkPanel small {
+  margin: 0;
+}
+
+.routeSummaryCard strong {
+  display: block;
+  color: #17345a;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.routeSummaryCard p {
+  margin-top: 6px;
+  color: #71839d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.linkPanel,
+.unsavedPanel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #e2ebf7;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.linkPanel span {
+  color: #385675;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.linkPanel :global(.ant-input) {
+  height: 40px;
+  border-radius: 12px;
+  color: #315170;
+  font-size: 13px;
+  background: #f8fbff;
+}
+
+.linkPanel :global(.ant-btn),
+.unsavedPanel :global(.ant-btn) {
+  height: 40px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.linkPanel small {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.unsavedPanel strong {
+  color: #17345a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.unsavedPanel p {
+  color: #71839d;
+  font-size: 13px;
+  line-height: 1.55;
+}

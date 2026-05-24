@@ -176,6 +176,7 @@ export function MapWorkbenchPage() {
   const [dragOverTripDock, setDragOverTripDock] = useState(false);
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
+  const [shareTripId, setShareTripId] = useState<number>();
 
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
@@ -407,6 +408,7 @@ export function MapWorkbenchPage() {
 
     queueMicrotask(() => {
       const nextRoutePlan = buildRoutePlanFromSavedTrip(savedTrip);
+      setShareTripId(savedTrip.id);
       setSelectedCityId(savedTrip.cityId);
       setSelectedTransport(savedTrip.transportType);
       setSelectedPlanMode(savedTrip.planMode);
@@ -480,6 +482,7 @@ export function MapWorkbenchPage() {
 
   // 关闭已保存行程回放时同步移除 URL 参数，避免刷新页面后又自动打开同一条行程。
   function clearSavedTripReplayParam() {
+    setShareTripId(undefined);
     setSearchParams((currentParams) => {
       const nextParams = new URLSearchParams(currentParams);
       nextParams.delete("tripId");
@@ -702,6 +705,7 @@ export function MapWorkbenchPage() {
       hotelLocation,
       returnToHotel: config?.returnToHotel,
     });
+    setShareTripId(undefined);
     setRoutePlanResult(result);
     clearSavedTripReplayParam();
     if (result.planMode === "schedule" && result.itineraryDays.length > 0) {
@@ -710,7 +714,7 @@ export function MapWorkbenchPage() {
   }
 
   // 当前阶段保存动作直接复用已生成的路线结果，先给出稳定默认名称，后续再补自定义命名。
-  async function handleSaveCurrentTrip() {
+  async function handleSaveCurrentTrip(options?: { redirect?: boolean }) {
     if (!authToken) {
       setAuthError(undefined);
       setAuthDialogOpen(true);
@@ -732,9 +736,12 @@ export function MapWorkbenchPage() {
       scheduleConfig,
     });
     const tripId = await saveUserTripMutation.mutateAsync(payload);
+    setShareTripId(tripId);
     await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
     message.success("行程已保存到我的行程");
-    navigate(`/trips`);
+    if (options?.redirect !== false) {
+      navigate(`/trips`);
+    }
     return tripId;
   }
 
@@ -1181,9 +1188,13 @@ export function MapWorkbenchPage() {
                   : undefined
               }
               selectedDayIndex={activeScheduleDay?.dayIndex}
+              shareTripId={savedTripId ?? shareTripId}
               saving={saveUserTripMutation.isPending}
               onFocusLocation={handleFocusRouteTimelineLocation}
-              onSaveTrip={() => void handleSaveCurrentTrip()}
+              onCreateShareLink={() =>
+                handleSaveCurrentTrip({ redirect: false })
+              }
+              onSaveTrip={() => handleSaveCurrentTrip()}
               onClose={() => {
                 setRoutePlanResult(undefined);
                 clearSavedTripReplayParam();

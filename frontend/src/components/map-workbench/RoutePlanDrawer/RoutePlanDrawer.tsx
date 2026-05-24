@@ -13,6 +13,7 @@ import {
   ShareAltOutlined,
 } from "@ant-design/icons";
 import { Button, Tag, Timeline } from "antd";
+import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
   GeoPoint,
@@ -36,6 +37,7 @@ import {
   formatDuration,
   getSpotTagName,
 } from "../../../utils/map-workbench/spotDisplay";
+import { RouteShareDialog } from "../RouteShareDialog";
 import styles from "./RoutePlanDrawer.module.css";
 
 interface RoutePlanDrawerProps {
@@ -47,9 +49,11 @@ interface RoutePlanDrawerProps {
   startPosition?: GeoPoint;
   scheduleStartTime?: string;
   selectedDayIndex?: number;
+  shareTripId?: number;
   saving?: boolean;
   onFocusLocation: (target: RouteTimelineFocusTarget) => void;
-  onSaveTrip: () => void;
+  onCreateShareLink: () => Promise<number | undefined> | number | undefined;
+  onSaveTrip: () => Promise<number | undefined> | number | undefined;
   onClose: () => void;
 }
 
@@ -70,11 +74,14 @@ export function RoutePlanDrawer({
   startPosition,
   scheduleStartTime,
   selectedDayIndex,
+  shareTripId,
   saving = false,
   onFocusLocation,
+  onCreateShareLink,
   onSaveTrip,
   onClose,
 }: RoutePlanDrawerProps) {
+  const [shareOpen, setShareOpen] = useState(false);
   const spotMapping = new Map(tripSpots.map((spot) => [spot.id, spot]));
   const activeDay =
     routePlan.planMode === "schedule"
@@ -122,7 +129,11 @@ export function RoutePlanDrawer({
           >
             保存行程
           </Button>
-          <Button icon={<ShareAltOutlined />} className={styles.headerButton}>
+          <Button
+            icon={<ShareAltOutlined />}
+            className={styles.headerButton}
+            onClick={() => setShareOpen(true)}
+          >
             分享
           </Button>
           <Button
@@ -170,6 +181,15 @@ export function RoutePlanDrawer({
         items={timelineEntries.map((entry) =>
           renderTimelineItem(entry, spotMapping, tags, onFocusLocation),
         )}
+      />
+      <RouteShareDialog
+        open={shareOpen}
+        loading={saving}
+        routeTitle={`${cityName}${routePlan.planMode === "free" ? "一日游路线" : "完整行程"}`}
+        routeSummary={summaryText}
+        shareTripId={shareTripId}
+        onClose={() => setShareOpen(false)}
+        onCreateShareLink={onCreateShareLink}
       />
     </aside>
   );
