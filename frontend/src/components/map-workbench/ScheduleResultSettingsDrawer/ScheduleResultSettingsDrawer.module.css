@@ -184,6 +184,16 @@
   font-size: 18px;
 }
 
+.serviceIcon {
+  width: 2em;
+  height: 2em;
+  display: inline-block;
+  font-size: 18px;
+  line-height: 1;
+  vertical-align: -0.08em;
+  overflow: visible;
+}
+
 .generatedTitleRow {
   display: flex;
   justify-content: space-between;
@@ -260,10 +270,23 @@
   background: #f9fcff;
 }
 
-.readonlyItem :global(.anticon) {
+.readonlyItemIcon {
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.readonlyItemIcon :global(.anticon) {
   grid-row: span 2;
   color: #2d6bff;
   font-size: 18px;
+}
+
+.readonlyItemIcon .serviceIcon {
+  font-size: 16px;
 }
 
 .readonlyItem span {
@@ -385,15 +408,27 @@
   min-width: 0;
   display: grid;
   gap: 4px;
+  justify-items: center;
   padding: 12px 8px;
   border-radius: 14px;
   background: #f6f9fe;
   text-align: center;
 }
 
-.metricItem :global(.anticon) {
-  justify-self: center;
+.metricItemIcon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metricItemIcon :global(.anticon) {
   color: #2d6bff;
+  font-size: 18px;
+}
+
+.metricItemIcon .serviceIcon {
   font-size: 18px;
 }
 

@@ -2,10 +2,8 @@ import {
   ApartmentOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
-  CoffeeOutlined,
   EditOutlined,
   EnvironmentOutlined,
-  HomeOutlined,
   SmileOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -108,15 +106,15 @@ export function ScheduleResultSettingsDrawer({
       onClose={handleClose}
       extra={
         isEditing && dirty ? (
-        <Button
-          type="primary"
-          size="large"
-          icon={<EditOutlined />}
-          loading={loading}
-          onClick={handleRegenerate}
-        >
-          重新生成
-        </Button>
+          <Button
+            type="primary"
+            size="large"
+            icon={<EditOutlined />}
+            loading={loading}
+            onClick={handleRegenerate}
+          >
+            重新生成
+          </Button>
         ) : null
       }
     >
@@ -355,7 +353,7 @@ export function ScheduleResultSettingsDrawer({
           ) : (
             <div className={styles.readonlyGrid}>
               <ReadonlyItem
-                icon={<CoffeeOutlined />}
+                icon={<TravelServiceIcon type="lunch" />}
                 label="午餐"
                 value={value.includeLunchBreak ? "安排" : "不安排"}
               />
@@ -365,7 +363,7 @@ export function ScheduleResultSettingsDrawer({
                 value={value.includeNightTour ? "考虑" : "不考虑"}
               />
               <ReadonlyItem
-                icon={<HomeOutlined />}
+                icon={<TravelServiceIcon type="hotel" />}
                 label="返程"
                 value={value.returnToHotel ? "返回酒店" : "不返回酒店"}
               />
@@ -382,12 +380,12 @@ export function ScheduleResultSettingsDrawer({
               value={`${tripSpots.length}`}
             />
             <MetricItem
-              icon={<CoffeeOutlined />}
+              icon={<TravelServiceIcon type="lunch" />}
               label="餐饮"
               value={`${countGeneratedItems(generatedItems, "lunch")}`}
             />
             <MetricItem
-              icon={<HomeOutlined />}
+              icon={<TravelServiceIcon type="hotel" />}
               label="酒店"
               value={`${countGeneratedItems(generatedItems, "hotel")}`}
             />
@@ -429,7 +427,9 @@ function ReadonlyItem({
 }) {
   return (
     <div className={styles.readonlyItem}>
-      {icon}
+      <span className={styles.readonlyItemIcon} aria-hidden="true">
+        {icon}
+      </span>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -512,10 +512,28 @@ function MetricItem({
 }) {
   return (
     <div className={styles.metricItem}>
-      {icon}
+      <span className={styles.metricItemIcon} aria-hidden="true">
+        {icon}
+      </span>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+/**
+ * TravelServiceIcon 统一承接午餐、休息、住宿的阿里字体图标映射，避免页面散落业务图标判断。
+ */
+function TravelServiceIcon({ type }: { type: "hotel" | "lunch" | "rest" }) {
+  const symbolId = resolveTravelServiceSymbolId(type);
+  return (
+    <svg
+      className={styles.serviceIcon}
+      aria-hidden="true"
+      viewBox="0 0 1024 1024"
+    >
+      <use href={symbolId} />
+    </svg>
   );
 }
 
@@ -578,20 +596,19 @@ function togglePreferenceTag(
  * 将行程强度枚举转换为中文展示文案。
  */
 function getIntensityLabel(value: ItineraryIntensity) {
-  return intensityOptions.find((option) => option.value === value)?.label ?? value;
+  return (
+    intensityOptions.find((option) => option.value === value)?.label ?? value
+  );
 }
 
 /**
  * 将生成节点类型转换为视觉图标。
  */
 function resolveGeneratedIcon(itemType: ItineraryItemDto["itemType"]) {
-  if (itemType === "hotel") {
-    return <HomeOutlined />;
+  if (itemType === "hotel" || itemType === "rest") {
+    return <TravelServiceIcon type={itemType} />;
   }
-  if (itemType === "rest") {
-    return <SmileOutlined />;
-  }
-  return <CoffeeOutlined />;
+  return <TravelServiceIcon type="lunch" />;
 }
 
 /**
@@ -605,6 +622,19 @@ function resolveGeneratedTypeLabel(itemType: ItineraryItemDto["itemType"]) {
     return "休息安排";
   }
   return "用餐安排";
+}
+
+/**
+ * 将业务节点类型映射到阿里字体 className，保证不同展示区图标一致。
+ */
+function resolveTravelServiceSymbolId(type: "hotel" | "lunch" | "rest") {
+  if (type === "hotel") {
+    return "#icon-jiudianzhusu";
+  }
+  if (type === "rest") {
+    return "#icon-xiuxiqu";
+  }
+  return "#icon-wucan";
 }
 
 /**

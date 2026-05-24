@@ -1,0 +1,37 @@
+{
+  "id": "5183642",
+  "name": "行迹旅图",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "2255749",
+      "name": "午餐",
+      "font_class": "wucan",
+      "unicode": "e6cd",
+      "unicode_decimal": 59085
+    },
+    {
+      "icon_id": "3540443",
+      "name": "休息区",
+      "font_class": "xiuxiqu",
+      "unicode": "e661",
+      "unicode_decimal": 58977
+    },
+    {
+      "icon_id": "3858880",
+      "name": "酒店住宿",
+      "font_class": "jiudianzhusu",
+      "unicode": "e62c",
+      "unicode_decimal": 58924
+    },
+    {
+      "icon_id": "47626663",
+      "name": "定位游玩景点的锚点",
+      "font_class": "dingweiyouwanjingdiandemaodian",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    }
+  ]
+}
