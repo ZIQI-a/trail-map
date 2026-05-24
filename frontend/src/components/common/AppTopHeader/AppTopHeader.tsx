@@ -146,7 +146,8 @@ function buildAccountMenuItems({
             key: "admin",
             label: "后台管理",
             icon: <AppstoreOutlined />,
-            onClick: () => navigate("/admin"),
+            // 管理后台与用户端工作区分离，统一使用新标签页打开，避免打断当前页面上下文。
+            onClick: () => window.open("/admin", "_blank", "noopener,noreferrer"),
           },
         ]
       : []),
