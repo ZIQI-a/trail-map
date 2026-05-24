@@ -4,6 +4,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CoffeeOutlined,
+  EditOutlined,
   EnvironmentOutlined,
   HomeOutlined,
   SmileOutlined,
@@ -85,7 +86,9 @@ const locationModeOptions: Array<{
   { label: "不安排", value: "none" },
 ];
 
-// SchedulePlanFormFields 负责完整行程三步配置：行程信息、偏好设置、生成确认。
+/**
+ * SchedulePlanFormFields 负责完整行程三步配置：行程信息、偏好设置、生成确认。
+ */
 export function SchedulePlanFormFields({
   value,
   cityName,
@@ -134,6 +137,9 @@ export function SchedulePlanFormFields({
   );
 }
 
+/**
+ * 展示完整行程配置步骤，帮助用户理解当前编辑阶段。
+ */
 function StepRail({ currentStep }: { currentStep: number }) {
   const steps = ["行程信息", "偏好设置", "生成结果"];
 
@@ -156,6 +162,9 @@ function StepRail({ currentStep }: { currentStep: number }) {
   );
 }
 
+/**
+ * 行程信息步骤以总览面板承载可编辑信息，包含基础信息、景点、住宿、用餐和概览。
+ */
 function TripInfoStep({
   value,
   cityName,
@@ -189,9 +198,40 @@ function TripInfoStep({
   | "onRestSelect"
 >) {
   const [showAllSpots, setShowAllSpots] = useState(false);
+  const tripNightCount = Math.max(0, value.tripDays - 1);
 
   return (
     <div className={styles.stepContent}>
+      <section className={styles.overviewHero}>
+        <div className={styles.overviewTitleRow}>
+          <div>
+            <strong>
+              {cityName} {value.tripDays} 天 {tripNightCount} 晚完整行程
+            </strong>
+            <span>总览当前配置，可直接修改日期、人数、住宿和用餐安排。</span>
+          </div>
+          <EditOutlined />
+        </div>
+        <div className={styles.overviewMeta}>
+          <span>
+            <EnvironmentOutlined />
+            {cityName}
+          </span>
+          <span>
+            <CalendarOutlined />
+            {value.tripStartDate} - {value.tripEndDate}
+          </span>
+          <span>
+            <ApartmentOutlined />
+            {value.tripDays}天{tripNightCount}晚
+          </span>
+          <span>
+            <TeamOutlined />
+            {value.travelerCount}人出行
+          </span>
+        </div>
+      </section>
+
       <section className={styles.group}>
         <header className={styles.groupHeader}>
           <strong>基本信息</strong>
@@ -305,10 +345,42 @@ function TripInfoStep({
           onRestSelect={onRestSelect}
         />
       </section>
+
+      <section className={styles.group}>
+        <header className={styles.groupHeader}>
+          <strong>行程概览</strong>
+          <span>这里根据当前配置做基础汇总，生成后会由后端返回精确路线数据。</span>
+        </header>
+        <div className={styles.overviewMetricGrid}>
+          <SummaryBox
+            icon={<ApartmentOutlined />}
+            label="行程天数"
+            value={`${value.tripDays}天${tripNightCount}晚`}
+          />
+          <SummaryBox
+            icon={<EnvironmentOutlined />}
+            label="景点数量"
+            value={`${tripSpots.length} 个`}
+          />
+          <SummaryBox
+            icon={<CoffeeOutlined />}
+            label="午餐安排"
+            value={getModeLabel(value.lunchMode, value.lunchPlaceName)}
+          />
+          <SummaryBox
+            icon={<HomeOutlined />}
+            label="住宿安排"
+            value={getModeLabel(value.hotelMode, value.hotelName)}
+          />
+        </div>
+      </section>
     </div>
   );
 }
 
+/**
+ * 住宿安排区负责酒店推荐、自定义酒店和每日返回酒店配置。
+ */
 function StaySection({
   value,
   onChange,
@@ -361,6 +433,9 @@ function StaySection({
   );
 }
 
+/**
+ * 用餐安排区负责午餐和休息地点的推荐、自定义或不安排设置。
+ */
 function MealSection({
   value,
   onChange,
@@ -435,7 +510,9 @@ function MealSection({
   );
 }
 
-// 行程偏好设置步骤
+/**
+ * 行程偏好设置步骤负责影响生成策略的强度、时间和偏好标签。
+ */
 function PreferenceStep({
   value,
   onChange,
@@ -534,6 +611,9 @@ function PreferenceStep({
   );
 }
 
+/**
+ * 生成确认步骤汇总用户配置，避免提交前遗漏关键行程信息。
+ */
 function ConfirmStep({
   value,
   cityName,
@@ -597,6 +677,9 @@ function ConfirmStep({
   );
 }
 
+/**
+ * SummaryBox 统一展示单个配置摘要项，保证确认页和总览指标视觉一致。
+ */
 function SummaryBox({
   icon,
   label,
@@ -615,6 +698,9 @@ function SummaryBox({
   );
 }
 
+/**
+ * LocationModeTabs 统一三种地点安排方式，减少住宿、午餐、休息区重复代码。
+ */
 function LocationModeTabs({
   label,
   value,
@@ -636,6 +722,9 @@ function LocationModeTabs({
   );
 }
 
+/**
+ * LocationInput 提供地点名称输入和候选地点选择，选择后回填经纬度信息。
+ */
 function LocationInput({
   label,
   value,
@@ -679,7 +768,9 @@ function LocationInput({
   );
 }
 
-// StableLocationSlot 保持推荐、手动、不安排三种状态占用一致高度，避免切换时布局跳动。
+/**
+ * StableLocationSlot 保持推荐、手动、不安排三种状态占用一致高度，避免切换时布局跳动。
+ */
 function StableLocationSlot({
   mode,
   label,
@@ -733,6 +824,9 @@ function StableLocationSlot({
   );
 }
 
+/**
+ * ChipGroup 渲染轻量选项组，用于强度、模式等低成本单选场景。
+ */
 function ChipGroup<T extends string>({
   options,
   value,
@@ -758,12 +852,18 @@ function ChipGroup<T extends string>({
   );
 }
 
+/**
+ * 将行程强度枚举转换为页面展示文案。
+ */
 function getIntensityLabel(value: ItineraryIntensity) {
   return (
     intensityOptions.find((option) => option.value === value)?.label ?? value
   );
 }
 
+/**
+ * 将地点安排模式转换为摘要文案，手动模式优先展示用户输入名称。
+ */
 function getModeLabel(mode: LocationArrangeMode, manualName: string) {
   if (mode === "manual") {
     return manualName || "用户自定义";
@@ -773,6 +873,9 @@ function getModeLabel(mode: LocationArrangeMode, manualName: string) {
   );
 }
 
+/**
+ * 将配置中的字符串日期转换为 Ant Design RangePicker 可识别的 Dayjs 值。
+ */
 function resolveDateRangeValue(
   tripStartDate: string,
   tripEndDate: string,
@@ -790,6 +893,9 @@ function resolveDateRangeValue(
   return [startDate, endDate];
 }
 
+/**
+ * 同步日期范围选择结果，并自动计算新的行程天数。
+ */
 function syncTripDateRangeByPicker(
   value: SchedulePlanConfig,
   dates: [Dayjs | null, Dayjs | null] | null,
@@ -808,6 +914,9 @@ function syncTripDateRangeByPicker(
   };
 }
 
+/**
+ * 根据起止日期计算行程天数，非法日期兜底为 1 天。
+ */
 function calculateTripDays(startDate: string, endDate: string) {
   const startTime = new Date(startDate).getTime();
   const endTime = new Date(endDate).getTime();
@@ -819,6 +928,9 @@ function calculateTripDays(startDate: string, endDate: string) {
   return Math.max(1, Math.floor((endTime - startTime) / dayMs) + 1);
 }
 
+/**
+ * 构造半小时粒度的每日出发/结束时间选项。
+ */
 function buildTimeOptions() {
   const options: Array<{ label: string; value: string }> = [];
 

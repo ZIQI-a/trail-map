@@ -132,7 +132,6 @@ const defaultScheduleConfig: SchedulePlanConfig = {
   preferenceTags: [],
 };
 
-
 // MapWorkbenchPage 是地图工作台页面入口，只组织页面布局和跨组件共享状态。
 export function MapWorkbenchPage() {
   const navigate = useNavigate();
@@ -145,8 +144,8 @@ export function MapWorkbenchPage() {
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>("all");
   const [activeRecommendTab, setActiveRecommendTab] =
     useState<RecommendTab>("recommend");
-  const [selectedCityId, setSelectedCityId] = useState<number | undefined>(
-    () => parsePositiveNumber(searchParams.get("cityId")),
+  const [selectedCityId, setSelectedCityId] = useState<number | undefined>(() =>
+    parsePositiveNumber(searchParams.get("cityId")),
   );
   const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>(
     () => {
@@ -1081,7 +1080,7 @@ export function MapWorkbenchPage() {
           }}
           onPickStartPoint={handlePickMapStartPoint}
         />
-
+        {/* 完整行程顶部天数切换 */}
         {showingScheduleResult ? (
           <div className={styles.scheduleDayTabsPanel}>
             <Segmented
@@ -1139,8 +1138,7 @@ export function MapWorkbenchPage() {
                 unfavoriteSpotMutation.isPending
               }
               checkinLoading={
-                checkinSpotMutation.isPending ||
-                uncheckinSpotMutation.isPending
+                checkinSpotMutation.isPending || uncheckinSpotMutation.isPending
               }
               isCheckedIn={checkinSpotStatusQuery.data?.checkedIn ?? false}
               isFavorite={favoriteSpotStatusQuery.data?.favorited ?? false}
@@ -1369,9 +1367,7 @@ export function MapWorkbenchPage() {
         }
       >
         <div className={styles.scheduleDialogIntro}>
-          <span>
-            这里统一调整完整行程的日期、节奏、用餐、休息和住宿配置。
-          </span>
+          <span>这里统一调整完整行程的日期、节奏、用餐、休息和住宿配置。</span>
         </div>
         <SchedulePlanFormFields
           value={scheduleConfig}
@@ -1705,7 +1701,9 @@ function parseClockText(value?: string) {
   return hour * 60 + minute;
 }
 
-function resolveSavedTripPlaceType(itemType: UserTripItemDetailDto["itemType"]) {
+function resolveSavedTripPlaceType(
+  itemType: UserTripItemDetailDto["itemType"],
+) {
   switch (itemType) {
     case "lunch":
       return "用餐";
@@ -2142,5 +2140,8 @@ function reverseGeocodeCityByPosition(
 function normalizeLocationCityName(value?: string) {
   return (value ?? "")
     .trim()
-    .replace(/(省|市|特别行政区|地区|盟|自治州|藏族自治州|回族自治州|蒙古自治州)$/u, "");
+    .replace(
+      /(省|市|特别行政区|地区|盟|自治州|藏族自治州|回族自治州|蒙古自治州)$/u,
+      "",
+    );
 }
