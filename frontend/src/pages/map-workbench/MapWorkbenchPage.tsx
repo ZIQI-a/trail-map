@@ -145,7 +145,9 @@ export function MapWorkbenchPage() {
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>("all");
   const [activeRecommendTab, setActiveRecommendTab] =
     useState<RecommendTab>("recommend");
-  const [selectedCityId, setSelectedCityId] = useState<number>();
+  const [selectedCityId, setSelectedCityId] = useState<number | undefined>(
+    () => parsePositiveNumber(searchParams.get("cityId")),
+  );
   const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>(
     () => {
       const spotIdText = searchParams.get("spotId");
@@ -604,6 +606,7 @@ export function MapWorkbenchPage() {
     setSelectedSpotId(undefined);
     setSearchParams((currentParams) => {
       const nextParams = new URLSearchParams(currentParams);
+      nextParams.set("cityId", String(cityId));
       nextParams.delete("spotId");
       return nextParams;
     });

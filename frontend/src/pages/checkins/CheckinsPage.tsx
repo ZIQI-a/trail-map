@@ -89,6 +89,7 @@ export function CheckinsPage() {
   const mapCheckinsQuery = useCheckinSpotsQuery(
     {
       ...checkinQueryParams,
+      cityName: undefined,
       pageNum: 1,
       pageSize: 500,
     },
@@ -98,6 +99,13 @@ export function CheckinsPage() {
   const currentPageCheckins = checkinSpotsQuery.data?.list ?? [];
   const mapCheckins = mapCheckinsQuery.data?.list ?? currentPageCheckins;
   const totalCheckins = checkinSpotsQuery.data?.total ?? 0;
+  const selectedCity = useMemo(
+    () =>
+      cityFilter === "all"
+        ? undefined
+        : citiesQuery.data?.list.find((city) => city.name === cityFilter),
+    [cityFilter, citiesQuery.data?.list],
+  );
 
   const typeOptions = useMemo(
     () => [
@@ -183,11 +191,12 @@ export function CheckinsPage() {
     >
       <section className={styles.workspace}>
         <CheckinL7FootprintMap
-          mode={cityFilter === "all" ? "country" : "city"}
+          mode={cityFilter === "all" ? "country" : "province"}
+          availableCities={citiesQuery.data?.list ?? []}
+          selectedCity={selectedCity}
           selectedCityName={cityFilter === "all" ? undefined : cityFilter}
           spots={mapCheckins}
-          selectedSpotId={selectedSpotId}
-          onSpotSelect={setSelectedSpotId}
+          onOpenCity={(cityId) => navigate(`/?cityId=${cityId}`)}
         />
 
         <section className={styles.recordPanel}>
