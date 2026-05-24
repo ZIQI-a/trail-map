@@ -258,6 +258,20 @@ function addCountryLayers(
     chinaGeoJson,
   );
 
+  // 底层轮廓先绘制一遍深色边界，给省界增加阴影感和层次。
+  const provinceOutlineLayer = new PolygonLayer({
+    name: "checkin-province-outline",
+    zIndex: 0,
+  })
+    .source(provinceGeoJson)
+    .shape("line")
+    .color("#071528")
+    .size(2.4)
+    .style({
+      opacity: 0.72,
+      lineType: "solid",
+    });
+
   const polygonLayer = new PolygonLayer({ name: "checkin-province-tiles" })
     .source(provinceGeoJson)
     .shape("fill")
@@ -268,8 +282,9 @@ function addCountryLayers(
     })
     .style({
       opacity: 0.9,
-      stroke: "#29486f",
-      strokeWidth: 0.8,
+      stroke: "#79a8e8",
+      strokeOpacity: 0.72,
+      strokeWidth: 1.15,
     });
 
   const labelData = buildProvinceLabelData(provinceStats, provinceGeoJson);
@@ -350,6 +365,7 @@ function addCountryLayers(
     popup.remove();
   });
 
+  scene.addLayer(provinceOutlineLayer);
   scene.addLayer(polygonLayer);
   scene.addLayer(statusIconLayer);
   scene.addLayer(nameLayer);
