@@ -17,7 +17,7 @@ import {
   Spin,
   Tag,
 } from "antd";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckinL7FootprintMap } from "../../components/checkins";
@@ -153,6 +153,16 @@ export function CheckinsPage() {
     });
   }
 
+  /**
+   * 足迹地图点击城市后跳转到主页，并带上城市筛选参数。
+   */
+  const handleOpenCity = useCallback(
+    (cityId: number) => {
+      navigate(`/?cityId=${cityId}`);
+    },
+    [navigate],
+  );
+
   if (!authToken) {
     return (
       <main className={styles.stateShell}>
@@ -202,7 +212,7 @@ export function CheckinsPage() {
           selectedCity={selectedCity}
           selectedCityName={cityFilter === "all" ? undefined : cityFilter}
           spots={mapCheckins}
-          onOpenCity={(cityId) => navigate(`/?cityId=${cityId}`)}
+          onOpenCity={handleOpenCity}
         />
 
         <section className={styles.recordPanel}>

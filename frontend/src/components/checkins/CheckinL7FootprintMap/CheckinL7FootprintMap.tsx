@@ -1,6 +1,7 @@
 import { EnvironmentOutlined } from "@ant-design/icons";
 import { Scene, Map as L7Map, PointLayer, PolygonLayer, Popup } from "@antv/l7";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MutableRefObject } from "react";
 import type {
   CheckinSpotItemDto,
   TravelCityDto,
@@ -57,6 +58,8 @@ export function CheckinL7FootprintMap({
 }: CheckinL7FootprintMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<Scene | null>(null);
+  const popupRef = useRef<Popup | null>(null);
+  const [sceneReady, setSceneReady] = useState(false);
   const [chinaGeoJson, setChinaGeoJson] = useState<ProvinceFeatureCollection>();
   const [provinceCityGeoJson, setProvinceCityGeoJson] = useState<{
     adcode: string;
@@ -87,6 +90,14 @@ export function CheckinL7FootprintMap({
     provinceCityGeoJson && provinceCityGeoJson.adcode === selectedProvinceAdcode
       ? provinceCityGeoJson.data
       : undefined;
+  const initialMapOptionsRef = useRef(
+    resolveMapOptions({
+      mode,
+      provinceSpots,
+      selectedCity,
+      selectedProvinceAdcode,
+    }),
+  );
 
   // 全国地图边界作为本地静态资源加载，避免运行时依赖第三方接口和跨域。
   useEffect(() => {
@@ -139,40 +150,91 @@ export function CheckinL7FootprintMap({
     };
   }, [selectedProvinceAdcode]);
 
-  // L7 场景依赖真实 DOM 容器；模式、筛选或选中变化时重建图层，保持地图与列表同步。
+  // 只初始化一次 Scene，避免筛选变化时重复创建 WebGL context。
   useEffect(() => {
-    if (!containerRef.current) {
+    if (!containerRef.current || sceneRef.current) {
       return undefined;
     }
 
-    sceneRef.current?.destroy();
     const scene = new Scene({
       id: containerRef.current,
-      map: new L7Map(
-        resolveMapOptions({
-          mode,
-          provinceSpots,
-          selectedCity,
-          selectedProvinceAdcode,
-        }),
-      ),
+      map: new L7Map(initialMapOptionsRef.current),
       logoVisible: false,
     });
     sceneRef.current = scene;
 
+    // 监听上下文状态，便于在 context lost 后阻止继续对失效场景写入图层。
+    const mapCanvas = scene.getMapCanvasContainer();
+    const handleContextLost = () => {
+      setSceneReady(false);
+    };
+    const handleContextRestored = () => {
+      setSceneReady(true);
+    };
+
+    mapCanvas?.addEventListener("webglcontextlost", handleContextLost);
+    mapCanvas?.addEventListener("webglcontextrestored", handleContextRestored);
+
     scene.on("loaded", () => {
+      setSceneReady(true);
+    });
+
+    return () => {
+      mapCanvas?.removeEventListener("webglcontextlost", handleContextLost);
+      mapCanvas?.removeEventListener("webglcontextrestored", handleContextRestored);
+      popupRef.current?.remove();
+      popupRef.current = null;
+      scene.destroy();
+      sceneRef.current = null;
+      setSceneReady(false);
+    };
+  }, []);
+
+  // 视图参数变化时只更新相机，不重建 Scene。
+  useEffect(() => {
+    if (!sceneReady || !sceneRef.current) {
+      return;
+    }
+
+    const nextOptions = resolveMapOptions({
+      mode,
+      provinceSpots,
+      selectedCity,
+      selectedProvinceAdcode,
+    });
+    sceneRef.current.setMapStyle(FOOTPRINT_MAP_STYLE);
+    sceneRef.current.setZoomAndCenter(nextOptions.zoom, nextOptions.center);
+  }, [mode, provinceSpots, sceneReady, selectedCity, selectedProvinceAdcode]);
+
+  // 数据变化只重绘图层和事件绑定，避免高频销毁底图。
+  useEffect(() => {
+    if (!sceneReady || !sceneRef.current) {
+      return;
+    }
+
+    const scene = sceneRef.current;
+    popupRef.current?.remove();
+    popupRef.current = null;
+
+    void scene.removeAllLayer().then(() => {
+      if (sceneRef.current !== scene) {
+        return;
+      }
+
       if (mode === "country") {
         if (chinaGeoJson) {
-          addCountryLayers(scene, provinceStats, chinaGeoJson);
+          addCountryLayers(scene, popupRef, provinceStats, chinaGeoJson);
         }
         return;
       }
+
       if (activeProvinceCityGeoJson && selectedProvinceName) {
         addProvinceLayers({
           availableCities,
           cityStats,
           geoJson: activeProvinceCityGeoJson,
           onOpenCity,
+          popupRef,
           scene,
           selectedProvinceName,
         });
@@ -180,8 +242,8 @@ export function CheckinL7FootprintMap({
     });
 
     return () => {
-      scene.destroy();
-      sceneRef.current = null;
+      popupRef.current?.remove();
+      popupRef.current = null;
     };
   }, [
     availableCities,
@@ -190,12 +252,9 @@ export function CheckinL7FootprintMap({
     cityStats,
     mode,
     onOpenCity,
-    provinceSpots,
     provinceStats,
-    selectedCity,
-    selectedProvinceAdcode,
+    sceneReady,
     selectedProvinceName,
-    spots,
   ]);
 
   const unlockedProvinceCount = Array.from(provinceStats.values()).filter(
@@ -305,6 +364,7 @@ function resolveMapOptions({
  */
 function addCountryLayers(
   scene: Scene,
+  popupRef: MutableRefObject<Popup | null>,
   provinceStats: Map<string, ProvinceStatistic>,
   chinaGeoJson: ProvinceFeatureCollection,
 ) {
@@ -382,10 +442,14 @@ function addCountryLayers(
     closeButton: false,
     className: "l7-popup-custom",
   });
+  popupRef.current = popup;
 
   let lastFeatureName = "";
 
-  polygonLayer.on("mousemove", (e) => {
+  const handleMouseMove = (e: {
+    feature: { properties: { cityCount: number; count: number; name: string } };
+    lngLat: { lng: number; lat: number };
+  }) => {
     const { name, count, cityCount } = e.feature.properties;
 
     // 仅当切换省份时才更新 HTML，减少 DOM 操作压力
@@ -416,12 +480,21 @@ function addCountryLayers(
     if (!popup.isOpen()) {
       scene.addPopup(popup);
     }
-  });
+  };
 
-  polygonLayer.on("mouseout", () => {
+  const handleMouseOut = () => {
     lastFeatureName = "";
     popup.remove();
-  });
+  };
+
+  // 标签层和状态点层会悬浮在面上方，统一绑定 hover 才不会出现“压在文字上就不弹”的问题。
+  polygonLayer.on("mousemove", handleMouseMove);
+  nameLayer.on("mousemove", handleMouseMove);
+  statusIconLayer.on("mousemove", handleMouseMove);
+
+  polygonLayer.on("mouseout", handleMouseOut);
+  nameLayer.on("mouseout", handleMouseOut);
+  statusIconLayer.on("mouseout", handleMouseOut);
 
   scene.addLayer(provinceOutlineLayer);
   scene.addLayer(polygonLayer);
@@ -437,6 +510,7 @@ function addProvinceLayers({
   cityStats,
   geoJson,
   onOpenCity,
+  popupRef,
   scene,
   selectedProvinceName,
 }: {
@@ -444,6 +518,7 @@ function addProvinceLayers({
   cityStats: Map<string, CityStatistic>;
   geoJson: ProvinceFeatureCollection;
   onOpenCity?: (cityId: number) => void;
+  popupRef: MutableRefObject<Popup | null>;
   scene: Scene;
   selectedProvinceName: string;
 }) {
@@ -511,9 +586,13 @@ function addProvinceLayers({
     closeButton: false,
     className: "l7-popup-custom",
   });
+  popupRef.current = popup;
   let lastFeatureName = "";
 
-  cityFillLayer.on("mousemove", (event) => {
+  const handleMouseMove = (event: {
+    feature: { properties: { count: number; name: string } };
+    lngLat: { lng: number; lat: number };
+  }) => {
     const { name, count } = event.feature.properties;
     if (name !== lastFeatureName) {
       lastFeatureName = name;
@@ -537,20 +616,36 @@ function addProvinceLayers({
     if (!popup.isOpen()) {
       scene.addPopup(popup);
     }
-  });
+  };
 
-  cityFillLayer.on("mouseout", () => {
+  const handleMouseOut = () => {
     lastFeatureName = "";
     popup.remove();
-  });
-  cityFillLayer.on("click", (event) => {
+  };
+
+  const handleClick = (event: {
+    feature: { properties: { name: string } };
+  }) => {
     const city = cityByName.get(
       normalizeCityName(event.feature.properties.name),
     );
     if (city) {
       onOpenCity?.(city.id);
     }
-  });
+  };
+
+  // 鼠标压在城市文字或聚合点上时也保持 hover/click 可用。
+  cityFillLayer.on("mousemove", handleMouseMove);
+  cityLabelLayer.on("mousemove", handleMouseMove);
+  cityPointLayer.on("mousemove", handleMouseMove);
+
+  cityFillLayer.on("mouseout", handleMouseOut);
+  cityLabelLayer.on("mouseout", handleMouseOut);
+  cityPointLayer.on("mouseout", handleMouseOut);
+
+  cityFillLayer.on("click", handleClick);
+  cityLabelLayer.on("click", handleClick);
+  cityPointLayer.on("click", handleClick);
 
   scene.addLayer(cityOutlineLayer);
   scene.addLayer(cityFillLayer);
