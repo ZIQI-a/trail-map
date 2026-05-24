@@ -13,6 +13,7 @@ import { Avatar, Button, Empty, Spin, Tag } from "antd";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { CheckinL7FootprintMap } from "../../components/checkins";
 import { PersonalPageLayout } from "../../components/personal";
 import {
   useCheckinSpotsQuery,
@@ -25,6 +26,7 @@ import styles from "./ProfilePage.module.css";
 
 const PROFILE_FAVORITE_PAGE_SIZE = 6;
 const PROFILE_CHECKIN_PAGE_SIZE = 4;
+const PROFILE_MAP_CHECKIN_PAGE_SIZE = 500;
 const PROFILE_TRIP_PAGE_SIZE = 3;
 
 export function ProfilePage() {
@@ -41,6 +43,14 @@ export function ProfilePage() {
     { sortBy: "latest", pageNum: 1, pageSize: PROFILE_CHECKIN_PAGE_SIZE },
     Boolean(authToken),
   );
+  const profileMapCheckinsQuery = useCheckinSpotsQuery(
+    {
+      sortBy: "latest",
+      pageNum: 1,
+      pageSize: PROFILE_MAP_CHECKIN_PAGE_SIZE,
+    },
+    Boolean(authToken),
+  );
   const userTripsQuery = useUserTripsQuery(
     { pageNum: 1, pageSize: PROFILE_TRIP_PAGE_SIZE },
     Boolean(authToken),
@@ -50,6 +60,10 @@ export function ProfilePage() {
   const checkinSpots = useMemo(
     () => checkinSpotsQuery.data?.list ?? [],
     [checkinSpotsQuery.data?.list],
+  );
+  const profileMapCheckins = useMemo(
+    () => profileMapCheckinsQuery.data?.list ?? checkinSpots,
+    [checkinSpots, profileMapCheckinsQuery.data?.list],
   );
   const userTrips = useMemo(
     () => userTripsQuery.data?.list ?? [],
@@ -207,7 +221,16 @@ export function ProfilePage() {
               <EnvironmentOutlined /> 我的足迹地图
             </h3>
           </header>
-          <div className={styles.mapSketch} />
+          <div className={styles.mapSketch}>
+            <CheckinL7FootprintMap
+              availableCities={[]}
+              interactive={false}
+              mode="country"
+              showHeader={false}
+              showLegend={false}
+              spots={profileMapCheckins}
+            />
+          </div>
           <div className={styles.mapFooter}>
             <strong>累计去过 {profileStats[0].value} 个城市</strong>
             <span

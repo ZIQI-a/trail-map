@@ -210,12 +210,19 @@
 /* 足迹地图 */
 .mapSketch {
   height: 200px;
-  background: #f8fbff;
   border-radius: 16px;
   margin-bottom: 16px;
   position: relative;
-  /* 这里简化处理，实际可用真实地图截图或 SVG */
-  background: url('https://img.alicdn.com/imgextra/i4/O1CN01LMT6D01XmU3W3W9W3_!!6000000002967-2-tps-1000-750.png') center/contain no-repeat;
+  overflow: hidden;
+  background: #f8fbff;
+}
+
+.mapSketch > section {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: none;
 }
 
 .mapFooter {

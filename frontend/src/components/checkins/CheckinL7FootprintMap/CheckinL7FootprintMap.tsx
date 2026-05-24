@@ -38,10 +38,13 @@ import type {
 
 interface CheckinL7FootprintMapProps {
   availableCities: TravelCityDto[];
+  interactive?: boolean;
   mode: FootprintMapMode;
   onOpenCity?: (cityId: number) => void;
   selectedCity?: TravelCityDto;
   selectedCityName?: string;
+  showHeader?: boolean;
+  showLegend?: boolean;
   spots: CheckinSpotItemDto[];
 }
 
@@ -55,10 +58,13 @@ interface L7FeatureEvent {
  */
 export function CheckinL7FootprintMap({
   availableCities,
+  interactive = true,
   mode,
   onOpenCity,
   selectedCity,
   selectedCityName,
+  showHeader = true,
+  showLegend = true,
   spots,
 }: CheckinL7FootprintMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -228,7 +234,13 @@ export function CheckinL7FootprintMap({
 
       if (mode === "country") {
         if (chinaGeoJson) {
-          addCountryLayers(scene, popupRef, provinceStats, chinaGeoJson);
+          addCountryLayers(
+            scene,
+            popupRef,
+            provinceStats,
+            chinaGeoJson,
+            interactive,
+          );
         }
         return;
       }
@@ -238,6 +250,7 @@ export function CheckinL7FootprintMap({
           availableCities,
           cityStats,
           geoJson: activeProvinceCityGeoJson,
+          interactive,
           onOpenCity,
           popupRef,
           scene,
@@ -255,6 +268,7 @@ export function CheckinL7FootprintMap({
     activeProvinceCityGeoJson,
     chinaGeoJson,
     cityStats,
+    interactive,
     mode,
     onOpenCity,
     provinceStats,
@@ -275,51 +289,55 @@ export function CheckinL7FootprintMap({
           <span>暂无可展示的打卡点</span>
         </div>
       ) : null}
-      <div className={styles.mapHeader}>
-        <strong>
-          {mode === "country"
-            ? "全国足迹总览"
-            : `${selectedProvinceName ?? selectedCityName}足迹`}
-        </strong>
-        <span>
-          {mode === "country"
-            ? `已解锁 ${unlockedProvinceCount} 个省市 · ${spots.length} 个景点`
-            : `覆盖 ${cityStats.size} 个城市 · ${provinceSpots.length} 个足迹`}
-        </span>
-      </div>
-      <div className={styles.mapLegend}>
-        {mode === "country" ? (
-          <>
-            <span>
-              <i className={styles.legendLocked} />
-              未解锁
-            </span>
-            <span>
-              <i className={styles.legendLow} />
-              1-3
-            </span>
-            <span>
-              <i className={styles.legendMid} />
-              4-9
-            </span>
-            <span>
-              <i className={styles.legendHigh} />
-              10+
-            </span>
-          </>
-        ) : (
-          <>
-            <span>
-              <i className={styles.legendChecked} />
-              已打卡城市
-            </span>
-            <span>
-              <i className={styles.legendSelected} />
-              可查看主页
-            </span>
-          </>
-        )}
-      </div>
+      {showHeader ? (
+        <div className={styles.mapHeader}>
+          <strong>
+            {mode === "country"
+              ? "全国足迹总览"
+              : `${selectedProvinceName ?? selectedCityName}足迹`}
+          </strong>
+          <span>
+            {mode === "country"
+              ? `已解锁 ${unlockedProvinceCount} 个省市 · ${spots.length} 个景点`
+              : `覆盖 ${cityStats.size} 个城市 · ${provinceSpots.length} 个足迹`}
+          </span>
+        </div>
+      ) : null}
+      {showLegend ? (
+        <div className={styles.mapLegend}>
+          {mode === "country" ? (
+            <>
+              <span>
+                <i className={styles.legendLocked} />
+                未解锁
+              </span>
+              <span>
+                <i className={styles.legendLow} />
+                1-3
+              </span>
+              <span>
+                <i className={styles.legendMid} />
+                4-9
+              </span>
+              <span>
+                <i className={styles.legendHigh} />
+                10+
+              </span>
+            </>
+          ) : (
+            <>
+              <span>
+                <i className={styles.legendChecked} />
+                已打卡城市
+              </span>
+              <span>
+                <i className={styles.legendSelected} />
+                可查看主页
+              </span>
+            </>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -372,6 +390,7 @@ function addCountryLayers(
   popupRef: MutableRefObject<Popup | null>,
   provinceStats: Map<string, ProvinceStatistic>,
   chinaGeoJson: ProvinceFeatureCollection,
+  interactive: boolean,
 ) {
   const provinceGeoJson = buildProvinceFeatureCollection(
     provinceStats,
@@ -425,6 +444,21 @@ function addCountryLayers(
       strokeWidth: 2,
     });
 
+  const statusIconLayer = new PointLayer({ name: "province-status-icons" })
+    .source(
+      labelData.filter((item) => item.count > 0),
+      {
+        parser: { type: "json", x: "lng", y: "lat" },
+      },
+    )
+    .shape("circle")
+    .size("iconSize")
+    .color("statusColor")
+    .style({
+      opacity: 0.8,
+      offsets: [0, 8],
+    });
+
   // 鼠标悬停提示 (优化为透明质感，降低视觉压迫)
   const popup = new Popup({
     offsets: [0, 0],
@@ -434,6 +468,14 @@ function addCountryLayers(
   popupRef.current = popup;
 
   let lastFeatureName = "";
+
+  if (!interactive) {
+    scene.addLayer(provinceOutlineLayer);
+    scene.addLayer(polygonLayer);
+    scene.addLayer(statusIconLayer);
+    scene.addLayer(nameLayer);
+    return;
+  }
 
   const handleMouseMove = (e: L7FeatureEvent) => {
     const properties = readL7FeatureProperties(e);
@@ -499,6 +541,7 @@ function addProvinceLayers({
   availableCities,
   cityStats,
   geoJson,
+  interactive,
   onOpenCity,
   popupRef,
   scene,
@@ -507,6 +550,7 @@ function addProvinceLayers({
   availableCities: TravelCityDto[];
   cityStats: Map<string, CityStatistic>;
   geoJson: ProvinceFeatureCollection;
+  interactive: boolean;
   onOpenCity?: (cityId: number) => void;
   popupRef: MutableRefObject<Popup | null>;
   scene: Scene;
@@ -554,6 +598,22 @@ function addProvinceLayers({
       strokeWidth: 2,
       textAllowOverlap: false,
     });
+  const cityPointLayer = new PointLayer({ name: "checkin-city-points" })
+    .source(
+      labelData.filter((item) => item.count > 0),
+      {
+        parser: { type: "json", x: "lng", y: "lat" },
+      },
+    )
+    .shape("circle")
+    .size("pointSize")
+    .color("statusColor")
+    .style({
+      opacity: 0.92,
+      stroke: "#ffffff",
+      strokeWidth: 1.5,
+      offsets: [0, 14],
+    });
   const popup = new Popup({
     offsets: [0, 0],
     closeButton: false,
@@ -561,6 +621,14 @@ function addProvinceLayers({
   });
   popupRef.current = popup;
   let lastFeatureName = "";
+
+  if (!interactive) {
+    scene.addLayer(cityOutlineLayer);
+    scene.addLayer(cityFillLayer);
+    scene.addLayer(cityPointLayer);
+    scene.addLayer(cityLabelLayer);
+    return;
+  }
 
   const handleMouseMove = (event: L7FeatureEvent) => {
     const properties = readL7FeatureProperties(event);
