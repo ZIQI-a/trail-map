@@ -45,6 +45,11 @@ interface CheckinL7FootprintMapProps {
   spots: CheckinSpotItemDto[];
 }
 
+interface L7FeatureEvent {
+  feature?: { properties?: Record<string, unknown> } & Record<string, unknown>;
+  lngLat?: { lng: number; lat: number };
+}
+
 /**
  * CheckinL7FootprintMap 专注承载 AntV L7 地理可视化，页面层只负责传入打卡数据和选中状态。
  */
@@ -420,22 +425,6 @@ function addCountryLayers(
       strokeWidth: 2,
     });
 
-  // 状态图标层只展示已解锁省份，未解锁锁标识合并进文字标签，避免相邻省份出现重复锁图标。
-  const statusIconLayer = new PointLayer({ name: "province-status-icons" })
-    .source(
-      labelData.filter((item) => item.count > 0),
-      {
-        parser: { type: "json", x: "lng", y: "lat" },
-      },
-    )
-    .shape("circle")
-    .size("iconSize")
-    .color("statusColor")
-    .style({
-      opacity: 0.8,
-      offsets: [0, 8],
-    });
-
   // 鼠标悬停提示 (优化为透明质感，降低视觉压迫)
   const popup = new Popup({
     offsets: [0, 0],
@@ -446,11 +435,15 @@ function addCountryLayers(
 
   let lastFeatureName = "";
 
-  const handleMouseMove = (e: {
-    feature: { properties: { cityCount: number; count: number; name: string } };
-    lngLat: { lng: number; lat: number };
-  }) => {
-    const { name, count, cityCount } = e.feature.properties;
+  const handleMouseMove = (e: L7FeatureEvent) => {
+    const properties = readL7FeatureProperties(e);
+    const name = String(properties.name ?? "");
+    const count = Number(properties.count ?? 0);
+    const cityCount = Number(properties.cityCount ?? 0);
+
+    if (!name || !e.lngLat) {
+      return;
+    }
 
     // 仅当切换省份时才更新 HTML，减少 DOM 操作压力
     if (name !== lastFeatureName) {
@@ -487,18 +480,15 @@ function addCountryLayers(
     popup.remove();
   };
 
-  // 标签层和状态点层会悬浮在面上方，统一绑定 hover 才不会出现“压在文字上就不弹”的问题。
+  // 标签层会悬浮在面上方，统一绑定 hover 才不会出现“压在文字上就不弹”的问题。
   polygonLayer.on("mousemove", handleMouseMove);
   nameLayer.on("mousemove", handleMouseMove);
-  statusIconLayer.on("mousemove", handleMouseMove);
 
   polygonLayer.on("mouseout", handleMouseOut);
   nameLayer.on("mouseout", handleMouseOut);
-  statusIconLayer.on("mouseout", handleMouseOut);
 
   scene.addLayer(provinceOutlineLayer);
   scene.addLayer(polygonLayer);
-  scene.addLayer(statusIconLayer);
   scene.addLayer(nameLayer);
 }
 
@@ -564,23 +554,6 @@ function addProvinceLayers({
       strokeWidth: 2,
       textAllowOverlap: false,
     });
-  const cityPointLayer = new PointLayer({ name: "checkin-city-points" })
-    .source(
-      labelData.filter((item) => item.count > 0),
-      {
-        parser: { type: "json", x: "lng", y: "lat" },
-      },
-    )
-    .shape("circle")
-    .size("pointSize")
-    .color("statusColor")
-    .style({
-      opacity: 0.92,
-      stroke: "#ffffff",
-      strokeWidth: 1.5,
-      offsets: [0, 14],
-    });
-
   const popup = new Popup({
     offsets: [0, 0],
     closeButton: false,
@@ -589,11 +562,15 @@ function addProvinceLayers({
   popupRef.current = popup;
   let lastFeatureName = "";
 
-  const handleMouseMove = (event: {
-    feature: { properties: { count: number; name: string } };
-    lngLat: { lng: number; lat: number };
-  }) => {
-    const { name, count } = event.feature.properties;
+  const handleMouseMove = (event: L7FeatureEvent) => {
+    const properties = readL7FeatureProperties(event);
+    const name = String(properties.name ?? "");
+    const count = Number(properties.count ?? 0);
+
+    if (!name || !event.lngLat) {
+      return;
+    }
+
     if (name !== lastFeatureName) {
       lastFeatureName = name;
       const supportedCity = cityByName.get(normalizeCityName(name));
@@ -623,32 +600,33 @@ function addProvinceLayers({
     popup.remove();
   };
 
-  const handleClick = (event: {
-    feature: { properties: { name: string } };
-  }) => {
-    const city = cityByName.get(
-      normalizeCityName(event.feature.properties.name),
-    );
+  const handleClick = (event: L7FeatureEvent) => {
+    const properties = readL7FeatureProperties(event);
+    const name = String(properties.name ?? "");
+    const city = cityByName.get(normalizeCityName(name));
     if (city) {
       onOpenCity?.(city.id);
     }
   };
 
-  // 鼠标压在城市文字或聚合点上时也保持 hover/click 可用。
+  // 鼠标压在城市文字上时也保持 hover/click 可用。
   cityFillLayer.on("mousemove", handleMouseMove);
   cityLabelLayer.on("mousemove", handleMouseMove);
-  cityPointLayer.on("mousemove", handleMouseMove);
 
   cityFillLayer.on("mouseout", handleMouseOut);
   cityLabelLayer.on("mouseout", handleMouseOut);
-  cityPointLayer.on("mouseout", handleMouseOut);
 
   cityFillLayer.on("click", handleClick);
   cityLabelLayer.on("click", handleClick);
-  cityPointLayer.on("click", handleClick);
 
   scene.addLayer(cityOutlineLayer);
   scene.addLayer(cityFillLayer);
-  scene.addLayer(cityPointLayer);
   scene.addLayer(cityLabelLayer);
+}
+
+/**
+ * 兼容 L7 不同图层事件返回结构：面图层通常在 properties，点/文字层可能直接返回原始数据。
+ */
+function readL7FeatureProperties(event: L7FeatureEvent) {
+  return event.feature?.properties ?? event.feature ?? {};
 }
