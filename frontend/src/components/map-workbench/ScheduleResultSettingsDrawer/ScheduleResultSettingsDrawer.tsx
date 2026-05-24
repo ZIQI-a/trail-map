@@ -134,10 +134,8 @@ export function ScheduleResultSettingsDrawer({
               aria-label="编辑行程设置"
               data-active={isEditing}
               onClick={() => {
-                if (!isEditing) {
-                  setIsEditing(true);
-                  setDirty(false);
-                }
+                setIsEditing((current) => !current);
+                setDirty(false);
               }}
             >
               <EditOutlined />
