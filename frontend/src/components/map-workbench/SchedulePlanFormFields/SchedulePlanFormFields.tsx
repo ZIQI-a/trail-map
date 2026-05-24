@@ -4,7 +4,6 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CoffeeOutlined,
-  EditOutlined,
   EnvironmentOutlined,
   HomeOutlined,
   SmileOutlined,
@@ -198,40 +197,9 @@ function TripInfoStep({
   | "onRestSelect"
 >) {
   const [showAllSpots, setShowAllSpots] = useState(false);
-  const tripNightCount = Math.max(0, value.tripDays - 1);
 
   return (
     <div className={styles.stepContent}>
-      <section className={styles.overviewHero}>
-        <div className={styles.overviewTitleRow}>
-          <div>
-            <strong>
-              {cityName} {value.tripDays} 天 {tripNightCount} 晚完整行程
-            </strong>
-            <span>总览当前配置，可直接修改日期、人数、住宿和用餐安排。</span>
-          </div>
-          <EditOutlined />
-        </div>
-        <div className={styles.overviewMeta}>
-          <span>
-            <EnvironmentOutlined />
-            {cityName}
-          </span>
-          <span>
-            <CalendarOutlined />
-            {value.tripStartDate} - {value.tripEndDate}
-          </span>
-          <span>
-            <ApartmentOutlined />
-            {value.tripDays}天{tripNightCount}晚
-          </span>
-          <span>
-            <TeamOutlined />
-            {value.travelerCount}人出行
-          </span>
-        </div>
-      </section>
-
       <section className={styles.group}>
         <header className={styles.groupHeader}>
           <strong>基本信息</strong>
@@ -345,35 +313,6 @@ function TripInfoStep({
           onRestSelect={onRestSelect}
         />
       </section>
-
-      <section className={styles.group}>
-        <header className={styles.groupHeader}>
-          <strong>行程概览</strong>
-          <span>这里根据当前配置做基础汇总，生成后会由后端返回精确路线数据。</span>
-        </header>
-        <div className={styles.overviewMetricGrid}>
-          <SummaryBox
-            icon={<ApartmentOutlined />}
-            label="行程天数"
-            value={`${value.tripDays}天${tripNightCount}晚`}
-          />
-          <SummaryBox
-            icon={<EnvironmentOutlined />}
-            label="景点数量"
-            value={`${tripSpots.length} 个`}
-          />
-          <SummaryBox
-            icon={<CoffeeOutlined />}
-            label="午餐安排"
-            value={getModeLabel(value.lunchMode, value.lunchPlaceName)}
-          />
-          <SummaryBox
-            icon={<HomeOutlined />}
-            label="住宿安排"
-            value={getModeLabel(value.hotelMode, value.hotelName)}
-          />
-        </div>
-      </section>
     </div>
   );
 }
@@ -460,7 +399,6 @@ function MealSection({
     <section className={styles.group}>
       <header className={styles.groupHeader}>
         <strong>用餐安排</strong>
-        <span>当前先重点安排午餐和休息节点。</span>
       </header>
       <LocationModeTabs
         label="午餐"

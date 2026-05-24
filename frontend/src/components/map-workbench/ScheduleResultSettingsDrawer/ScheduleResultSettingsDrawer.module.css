@@ -1,0 +1,357 @@
+.drawer :global(.ant-drawer-header) {
+  padding: 22px 28px;
+  border-bottom: 1px solid #edf2f8;
+}
+
+.drawer :global(.ant-drawer-title) {
+  color: #172b4d;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.drawer :global(.ant-drawer-body) {
+  padding: 26px 24px 30px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.drawer :global(.ant-btn-primary) {
+  min-width: 148px;
+  height: 46px;
+  border-radius: 15px;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 14px 26px rgb(45 107 255 / 24%);
+}
+
+.shell {
+  display: grid;
+  gap: 18px;
+}
+
+.heroCard,
+.sectionCard {
+  border: 1px solid #dce8f7;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgb(31 73 125 / 7%);
+}
+
+.heroCard {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 12% 18%, rgb(45 107 255 / 12%), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.heroTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heroTitle strong {
+  display: block;
+  color: #142d52;
+  font-size: 26px;
+  font-weight: 950;
+  line-height: 1.22;
+}
+
+.heroTitle span {
+  display: block;
+  margin-top: 10px;
+  color: #7588a4;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.heroTitle > :global(.anticon) {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dbe7f7;
+  border-radius: 14px;
+  color: #2d6bff;
+  background: #ffffff;
+}
+
+.heroMeta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metaPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  color: #46617f;
+  font-size: 13px;
+  font-weight: 850;
+  background: #eef5ff;
+}
+
+.sectionCard {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionTitle strong {
+  color: #142d52;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.sectionTitle span {
+  color: #7a8da8;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.generatedList {
+  display: grid;
+  gap: 10px;
+}
+
+.generatedCard {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e0e9f6;
+  border-radius: 16px;
+  background: #f9fcff;
+}
+
+.generatedCard[data-type="lunch"] .generatedIcon {
+  color: #f97316;
+  background: #fff3e7;
+}
+
+.generatedCard[data-type="hotel"] .generatedIcon {
+  color: #7c3aed;
+  background: #f3edff;
+}
+
+.generatedCard[data-type="rest"] .generatedIcon {
+  color: #16a34a;
+  background: #eafaf0;
+}
+
+.generatedIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 18px;
+}
+
+.generatedTitleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.generatedTitleRow strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #1d385c;
+  font-size: 14px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.generatedCard span {
+  display: block;
+  margin-top: 4px;
+  color: #657994;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.generatedCard p {
+  margin: 5px 0 0;
+  color: #8392a8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.emptyState {
+  padding: 18px;
+  border: 1px dashed #cad8e9;
+  border-radius: 16px;
+  color: #7d8da4;
+  background: #f8fbff;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.formGrid,
+.preferenceGrid,
+.switchGrid,
+.metricGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.formGrid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.75fr);
+}
+
+.preferenceGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.formField {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.formField > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #385675;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.formField :global(.ant-picker),
+.formField :global(.ant-input-number),
+.formField :global(.ant-select) {
+  width: 100%;
+}
+
+.formField :global(.ant-picker),
+.formField :global(.ant-input-number),
+.formField :global(.ant-select-selector) {
+  min-height: 40px;
+  border-radius: 12px !important;
+}
+
+.preferenceTags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preferenceTag,
+.preferenceTagActive {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.preferenceTag {
+  color: #5f7189;
+  background: #f2f5f9;
+}
+
+.preferenceTagActive {
+  color: #2d6bff;
+  border-color: #a9c4ff;
+  background: #eef5ff;
+}
+
+.switchGrid {
+  grid-template-columns: 1fr;
+}
+
+.switchCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 14px;
+  border: 1px solid #e0e9f6;
+  border-radius: 15px;
+  background: #f9fcff;
+}
+
+.switchCard strong,
+.switchCard span {
+  display: block;
+}
+
+.switchCard strong {
+  color: #1d385c;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.switchCard span {
+  margin-top: 4px;
+  color: #7487a2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.metricGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metricItem {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  background: #f6f9fe;
+  text-align: center;
+}
+
+.metricItem :global(.anticon) {
+  justify-self: center;
+  color: #2d6bff;
+  font-size: 18px;
+}
+
+.metricItem span {
+  color: #71839d;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.metricItem strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #17345a;
+  font-size: 16px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .formGrid,
+  .preferenceGrid,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+}

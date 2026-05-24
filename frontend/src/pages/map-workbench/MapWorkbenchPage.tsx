@@ -1,8 +1,7 @@
-import { EditOutlined, SettingOutlined } from "@ant-design/icons";
+import { SettingOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
-  Drawer,
   Empty,
   message,
   Modal,
@@ -27,6 +26,7 @@ import {
   type RouteTimelineFocusTarget,
 } from "../../components/map-workbench/RoutePlanDrawer";
 import { SchedulePlanFormFields } from "../../components/map-workbench/SchedulePlanFormFields";
+import { ScheduleResultSettingsDrawer } from "../../components/map-workbench/ScheduleResultSettingsDrawer";
 import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
 import {
   SpotRecommendList,
@@ -1346,79 +1346,20 @@ export function MapWorkbenchPage() {
         />
       </Modal>
 
-      <Drawer
-        title="行程设置"
+      <ScheduleResultSettingsDrawer
         open={scheduleSettingsOpen}
-        placement="left"
-        width={420}
+        loading={routePlanMutation.isPending}
+        cityName={city.name}
+        value={scheduleConfig}
+        routePlan={routePlanResult}
+        tripSpots={tripSpots}
+        onChange={setScheduleConfig}
         onClose={() => setScheduleSettingsOpen(false)}
-        extra={
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            loading={routePlanMutation.isPending}
-            onClick={async () => {
-              setScheduleSettingsOpen(false);
-              await submitRoutePlan(scheduleConfig);
-            }}
-          >
-            重新生成
-          </Button>
-        }
-      >
-        <div className={styles.scheduleDialogIntro}>
-          <span>这里统一调整完整行程的日期、节奏、用餐、休息和住宿配置。</span>
-        </div>
-        <SchedulePlanFormFields
-          value={scheduleConfig}
-          cityName={city.name}
-          tripSpots={tripSpots}
-          currentStep={0}
-          onChange={setScheduleConfig}
-          onRemoveSpot={handleRemoveTripSpot}
-          hotelOptions={hotelOptions}
-          lunchOptions={lunchOptions}
-          restOptions={restOptions}
-          onHotelNameChange={(value) =>
-            handleManualScheduleFieldChange("hotelName", "hotelLocation", value)
-          }
-          onLunchPlaceNameChange={(value) =>
-            handleManualScheduleFieldChange(
-              "lunchPlaceName",
-              "lunchLocation",
-              value,
-            )
-          }
-          onRestPlaceNameChange={(value) =>
-            handleManualScheduleFieldChange(
-              "restPlaceName",
-              "restLocation",
-              value,
-            )
-          }
-          onHotelSelect={(location) =>
-            handleSelectManualScheduleLocation(
-              "hotelName",
-              "hotelLocation",
-              location,
-            )
-          }
-          onLunchSelect={(location) =>
-            handleSelectManualScheduleLocation(
-              "lunchPlaceName",
-              "lunchLocation",
-              location,
-            )
-          }
-          onRestSelect={(location) =>
-            handleSelectManualScheduleLocation(
-              "restPlaceName",
-              "restLocation",
-              location,
-            )
-          }
-        />
-      </Drawer>
+        onRegenerate={async () => {
+          setScheduleSettingsOpen(false);
+          await submitRoutePlan(scheduleConfig);
+        }}
+      />
 
       <AuthDialog
         open={authDialogOpen}
