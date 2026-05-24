@@ -20,7 +20,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type {
   ItineraryIntensity,
   ItineraryItemDto,
@@ -80,6 +80,23 @@ export function ScheduleResultSettingsDrawer({
 }: ScheduleResultSettingsDrawerProps) {
   const generatedItems = buildGeneratedArrangementItems(routePlan);
   const tripNightCount = Math.max(0, value.tripDays - 1);
+  const [isEditing, setIsEditing] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const handleConfigChange = (nextValue: SchedulePlanConfig) => {
+    setDirty(true);
+    onChange(nextValue);
+  };
+  const handleClose = () => {
+    setIsEditing(false);
+    setDirty(false);
+    onClose();
+  };
+  const handleRegenerate = async () => {
+    setIsEditing(false);
+    setDirty(false);
+    await onRegenerate();
+  };
 
   return (
     <Drawer
@@ -88,17 +105,19 @@ export function ScheduleResultSettingsDrawer({
       open={open}
       placement="left"
       width={460}
-      onClose={onClose}
+      onClose={handleClose}
       extra={
+        isEditing && dirty ? (
         <Button
           type="primary"
           size="large"
           icon={<EditOutlined />}
           loading={loading}
-          onClick={onRegenerate}
+          onClick={handleRegenerate}
         >
           重新生成
         </Button>
+        ) : null
       }
     >
       <div className={styles.shell}>
@@ -109,7 +128,20 @@ export function ScheduleResultSettingsDrawer({
                 {cityName} {value.tripDays} 天 {tripNightCount} 晚完整行程
               </strong>
             </div>
-            <EditOutlined />
+            <button
+              className={styles.editButton}
+              type="button"
+              aria-label="编辑行程设置"
+              data-active={isEditing}
+              onClick={() => {
+                if (!isEditing) {
+                  setIsEditing(true);
+                  setDirty(false);
+                }
+              }}
+            >
+              <EditOutlined />
+            </button>
           </div>
           <div className={styles.heroMeta}>
             <MetaPill icon={<EnvironmentOutlined />} text={cityName} />
@@ -148,89 +180,128 @@ export function ScheduleResultSettingsDrawer({
 
         <section className={styles.sectionCard}>
           <SectionTitle title="基础信息" />
-          <div className={styles.formGrid}>
-            <label className={styles.formField}>
-              <span>
-                <CalendarOutlined />
-                出行日期
-              </span>
-              <RangePicker
-                value={resolveDateRangeValue(
-                  value.tripStartDate,
-                  value.tripEndDate,
-                )}
-                allowClear={false}
-                format="YYYY-MM-DD"
-                onChange={(dates) =>
-                  onChange(syncTripDateRangeByPicker(value, dates))
-                }
+          {isEditing ? (
+            <div className={styles.formGrid}>
+              <label className={styles.formField}>
+                <span>
+                  <CalendarOutlined />
+                  出行日期
+                </span>
+                <RangePicker
+                  value={resolveDateRangeValue(
+                    value.tripStartDate,
+                    value.tripEndDate,
+                  )}
+                  allowClear={false}
+                  format="YYYY-MM-DD"
+                  onChange={(dates) =>
+                    handleConfigChange(syncTripDateRangeByPicker(value, dates))
+                  }
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>
+                  <TeamOutlined />
+                  出行人数
+                </span>
+                <InputNumber
+                  min={1}
+                  max={20}
+                  value={value.travelerCount}
+                  addonAfter="人"
+                  onChange={(travelerCount) =>
+                    handleConfigChange({
+                      ...value,
+                      travelerCount: Number(travelerCount) || 1,
+                    })
+                  }
+                />
+              </label>
+            </div>
+          ) : (
+            <div className={styles.readonlyGrid}>
+              <ReadonlyItem
+                icon={<CalendarOutlined />}
+                label="出行日期"
+                value={`${value.tripStartDate} - ${value.tripEndDate}`}
               />
-            </label>
-            <label className={styles.formField}>
-              <span>
-                <TeamOutlined />
-                出行人数
-              </span>
-              <InputNumber
-                min={1}
-                max={20}
-                value={value.travelerCount}
-                addonAfter="人"
-                onChange={(travelerCount) =>
-                  onChange({
-                    ...value,
-                    travelerCount: Number(travelerCount) || 1,
-                  })
-                }
+              <ReadonlyItem
+                icon={<TeamOutlined />}
+                label="出行人数"
+                value={`${value.travelerCount} 人`}
               />
-            </label>
-          </div>
+            </div>
+          )}
         </section>
 
         <section className={styles.sectionCard}>
           <SectionTitle title="节奏与偏好" />
-          <div className={styles.preferenceGrid}>
-            <label className={styles.formField}>
-              <span>
-                <SmileOutlined />
-                游玩强度
-              </span>
-              <Select
-                value={value.intensity}
-                options={intensityOptions}
-                onChange={(intensity) => onChange({ ...value, intensity })}
+          {isEditing ? (
+            <div className={styles.preferenceGrid}>
+              <label className={styles.formField}>
+                <span>
+                  <SmileOutlined />
+                  游玩强度
+                </span>
+                <Select
+                  value={value.intensity}
+                  options={intensityOptions}
+                  onChange={(intensity) =>
+                    handleConfigChange({ ...value, intensity })
+                  }
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>
+                  <ClockCircleOutlined />
+                  出发时间
+                </span>
+                <Select
+                  value={value.dailyStartTime}
+                  options={timeOptions}
+                  onChange={(dailyStartTime) =>
+                    handleConfigChange({ ...value, dailyStartTime })
+                  }
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>
+                  <ClockCircleOutlined />
+                  结束时间
+                </span>
+                <Select
+                  value={value.dailyEndTime}
+                  options={timeOptions}
+                  onChange={(dailyEndTime) =>
+                    handleConfigChange({ ...value, dailyEndTime })
+                  }
+                />
+              </label>
+            </div>
+          ) : (
+            <div className={styles.readonlyGrid}>
+              <ReadonlyItem
+                icon={<SmileOutlined />}
+                label="游玩强度"
+                value={getIntensityLabel(value.intensity)}
               />
-            </label>
-            <label className={styles.formField}>
-              <span>
-                <ClockCircleOutlined />
-                出发时间
-              </span>
-              <Select
-                value={value.dailyStartTime}
-                options={timeOptions}
-                onChange={(dailyStartTime) =>
-                  onChange({ ...value, dailyStartTime })
-                }
+              <ReadonlyItem
+                icon={<ClockCircleOutlined />}
+                label="每日时间"
+                value={`${value.dailyStartTime} - ${value.dailyEndTime}`}
               />
-            </label>
-            <label className={styles.formField}>
-              <span>
-                <ClockCircleOutlined />
-                结束时间
-              </span>
-              <Select
-                value={value.dailyEndTime}
-                options={timeOptions}
-                onChange={(dailyEndTime) =>
-                  onChange({ ...value, dailyEndTime })
-                }
-              />
-            </label>
-          </div>
+            </div>
+          )}
           <div className={styles.preferenceTags}>
             {preferenceOptions.map((option) => {
               const active = value.preferenceTags.includes(option.value);
+              if (!isEditing) {
+                return active ? (
+                  <Tag color={option.color} key={option.value}>
+                    {option.label}
+                  </Tag>
+                ) : null;
+              }
               return (
                 <button
                   className={
@@ -239,7 +310,7 @@ export function ScheduleResultSettingsDrawer({
                   type="button"
                   key={option.value}
                   onClick={() =>
-                    onChange({
+                    handleConfigChange({
                       ...value,
                       preferenceTags: togglePreferenceTag(
                         value.preferenceTags,
@@ -252,33 +323,56 @@ export function ScheduleResultSettingsDrawer({
                 </button>
               );
             })}
+            {!isEditing && value.preferenceTags.length === 0 ? (
+              <span className={styles.readonlyEmpty}>暂无额外偏好</span>
+            ) : null}
           </div>
-          <div className={styles.switchGrid}>
-            <SwitchCard
-              title="安排午餐"
-              description="保留中午用餐时间和地点"
-              checked={value.includeLunchBreak}
-              onChange={(includeLunchBreak) =>
-                onChange({ ...value, includeLunchBreak })
-              }
-            />
-            <SwitchCard
-              title="考虑夜游"
-              description="适合夜间体验的景点会靠后"
-              checked={value.includeNightTour}
-              onChange={(includeNightTour) =>
-                onChange({ ...value, includeNightTour })
-              }
-            />
-            <SwitchCard
-              title="返回酒店"
-              description="每天收尾追加返回酒店节点"
-              checked={value.returnToHotel}
-              onChange={(returnToHotel) =>
-                onChange({ ...value, returnToHotel })
-              }
-            />
-          </div>
+          {isEditing ? (
+            <div className={styles.switchGrid}>
+              <SwitchCard
+                title="安排午餐"
+                description="保留中午用餐时间和地点"
+                checked={value.includeLunchBreak}
+                onChange={(includeLunchBreak) =>
+                  handleConfigChange({ ...value, includeLunchBreak })
+                }
+              />
+              <SwitchCard
+                title="考虑夜游"
+                description="适合夜间体验的景点会靠后"
+                checked={value.includeNightTour}
+                onChange={(includeNightTour) =>
+                  handleConfigChange({ ...value, includeNightTour })
+                }
+              />
+              <SwitchCard
+                title="返回酒店"
+                description="每天收尾追加返回酒店节点"
+                checked={value.returnToHotel}
+                onChange={(returnToHotel) =>
+                  handleConfigChange({ ...value, returnToHotel })
+                }
+              />
+            </div>
+          ) : (
+            <div className={styles.readonlyGrid}>
+              <ReadonlyItem
+                icon={<CoffeeOutlined />}
+                label="午餐"
+                value={value.includeLunchBreak ? "安排" : "不安排"}
+              />
+              <ReadonlyItem
+                icon={<SmileOutlined />}
+                label="夜游"
+                value={value.includeNightTour ? "考虑" : "不考虑"}
+              />
+              <ReadonlyItem
+                icon={<HomeOutlined />}
+                label="返程"
+                value={value.returnToHotel ? "返回酒店" : "不返回酒店"}
+              />
+            </div>
+          )}
         </section>
 
         <section className={styles.sectionCard}>
@@ -320,6 +414,27 @@ function MetaPill({ icon, text }: { icon: ReactNode; text: string }) {
       {icon}
       {text}
     </span>
+  );
+}
+
+/**
+ * ReadonlyItem 用统一样式展示只读状态下的配置项。
+ */
+function ReadonlyItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className={styles.readonlyItem}>
+      {icon}
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 
@@ -459,6 +574,13 @@ function togglePreferenceTag(
   return tags.includes(tag)
     ? tags.filter((item) => item !== tag)
     : [...tags, tag];
+}
+
+/**
+ * 将行程强度枚举转换为中文展示文案。
+ */
+function getIntensityLabel(value: ItineraryIntensity) {
+  return intensityOptions.find((option) => option.value === value)?.label ?? value;
 }
 
 /**

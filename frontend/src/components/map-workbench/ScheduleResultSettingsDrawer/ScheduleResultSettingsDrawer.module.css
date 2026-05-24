@@ -68,16 +68,26 @@
   line-height: 1.55;
 }
 
-.heroTitle > :global(.anticon) {
+.editButton {
   flex: none;
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
+  padding: 0;
   border: 1px solid #dbe7f7;
   border-radius: 14px;
   color: #2d6bff;
   background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.editButton:hover,
+.editButton[data-active="true"] {
+  border-color: #9dbbff;
+  background: #eef5ff;
+  box-shadow: 0 10px 22px rgb(45 107 255 / 12%);
 }
 
 .heroMeta {
@@ -209,6 +219,7 @@
 
 .formGrid,
 .preferenceGrid,
+.readonlyGrid,
 .switchGrid,
 .metricGrid {
   display: grid;
@@ -221,6 +232,44 @@
 
 .preferenceGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.readonlyGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.readonlyItem {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 10px;
+  padding: 13px 14px;
+  border: 1px solid #e0e9f6;
+  border-radius: 15px;
+  background: #f9fcff;
+}
+
+.readonlyItem :global(.anticon) {
+  grid-row: span 2;
+  color: #2d6bff;
+  font-size: 18px;
+}
+
+.readonlyItem span {
+  color: #7387a2;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.readonlyItem strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #17345a;
+  font-size: 14px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .formField {
@@ -277,6 +326,12 @@
   color: #2d6bff;
   border-color: #a9c4ff;
   background: #eef5ff;
+}
+
+.readonlyEmpty {
+  color: #7d8da4;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .switchGrid {
@@ -351,6 +406,7 @@
 @media (max-width: 560px) {
   .formGrid,
   .preferenceGrid,
+  .readonlyGrid,
   .metricGrid {
     grid-template-columns: 1fr;
   }
