@@ -190,8 +190,16 @@ public class RoutePlanServiceImpl implements RoutePlanService {
             int stayMinutes = estimateScheduledStayMinutes(spot, intensityMultiplier);
             int projectedMinutes = currentDayUsedMinutes + segmentMinutes + stayMinutes;
 
-            // 当前天放不下时切到下一天；最后一天则继续塞满，避免出现“景点丢失”。
-            if (projectedMinutes > dailyBudgetMinutes && currentDayIndex < tripDays && !currentDay.spots().isEmpty()) {
+            // 当前天达到按天均分的目标，或时间预算放不下时切到下一天。
+            // 这样用户选择 3 天时，景点会主动分摊到多天，而不是只在 Day 1 放不下时才拆分。
+            if (shouldStartNextScheduleDay(
+                    currentDay,
+                    currentDayIndex,
+                    tripDays,
+                    orderedSpots.size(),
+                    index,
+                    projectedMinutes,
+                    dailyBudgetMinutes)) {
                 currentClockMinutes = appendHotelIfNeeded(
                         currentDay,
                         request,
@@ -256,6 +264,30 @@ public class RoutePlanServiceImpl implements RoutePlanService {
                 .map(day -> toItineraryDay(day, request.transportType()))
                 .toList();
         return new PlanningSnapshot(spotStayPlans, itineraryDays);
+    }
+
+    /**
+     * 判断完整行程是否需要切换到下一天。
+     * 时间预算负责“当天放不下”的情况，景点配额负责“按用户选择天数分摊”的情况。
+     */
+    private boolean shouldStartNextScheduleDay(
+            ItineraryDayAccumulator currentDay,
+            int currentDayIndex,
+            int tripDays,
+            int totalSpotCount,
+            int currentSpotIndex,
+            int projectedMinutes,
+            int dailyBudgetMinutes) {
+        if (currentDay.spots().isEmpty() || currentDayIndex >= tripDays) {
+            return false;
+        }
+
+        int remainingSpotCount = totalSpotCount - currentSpotIndex;
+        int remainingDayCount = tripDays - currentDayIndex + 1;
+        int targetSpotCountToday = Math.max(1, (int) Math.ceil((double) remainingSpotCount / remainingDayCount));
+        boolean reachedBalancedSpotQuota = currentDay.spots().size() >= targetSpotCountToday;
+        boolean exceedDailyBudget = projectedMinutes > dailyBudgetMinutes;
+        return reachedBalancedSpotQuota || exceedDailyBudget;
     }
 
     /**
