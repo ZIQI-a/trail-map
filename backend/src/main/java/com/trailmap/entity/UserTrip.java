@@ -25,6 +25,7 @@ public class UserTrip {
     private String transportType;
     private String planMode;
     private Long routeRecordId;
+    private String routeFingerprint;
     private Integer totalDistance;
     private Integer totalTravelDuration;
     private Integer totalStayDuration;
@@ -131,6 +132,14 @@ public class UserTrip {
 
     public void setRouteRecordId(Long routeRecordId) {
         this.routeRecordId = routeRecordId;
+    }
+
+    public String getRouteFingerprint() {
+        return routeFingerprint;
+    }
+
+    public void setRouteFingerprint(String routeFingerprint) {
+        this.routeFingerprint = routeFingerprint;
     }
 
     public Integer getTotalDistance() {

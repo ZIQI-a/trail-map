@@ -18,6 +18,7 @@ import com.trailmap.mapper.RouteSegmentMapper;
 import com.trailmap.mapper.SpotMapper;
 import com.trailmap.mapper.UserTripMapper;
 import com.trailmap.mapper.UserTripItemMapper;
+import com.trailmap.model.query.CoordinateRequest;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
 import com.trailmap.model.response.PageResponse;
@@ -25,6 +26,10 @@ import com.trailmap.model.response.TripDetailResponse;
 import com.trailmap.model.response.TripShareResponse;
 import com.trailmap.model.response.TripSummaryResponse;
 import com.trailmap.service.UserTripService;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -76,6 +81,8 @@ public class UserTripServiceImpl implements UserTripService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "指定的城市不存在");
         }
         validateTripRequest(userId, request);
+        String routeFingerprint = buildRouteFingerprint(request);
+        validateUniqueActiveRoute(userId, routeFingerprint);
 
         // 2. 如果传了路线分段，先持久化 route_record 和 route_segment。
         Long routeRecordId = null;
@@ -96,6 +103,7 @@ public class UserTripServiceImpl implements UserTripService {
         trip.setTransportType(request.getTransportType());
         trip.setPlanMode(request.getPlanMode());
         trip.setRouteRecordId(routeRecordId != null ? routeRecordId : request.getRouteRecordId());
+        trip.setRouteFingerprint(routeFingerprint);
         trip.setTotalDistance(request.getTotalDistance() != null ? request.getTotalDistance() : 0);
         trip.setTotalTravelDuration(request.getTotalTravelDuration() != null ? request.getTotalTravelDuration() : 0);
         trip.setTotalStayDuration(request.getTotalStayDuration() != null ? request.getTotalStayDuration() : 0);
@@ -205,6 +213,20 @@ public class UserTripServiceImpl implements UserTripService {
         validateRouteRecordOwnership(userId, request);
         validateTripItems(request);
         validateSegments(request);
+    }
+
+    /**
+     * 用户同一条有效路线只能保存一次，避免“我的行程”里出现重复记录。
+     */
+    private void validateUniqueActiveRoute(Long userId, String routeFingerprint) {
+        Long duplicatedCount = userTripMapper.selectCount(
+                new LambdaQueryWrapper<UserTrip>()
+                        .eq(UserTrip::getUserId, userId)
+                        .eq(UserTrip::getStatus, 1)
+                        .eq(UserTrip::getRouteFingerprint, routeFingerprint));
+        if (duplicatedCount != null && duplicatedCount > 0) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "该行程路线已保存，请勿重复保存");
+        }
     }
 
     /**
@@ -318,6 +340,107 @@ public class UserTripServiceImpl implements UserTripService {
                 || "lunch".equals(itemType)
                 || "rest".equals(itemType)
                 || "hotel".equals(itemType);
+    }
+
+    /**
+     * 根据路线核心内容生成稳定指纹；行程名不参与计算，允许用户后续自由重命名。
+     */
+    private String buildRouteFingerprint(SaveTripRequest request) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("city=").append(request.getCityId())
+                .append("|mode=").append(request.getPlanMode())
+                .append("|transport=").append(request.getTransportType())
+                .append("|days=").append(request.getDays())
+                .append("|start=").append(normalizeText(request.getStartName()))
+                .append("@").append(formatCoordinate(request.getStartPosition()))
+                .append("|end=").append(normalizeText(request.getEndName()))
+                .append("@").append(formatCoordinate(request.getEndPosition()));
+
+        request.getItems().stream()
+                .sorted((left, right) -> {
+                    int dayCompare = left.getDayIndex().compareTo(right.getDayIndex());
+                    return dayCompare != 0 ? dayCompare : left.getSortOrder().compareTo(right.getSortOrder());
+                })
+                .forEach(item -> builder.append("|item=")
+                        .append(item.getDayIndex()).append(":")
+                        .append(item.getSortOrder()).append(":")
+                        .append(item.getItemType()).append(":")
+                        .append(item.getSpotId() != null ? item.getSpotId() : normalizeText(item.getItemName()))
+                        .append("@").append(formatCoordinate(item.getPosition()))
+                        .append("#").append(nullToEmpty(item.getStartTime()))
+                        .append("-").append(nullToEmpty(item.getEndTime())));
+
+        if (request.getSegments() != null) {
+            request.getSegments().stream()
+                    .sorted((left, right) -> {
+                        int dayCompare = left.getDayIndex().compareTo(right.getDayIndex());
+                        return dayCompare != 0 ? dayCompare : left.getSegmentIndex().compareTo(right.getSegmentIndex());
+                    })
+                    .forEach(segment -> builder.append("|segment=")
+                            .append(segment.getDayIndex()).append(":")
+                            .append(segment.getSegmentIndex()).append(":")
+                            .append(segment.getTransportType()).append(":")
+                            .append(formatCoordinate(segment.getFromPosition()))
+                            .append(">")
+                            .append(formatCoordinate(segment.getToPosition()))
+                            .append("#")
+                            .append(segment.getDistance() != null ? segment.getDistance() : 0)
+                            .append("/")
+                            .append(segment.getDuration() != null ? segment.getDuration() : 0));
+        }
+
+        return sha256(builder.toString());
+    }
+
+    /**
+     * 坐标统一保留 6 位小数，避免 BigDecimal scale 差异导致同一路线指纹不同。
+     */
+    private String formatCoordinate(CoordinateRequest coordinate) {
+        if (coordinate == null) {
+            return "";
+        }
+        return normalizeDecimal(coordinate.lng()) + "," + normalizeDecimal(coordinate.lat());
+    }
+
+    /**
+     * 将坐标压到项目当前使用的 6 位精度。
+     */
+    private String normalizeDecimal(BigDecimal value) {
+        if (value == null) {
+            return "";
+        }
+        return value.setScale(6, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
+
+    /**
+     * 文本参与指纹前先去掉首尾空白。
+     */
+    private String normalizeText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    /**
+     * 空值转空字符串，便于拼接稳定文本。
+     */
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    /**
+     * 使用 SHA-256 生成固定长度路线指纹。
+     */
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte item : hash) {
+                builder.append(String.format("%02x", item));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "生成行程唯一标识失败");
+        }
     }
 
     @Override
@@ -533,6 +656,7 @@ public class UserTripServiceImpl implements UserTripService {
         }
 
         trip.setStatus(0);
+        trip.setRouteFingerprint(null);
         trip.setUpdatedAt(LocalDateTime.now());
         userTripMapper.updateById(trip);
     }

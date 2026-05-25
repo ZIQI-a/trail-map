@@ -826,24 +826,33 @@ export function MapWorkbenchPage() {
       return;
     }
 
-    const payload = buildSaveTripPayload({
-      city,
-      routePlan: routePlanResult,
-      tripSpots,
-      startPoint: startPoint.trim() || `${city.name}市中心`,
-      startPointPosition:
-        visibleRouteSegments?.[0]?.fromPosition ??
-        startPointPosition ??
-        city.center,
-      scheduleConfig,
-    });
-    const tripId = await saveUserTripMutation.mutateAsync(payload);
-    setActiveTripId(tripId);
-    await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
-    if (options?.notify !== false) {
-      showTripSavedNotification();
+    try {
+      const payload = buildSaveTripPayload({
+        city,
+        routePlan: routePlanResult,
+        tripSpots,
+        startPoint: startPoint.trim() || `${city.name}市中心`,
+        startPointPosition:
+          visibleRouteSegments?.[0]?.fromPosition ??
+          startPointPosition ??
+          city.center,
+        scheduleConfig,
+      });
+      const tripId = await saveUserTripMutation.mutateAsync(payload);
+      setActiveTripId(tripId);
+      await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
+      if (options?.notify !== false) {
+        showTripSavedNotification();
+      }
+      return tripId;
+    } catch (error) {
+      if (options?.notify !== false) {
+        message.error(
+          error instanceof Error ? error.message : "请稍后再尝试保存行程。",
+        );
+      }
+      return undefined;
     }
-    return tripId;
   }
 
   /**
