@@ -142,9 +142,16 @@ export function SpotDetailPanel({
           <PlusOutlined />
           {isInTrip ? '已加入行程' : '加入行程'}
         </button>
-        <button className={styles.primaryButton} type="button">
-          <CompassOutlined />
-          导航到这里
+        <button
+          className={styles.primaryButton}
+          type="button"
+          aria-label={isLoggedIn ? (isCheckedIn ? '取消景点打卡' : '打卡景点') : '登录后打卡景点'}
+          aria-pressed={isCheckedIn}
+          disabled={checkinLoading}
+          onClick={() => onToggleCheckin(spot.id)}
+        >
+          {isCheckedIn ? <CheckCircleFilled /> : <CheckCircleOutlined />}
+          {isCheckedIn ? '已打卡' : '去打卡'}
         </button>
       </div>
 
