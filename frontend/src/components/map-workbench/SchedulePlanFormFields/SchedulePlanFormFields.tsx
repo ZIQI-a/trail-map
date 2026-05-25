@@ -18,16 +18,25 @@ import {
   Switch,
 } from "antd";
 import { useState, type ReactNode } from "react";
-import dayjs from "dayjs";
-import type { Dayjs } from "dayjs";
+import {
+  getLocationModeLabel,
+  getScheduleIntensityLabel,
+  LOCATION_MODE_OPTIONS,
+  SCHEDULE_INTENSITY_OPTIONS,
+  SCHEDULE_PREFERENCE_OPTIONS,
+} from "../../../config/schedulePlan";
 import type {
-  ItineraryIntensity,
   LocationArrangeMode,
   RouteLocation,
   SchedulePlanConfig,
   SchedulePreferenceCode,
   TravelSpot,
 } from "../../../types/mapWorkbench";
+import {
+  buildTimeOptions,
+  resolveDateRangeValue,
+  syncTripDateRangeByPicker,
+} from "../../../utils/map-workbench/schedulePlanTime";
 import styles from "./SchedulePlanFormFields.module.css";
 
 const { RangePicker } = DatePicker;
@@ -59,31 +68,6 @@ interface LocationSuggestionOption {
 type LocationSuggestionValue = RouteLocation;
 
 const timeOptions = buildTimeOptions();
-
-const intensityOptions: Array<{ label: string; value: ItineraryIntensity }> = [
-  { label: "轻松", value: "relaxed" },
-  { label: "标准", value: "standard" },
-  { label: "紧凑", value: "compact" },
-];
-
-const preferenceOptions: Array<{
-  label: string;
-  value: SchedulePreferenceCode;
-}> = [
-  { label: "本地美食", value: "local_food" },
-  { label: "夜游安排", value: "night_tour" },
-  { label: "地铁优先", value: "subway_first" },
-  { label: "亲子友好", value: "family_friendly" },
-];
-
-const locationModeOptions: Array<{
-  label: string;
-  value: LocationArrangeMode;
-}> = [
-  { label: "系统推荐", value: "recommended" },
-  { label: "用户自定义", value: "manual" },
-  { label: "不安排", value: "none" },
-];
 
 /**
  * SchedulePlanFormFields 负责完整行程三步配置：行程信息、偏好设置、生成确认。
@@ -469,7 +453,7 @@ function PreferenceStep({
               游玩强度
             </span>
             <ChipGroup
-              options={intensityOptions}
+              options={SCHEDULE_INTENSITY_OPTIONS}
               value={value.intensity}
               onChange={(intensity) => onChange({ ...value, intensity })}
             />
@@ -508,7 +492,7 @@ function PreferenceStep({
             mode="multiple"
             allowClear
             value={value.preferenceTags}
-            options={preferenceOptions}
+            options={SCHEDULE_PREFERENCE_OPTIONS}
             placeholder="可选：本地美食、夜游安排、地铁优先等"
             onChange={(preferenceTags) =>
               onChange({
@@ -593,17 +577,17 @@ function ConfirmStep({
           <SummaryBox
             icon={<SmileOutlined />}
             label="游玩强度"
-            value={getIntensityLabel(value.intensity)}
+            value={getScheduleIntensityLabel(value.intensity)}
           />
           <SummaryBox
             icon={<HomeOutlined />}
             label="住宿安排"
-            value={getModeLabel(value.hotelMode, value.hotelName)}
+            value={getLocationModeLabel(value.hotelMode, value.hotelName)}
           />
           <SummaryBox
             icon={<CoffeeOutlined />}
             label="午餐安排"
-            value={getModeLabel(value.lunchMode, value.lunchPlaceName)}
+            value={getLocationModeLabel(value.lunchMode, value.lunchPlaceName)}
           />
         </div>
         <div className={styles.confirmSpotLine}>
@@ -652,7 +636,7 @@ function LocationModeTabs({
     <div className={styles.modeRow}>
       {label ? <span>{label}</span> : null}
       <ChipGroup
-        options={locationModeOptions}
+        options={LOCATION_MODE_OPTIONS}
         value={value}
         onChange={onChange}
       />
@@ -788,99 +772,4 @@ function ChipGroup<T extends string>({
       ))}
     </div>
   );
-}
-
-/**
- * 将行程强度枚举转换为页面展示文案。
- */
-function getIntensityLabel(value: ItineraryIntensity) {
-  return (
-    intensityOptions.find((option) => option.value === value)?.label ?? value
-  );
-}
-
-/**
- * 将地点安排模式转换为摘要文案，手动模式优先展示用户输入名称。
- */
-function getModeLabel(mode: LocationArrangeMode, manualName: string) {
-  if (mode === "manual") {
-    return manualName || "用户自定义";
-  }
-  return (
-    locationModeOptions.find((option) => option.value === mode)?.label ?? mode
-  );
-}
-
-/**
- * 将配置中的字符串日期转换为 Ant Design RangePicker 可识别的 Dayjs 值。
- */
-function resolveDateRangeValue(
-  tripStartDate: string,
-  tripEndDate: string,
-): [Dayjs, Dayjs] | null {
-  if (!tripStartDate || !tripEndDate) {
-    return null;
-  }
-
-  const startDate = dayjs(tripStartDate, "YYYY-MM-DD", true);
-  const endDate = dayjs(tripEndDate, "YYYY-MM-DD", true);
-  if (!startDate.isValid() || !endDate.isValid()) {
-    return null;
-  }
-
-  return [startDate, endDate];
-}
-
-/**
- * 同步日期范围选择结果，并自动计算新的行程天数。
- */
-function syncTripDateRangeByPicker(
-  value: SchedulePlanConfig,
-  dates: [Dayjs | null, Dayjs | null] | null,
-): SchedulePlanConfig {
-  if (!dates?.[0] || !dates?.[1]) {
-    return value;
-  }
-
-  const nextStartDate = dates[0].format("YYYY-MM-DD");
-  const nextEndDate = dates[1].format("YYYY-MM-DD");
-  return {
-    ...value,
-    tripStartDate: nextStartDate,
-    tripEndDate: nextEndDate,
-    tripDays: calculateTripDays(nextStartDate, nextEndDate),
-  };
-}
-
-/**
- * 根据起止日期计算行程天数，非法日期兜底为 1 天。
- */
-function calculateTripDays(startDate: string, endDate: string) {
-  const startTime = new Date(startDate).getTime();
-  const endTime = new Date(endDate).getTime();
-  if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) {
-    return 1;
-  }
-
-  const dayMs = 24 * 60 * 60 * 1000;
-  return Math.max(1, Math.floor((endTime - startTime) / dayMs) + 1);
-}
-
-/**
- * 构造半小时粒度的每日出发/结束时间选项。
- */
-function buildTimeOptions() {
-  const options: Array<{ label: string; value: string }> = [];
-
-  for (let hour = 6; hour <= 23; hour += 1) {
-    for (const minute of [0, 30]) {
-      const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-      options.push({
-        label: value,
-        value,
-      });
-    }
-  }
-
-  return options;
 }

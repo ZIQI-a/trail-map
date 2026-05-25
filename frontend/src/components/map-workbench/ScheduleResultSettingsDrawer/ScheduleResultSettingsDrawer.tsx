@@ -16,17 +16,29 @@ import {
   Switch,
   Tag,
 } from "antd";
-import dayjs from "dayjs";
-import type { Dayjs } from "dayjs";
 import { useState, type ReactNode } from "react";
+import {
+  getScheduleIntensityLabel,
+  resolveGeneratedItemTypeLabel,
+  resolveGeneratedServiceType,
+  resolveTravelServiceSymbolId,
+  SCHEDULE_INTENSITY_OPTIONS,
+  SCHEDULE_PREFERENCE_OPTIONS,
+  type TravelServiceType,
+} from "../../../config/schedulePlan";
 import type {
-  ItineraryIntensity,
   ItineraryItemDto,
   RoutePlanResponseDto,
   SchedulePlanConfig,
   SchedulePreferenceCode,
   TravelSpot,
 } from "../../../types/mapWorkbench";
+import {
+  buildTimeOptions,
+  formatMinutes,
+  resolveDateRangeValue,
+  syncTripDateRangeByPicker,
+} from "../../../utils/map-workbench/schedulePlanTime";
 import styles from "./ScheduleResultSettingsDrawer.module.css";
 
 const { RangePicker } = DatePicker;
@@ -42,23 +54,6 @@ interface ScheduleResultSettingsDrawerProps {
   onClose: () => void;
   onRegenerate: () => Promise<void> | void;
 }
-
-const intensityOptions: Array<{ label: string; value: ItineraryIntensity }> = [
-  { label: "轻松", value: "relaxed" },
-  { label: "标准", value: "standard" },
-  { label: "紧凑", value: "compact" },
-];
-
-const preferenceOptions: Array<{
-  color: string;
-  label: string;
-  value: SchedulePreferenceCode;
-}> = [
-  { label: "本地美食", value: "local_food", color: "green" },
-  { label: "夜游安排", value: "night_tour", color: "gold" },
-  { label: "地铁优先", value: "subway_first", color: "blue" },
-  { label: "亲子友好", value: "family_friendly", color: "purple" },
-];
 
 const timeOptions = buildTimeOptions();
 
@@ -241,7 +236,7 @@ export function ScheduleResultSettingsDrawer({
                 </span>
                 <Select
                   value={value.intensity}
-                  options={intensityOptions}
+                  options={SCHEDULE_INTENSITY_OPTIONS}
                   onChange={(intensity) =>
                     handleConfigChange({ ...value, intensity })
                   }
@@ -279,7 +274,7 @@ export function ScheduleResultSettingsDrawer({
               <ReadonlyItem
                 icon={<SmileOutlined />}
                 label="游玩强度"
-                value={getIntensityLabel(value.intensity)}
+                value={getScheduleIntensityLabel(value.intensity)}
               />
               <ReadonlyItem
                 icon={<ClockCircleOutlined />}
@@ -289,7 +284,7 @@ export function ScheduleResultSettingsDrawer({
             </div>
           )}
           <div className={styles.preferenceTags}>
-            {preferenceOptions.map((option) => {
+            {SCHEDULE_PREFERENCE_OPTIONS.map((option) => {
               const active = value.preferenceTags.includes(option.value);
               if (!isEditing) {
                 return active ? (
@@ -524,7 +519,7 @@ function MetricItem({
 /**
  * TravelServiceIcon 统一承接午餐、休息、住宿的阿里字体图标映射，避免页面散落业务图标判断。
  */
-function TravelServiceIcon({ type }: { type: "hotel" | "lunch" | "rest" }) {
+function TravelServiceIcon({ type }: { type: TravelServiceType }) {
   const symbolId = resolveTravelServiceSymbolId(type);
   return (
     <svg
@@ -565,7 +560,7 @@ function buildGeneratedArrangementItems(routePlan?: RoutePlanResponseDto) {
         note: item.note,
         placeName: item.placeName || item.title,
         timeText: `${item.suggestedStartTime} - ${item.suggestedEndTime}`,
-        typeLabel: resolveGeneratedTypeLabel(item.itemType),
+        typeLabel: resolveGeneratedItemTypeLabel(item.itemType),
       })),
   );
 }
@@ -593,120 +588,8 @@ function togglePreferenceTag(
 }
 
 /**
- * 将行程强度枚举转换为中文展示文案。
- */
-function getIntensityLabel(value: ItineraryIntensity) {
-  return (
-    intensityOptions.find((option) => option.value === value)?.label ?? value
-  );
-}
-
-/**
  * 将生成节点类型转换为视觉图标。
  */
 function resolveGeneratedIcon(itemType: ItineraryItemDto["itemType"]) {
-  if (itemType === "hotel" || itemType === "rest") {
-    return <TravelServiceIcon type={itemType} />;
-  }
-  return <TravelServiceIcon type="lunch" />;
-}
-
-/**
- * 将生成节点类型转换为中文说明。
- */
-function resolveGeneratedTypeLabel(itemType: ItineraryItemDto["itemType"]) {
-  if (itemType === "hotel") {
-    return "住宿安排";
-  }
-  if (itemType === "rest") {
-    return "休息安排";
-  }
-  return "用餐安排";
-}
-
-/**
- * 将业务节点类型映射到阿里字体 className，保证不同展示区图标一致。
- */
-function resolveTravelServiceSymbolId(type: "hotel" | "lunch" | "rest") {
-  if (type === "hotel") {
-    return "#icon-jiudianzhusu";
-  }
-  if (type === "rest") {
-    return "#icon-xiuxiqu";
-  }
-  return "#icon-wucan";
-}
-
-/**
- * 将分钟数格式化为短文本，缺失时展示占位。
- */
-function formatMinutes(minutes?: number) {
-  if (!minutes) {
-    return "--";
-  }
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-  return hours > 0 ? `${hours}h${restMinutes}m` : `${restMinutes}m`;
-}
-
-/**
- * 将字符串日期转换为 RangePicker 可识别的 Dayjs 范围。
- */
-function resolveDateRangeValue(
-  tripStartDate: string,
-  tripEndDate: string,
-): [Dayjs, Dayjs] | null {
-  const startDate = dayjs(tripStartDate, "YYYY-MM-DD", true);
-  const endDate = dayjs(tripEndDate, "YYYY-MM-DD", true);
-  if (!startDate.isValid() || !endDate.isValid()) {
-    return null;
-  }
-  return [startDate, endDate];
-}
-
-/**
- * 同步用户修改后的日期范围，并重新计算行程天数。
- */
-function syncTripDateRangeByPicker(
-  value: SchedulePlanConfig,
-  dates: [Dayjs | null, Dayjs | null] | null,
-): SchedulePlanConfig {
-  if (!dates?.[0] || !dates?.[1]) {
-    return value;
-  }
-
-  const tripStartDate = dates[0].format("YYYY-MM-DD");
-  const tripEndDate = dates[1].format("YYYY-MM-DD");
-  return {
-    ...value,
-    tripStartDate,
-    tripEndDate,
-    tripDays: calculateTripDays(tripStartDate, tripEndDate),
-  };
-}
-
-/**
- * 根据起止日期计算行程天数，非法日期兜底为 1 天。
- */
-function calculateTripDays(startDate: string, endDate: string) {
-  const startTime = new Date(startDate).getTime();
-  const endTime = new Date(endDate).getTime();
-  if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) {
-    return 1;
-  }
-  return Math.max(1, Math.floor((endTime - startTime) / 86400000) + 1);
-}
-
-/**
- * 构造半小时粒度时间选项，供每日出发和结束时间选择。
- */
-function buildTimeOptions() {
-  const options: Array<{ label: string; value: string }> = [];
-  for (let hour = 6; hour <= 23; hour += 1) {
-    for (const minute of [0, 30]) {
-      const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-      options.push({ label: value, value });
-    }
-  }
-  return options;
+  return <TravelServiceIcon type={resolveGeneratedServiceType(itemType)} />;
 }
