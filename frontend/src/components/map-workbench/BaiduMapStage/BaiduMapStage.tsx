@@ -404,22 +404,36 @@ export function BaiduMapStage({
   );
 }
 
-// 用内联 SVG 生成两套 Marker 图标，避免额外引入静态图片资源。
+// 用内联 SVG 生成景点锚点图标，避免额外引入静态图片资源。
 function createMarkerIcon(selected: boolean) {
-  const primaryColor = selected ? "#1f6aff" : "#203550";
-  const ringColor = selected ? "#dbe8ff" : "#ffffff";
+  const primaryColor = selected ? "#ff7aa2" : "#6ea8ff";
+  const highlightColor = selected ? "#ffd6e4" : "#dff0ff";
+  const innerRingColor = selected ? "#fff1f6" : "#f4fbff";
+  const innerDotColor = selected ? "#ff6a95" : "#4d88e6";
+  const shadowColor = selected
+    ? "rgba(255, 122, 162, 0.24)"
+    : "rgba(110, 168, 255, 0.22)";
+  const strokeColor = "#ffffff";
+  const width = 34;
+  const height = 46;
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
-      <path d="M15 1C8.37 1 3 6.37 3 13c0 9.48 12 23 12 23s12-13.52 12-23C27 6.37 21.63 1 15 1z" fill="${primaryColor}"/>
-      <circle cx="15" cy="13" r="5.5" fill="${ringColor}"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <ellipse cx="17" cy="41.5" rx="8" ry="3.5" fill="${shadowColor}"/>
+      <path d="M17 2C9.82 2 4 7.82 4 15c0 10.86 10.2 20.3 12.17 22a1.2 1.2 0 0 0 1.66 0C19.8 35.3 30 25.86 30 15 30 7.82 24.18 2 17 2z" fill="${primaryColor}"/>
+      <path d="M17 4.6c5.74 0 10.4 4.66 10.4 10.4 0 8.62-7.89 16.46-10.4 18.72C14.49 31.46 6.6 23.62 6.6 15 6.6 9.26 11.26 4.6 17 4.6z" fill="none" stroke="${strokeColor}" stroke-width="1.6" stroke-opacity="0.92"/>
+      <circle cx="13.2" cy="10.8" r="3.1" fill="${highlightColor}" fill-opacity="0.9" />
+      <circle cx="17" cy="15" r="6.6" fill="${innerRingColor}" />
+      <circle cx="17" cy="15" r="3.2" fill="${innerDotColor}" />
+      <path d="M12.4 10.1c1.08-.92 2.35-1.42 3.86-1.42 1.16 0 2.23.26 3.23.82" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M14.3 22.8c1.18 1.18 3.18 1.18 4.36 0" fill="none" stroke="rgba(255,255,255,0.62)" stroke-width="1.1" stroke-linecap="round"/>
     </svg>
   `;
 
   return new window.BMapGL!.Icon(
     `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    new window.BMapGL!.Size(30, 38),
+    new window.BMapGL!.Size(width, height),
     {
-      anchor: new window.BMapGL!.Size(15, 38),
+      anchor: new window.BMapGL!.Size(Math.round(width / 2), height - 8),
     },
   );
 }
