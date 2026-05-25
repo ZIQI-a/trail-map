@@ -5,6 +5,7 @@ import {
   Empty,
   message,
   Modal,
+  notification,
   Segmented,
   Spin,
   Tooltip,
@@ -139,6 +140,8 @@ export function MapWorkbenchPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const [notificationApi, notificationContextHolder] =
+    notification.useNotification();
   const [authToken, setAuthTokenState] = useState(() => getAuthToken());
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authError, setAuthError] = useState<string>();
@@ -783,8 +786,37 @@ export function MapWorkbenchPage() {
     }
   }
 
-  // 当前阶段保存动作直接复用已生成的路线结果，先给出稳定默认名称，后续再补自定义命名。
-  async function handleSaveCurrentTrip(options?: { redirect?: boolean }) {
+  /**
+   * 展示保存成功通知，由用户主动决定是否进入个人行程页。
+   */
+  function showTripSavedNotification() {
+    const notificationKey = "trip-saved-success";
+    notificationApi.success({
+      key: notificationKey,
+      message: "行程保存成功",
+      description:
+        "已保存到“我的行程”，你可以继续查看地图或进入个人行程页管理。",
+      duration: 4,
+      placement: "topLeft",
+      actions: (
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => {
+            notificationApi.destroy(notificationKey);
+            navigate("/trips");
+          }}
+        >
+          查看我的行程
+        </Button>
+      ),
+    });
+  }
+
+  /**
+   * 保存当前已生成的路线结果，默认停留在工作台并弹出可跳转通知。
+   */
+  async function handleSaveCurrentTrip(options?: { notify?: boolean }) {
     if (!authToken) {
       setAuthError(undefined);
       setAuthDialogOpen(true);
@@ -808,9 +840,8 @@ export function MapWorkbenchPage() {
     const tripId = await saveUserTripMutation.mutateAsync(payload);
     setActiveTripId(tripId);
     await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
-    message.success("行程已保存到我的行程");
-    if (options?.redirect !== false) {
-      navigate(`/trips`);
+    if (options?.notify !== false) {
+      showTripSavedNotification();
     }
     return tripId;
   }
@@ -821,7 +852,7 @@ export function MapWorkbenchPage() {
   async function handleCreatePublicShareLink() {
     let tripId = activeTripId;
     if (!tripId) {
-      tripId = await handleSaveCurrentTrip({ redirect: false });
+      tripId = await handleSaveCurrentTrip({ notify: false });
     }
     if (!tripId) {
       return undefined;
@@ -1119,6 +1150,7 @@ export function MapWorkbenchPage() {
 
   return (
     <main className={styles.workbenchShell}>
+      {notificationContextHolder}
       <WorkbenchHeader
         cities={cities}
         selectedCityId={activeCityId}

@@ -251,7 +251,6 @@ export function FavoritesPage() {
           <EnvironmentOutlined />
           <div>
             <strong>地图模式准备中</strong>
-            <p>当前按你的要求先完成景点收藏页，地图联动模式后续再接入。</p>
           </div>
         </section>
       ) : null}
