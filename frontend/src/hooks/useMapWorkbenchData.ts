@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchPublicTripDetail, fetchRoutePlan, fetchSpotDetail, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot, updateUserTripShare } from '../api/mapWorkbench';
+import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchPublicTripDetail, fetchRoutePlan, fetchSpotDetail, fetchUserProfileOverview, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot, updateUserTripShare } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto, SaveTripRequestDto } from '../types/mapWorkbench';
@@ -142,6 +142,15 @@ export function useCheckinSpotsQuery(
     queryFn: () => fetchCheckinSpots(params),
     enabled,
     placeholderData: (previousData) => previousData,
+  });
+}
+
+// 个人主页概览查询，统一返回真实统计口径。
+export function useUserProfileOverviewQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ['user-profile-overview'],
+    queryFn: fetchUserProfileOverview,
+    enabled,
   });
 }
 

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trailmap.mapper.UserProfileMapper">
+
+    <select id="selectUserProfileOverview" resultType="com.trailmap.model.response.UserProfileOverviewResponse">
+        SELECT
+            (
+                SELECT COUNT(DISTINCT city_id)
+                FROM (
+                    SELECT ut.city_id AS city_id
+                    FROM user_trip ut
+                    WHERE ut.user_id = #{userId}
+                      AND ut.status = 1
+                    UNION
+                    SELECT s.city_id AS city_id
+                    FROM user_checkin_spot uc
+                    INNER JOIN spot s ON uc.spot_id = s.id
+                    WHERE uc.user_id = #{userId}
+                      AND s.status = 1
+                ) city_union
+            ) AS visitedCityCount,
+            (
+                SELECT COUNT(1)
+                FROM user_favorite_spot uf
+                INNER JOIN spot s ON uf.spot_id = s.id
+                WHERE uf.user_id = #{userId}
+                  AND s.status = 1
+            ) AS favoriteSpotCount,
+            (
+                SELECT COUNT(1)
+                FROM user_checkin_spot uc
+                INNER JOIN spot s ON uc.spot_id = s.id
+                WHERE uc.user_id = #{userId}
+                  AND s.status = 1
+            ) AS checkinSpotCount,
+            (
+                SELECT COUNT(1)
+                FROM user_trip ut
+                WHERE ut.user_id = #{userId}
+                  AND ut.status = 1
+            ) AS tripCount,
+            (
+                SELECT COALESCE(SUM(ut.days), 0)
+                FROM user_trip ut
+                WHERE ut.user_id = #{userId}
+                  AND ut.status = 1
+            ) AS totalTravelDays,
+            COALESCE(
+                (
+                    SELECT c.city_name
+                    FROM user_checkin_spot uc
+                    INNER JOIN spot s ON uc.spot_id = s.id
+                    LEFT JOIN city c ON s.city_id = c.id
+                    WHERE uc.user_id = #{userId}
+                      AND s.status = 1
+                    ORDER BY uc.checkin_time DESC, uc.id DESC
+                    LIMIT 1
+                ),
+                (
+                    SELECT c.city_name
+                    FROM user_trip ut
+                    LEFT JOIN city c ON ut.city_id = c.id
+                    WHERE ut.user_id = #{userId}
+                      AND ut.status = 1
+                    ORDER BY ut.created_at DESC, ut.id DESC
+                    LIMIT 1
+                )
+            ) AS recentCityName
+    </select>
+</mapper>

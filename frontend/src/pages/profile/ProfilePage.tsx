@@ -10,7 +10,7 @@ import {
   RocketOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Empty, Spin, Tag } from "antd";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckinL7FootprintMap } from "../../components/checkins";
@@ -19,9 +19,11 @@ import {
   useCheckinSpotsQuery,
   useCurrentUserQuery,
   useFavoriteSpotsQuery,
+  useUserProfileOverviewQuery,
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import type { UserProfileOverviewDto } from "../../types/mapWorkbench";
 import styles from "./ProfilePage.module.css";
 
 const PROFILE_FAVORITE_PAGE_SIZE = 6;
@@ -29,11 +31,22 @@ const PROFILE_CHECKIN_PAGE_SIZE = 4;
 const PROFILE_MAP_CHECKIN_PAGE_SIZE = 500;
 const PROFILE_TRIP_PAGE_SIZE = 3;
 
+type ProfileStatItem = {
+  bg: string;
+  color: string;
+  icon: ReactNode;
+  label: string;
+  value: number | string;
+};
+
 export function ProfilePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const authToken = getAuthToken();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
+  const userProfileOverviewQuery = useUserProfileOverviewQuery(
+    Boolean(authToken),
+  );
 
   const favoriteSpotsQuery = useFavoriteSpotsQuery(
     { sortBy: "latest", pageNum: 1, pageSize: PROFILE_FAVORITE_PAGE_SIZE },
@@ -70,57 +83,10 @@ export function ProfilePage() {
     [userTripsQuery.data?.list],
   );
 
-  const profileStats = useMemo(() => {
-    const visitedCityCount = new Set([
-      ...checkinSpots.map((s) => s.cityName),
-      ...userTrips.map((t) => t.cityName),
-    ]).size;
-    const travelDays = userTrips.reduce((acc, t) => acc + t.days, 0);
-
-    return [
-      {
-        label: "去过城市",
-        value: visitedCityCount,
-        icon: <RocketOutlined />,
-        color: "#2e6cff",
-        bg: "#edf4ff",
-      },
-      {
-        label: "收藏景点",
-        value: favoriteSpotsQuery.data?.total ?? 0,
-        icon: <HeartFilled />,
-        color: "#10b981",
-        bg: "#eefcf9",
-      },
-      {
-        label: "保存行程",
-        value: userTripsQuery.data?.total ?? 0,
-        icon: <ReadOutlined />,
-        color: "#8b5cf6",
-        bg: "#f3efff",
-      },
-      {
-        label: "打卡景点",
-        value: checkinSpotsQuery.data?.total ?? 0,
-        icon: <PushpinFilled />,
-        color: "#f59e0b",
-        bg: "#fff7e5",
-      },
-      {
-        label: "旅行天数",
-        value: travelDays,
-        icon: <CompassOutlined />,
-        color: "#f43f5e",
-        bg: "#fff1f2",
-      },
-    ];
-  }, [
-    checkinSpots,
-    favoriteSpotsQuery.data?.total,
-    userTrips,
-    userTripsQuery.data?.total,
-    checkinSpotsQuery.data?.total,
-  ]);
+  const profileStats = useMemo(
+    () => buildProfileStats(userProfileOverviewQuery.data),
+    [userProfileOverviewQuery.data],
+  );
 
   function handleLogout() {
     clearAuthToken();
@@ -177,13 +143,13 @@ export function ProfilePage() {
           <div className={styles.userInfo}>
             <div className={styles.titleRow}>
               <h2>Hi, {currentUser.nickname || "旅行者"} 👋</h2>
-              <Tag className={styles.userTag}>旅行达人 Lv.3</Tag>
+              <Tag className={styles.userTag}>旅行达人</Tag>
             </div>
             <p className={styles.slogan}>用脚步丈量世界，用地图记录美好✨</p>
             <div className={styles.metaRow}>
               <span>
                 <EnvironmentOutlined /> 中国 ·{" "}
-                {checkinSpots[0]?.cityName || "未名市"}
+                {userProfileOverviewQuery.data?.recentCityName || "旅行中国"}
               </span>
               <span>
                 <CalendarOutlined /> 加入时间：
@@ -360,4 +326,49 @@ function formatDate(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(2, "0")}月${String(date.getDate()).padStart(2, "0")}日`;
+}
+
+/**
+ * 个人主页统计统一基于后端概览接口构造，避免前端依赖当前页列表自行计数。
+ */
+function buildProfileStats(
+  overview?: UserProfileOverviewDto,
+): ProfileStatItem[] {
+  return [
+    {
+      label: "去过城市",
+      value: overview?.visitedCityCount ?? "--",
+      icon: <RocketOutlined />,
+      color: "#2e6cff",
+      bg: "#edf4ff",
+    },
+    {
+      label: "收藏景点",
+      value: overview?.favoriteSpotCount ?? "--",
+      icon: <HeartFilled />,
+      color: "#10b981",
+      bg: "#eefcf9",
+    },
+    {
+      label: "保存行程",
+      value: overview?.tripCount ?? "--",
+      icon: <ReadOutlined />,
+      color: "#8b5cf6",
+      bg: "#f3efff",
+    },
+    {
+      label: "打卡景点",
+      value: overview?.checkinSpotCount ?? "--",
+      icon: <PushpinFilled />,
+      color: "#f59e0b",
+      bg: "#fff7e5",
+    },
+    {
+      label: "旅行天数",
+      value: overview?.totalTravelDays ?? "--",
+      icon: <CompassOutlined />,
+      color: "#f43f5e",
+      bg: "#fff1f2",
+    },
+  ];
 }

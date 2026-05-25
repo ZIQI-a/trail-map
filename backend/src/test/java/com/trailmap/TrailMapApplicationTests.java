@@ -542,6 +542,56 @@ class TrailMapApplicationTests {
     }
 
     @Test
+    void shouldReturnUserProfileOverview() throws Exception {
+        String userToken = registerAndLogin("profile_overview_user", "主页统计用户");
+
+        mockMvc.perform(post("/api/checkin-spots/101")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "remark": "打卡宽窄巷子"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(post("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "cityId": 2,
+                                  "tripName": "西安两日游",
+                                  "days": 2,
+                                  "transportType": "transit",
+                                  "planMode": "schedule",
+                                  "items": [
+                                    {
+                                      "spotId": 201,
+                                      "itemName": "陕西历史博物馆",
+                                      "itemType": "spot",
+                                      "dayIndex": 1,
+                                      "sortOrder": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/profile/overview")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.favoriteSpotCount").value(0))
+                .andExpect(jsonPath("$.data.checkinSpotCount").value(1))
+                .andExpect(jsonPath("$.data.tripCount").value(1))
+                .andExpect(jsonPath("$.data.totalTravelDays").value(2))
+                .andExpect(jsonPath("$.data.visitedCityCount").value(2))
+                .andExpect(jsonPath("$.data.recentCityName").value("成都市"));
+    }
+
+    @Test
     void shouldCheckinListAndCancelSpot() throws Exception {
         String userToken = registerAndLogin("checkin_owner_user", "足迹用户");
         String checkinBody = """

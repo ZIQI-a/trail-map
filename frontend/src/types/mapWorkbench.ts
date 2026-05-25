@@ -191,6 +191,16 @@ export interface CheckinSpotStatusDto {
   remark: string | null;
 }
 
+// 个人主页概览统计，对齐后端 /api/profile/overview。
+export interface UserProfileOverviewDto {
+  visitedCityCount: number;
+  favoriteSpotCount: number;
+  checkinSpotCount: number;
+  tripCount: number;
+  totalTravelDays: number;
+  recentCityName?: string | null;
+}
+
 // 我的收藏景点列表项，对齐后端收藏页接口结构。
 export interface FavoriteSpotItemDto {
   favoriteId: number;

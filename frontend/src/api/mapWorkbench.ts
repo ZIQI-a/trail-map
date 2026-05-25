@@ -14,6 +14,7 @@ import type {
   TravelCityDto,
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
+  UserProfileOverviewDto,
   UserTripDetailDto,
   UserTripSummaryDto,
 } from '../types/mapWorkbench';
@@ -161,6 +162,11 @@ export function fetchCheckinSpots(params?: {
   }
   const queryString = searchParams.toString();
   return request<PageResponse<CheckinSpotItemDto>>(`/api/checkin-spots${queryString ? `?${queryString}` : ''}`);
+}
+
+// 获取个人主页概览统计，避免前端依赖当前页列表自行计数。
+export function fetchUserProfileOverview() {
+  return request<UserProfileOverviewDto>('/api/profile/overview');
 }
 
 // 用百度地点检索把用户输入的起点名称解析成候选坐标。
