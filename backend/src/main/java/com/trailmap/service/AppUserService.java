@@ -2,6 +2,7 @@ package com.trailmap.service;
 
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.UserCreateRequest;
+import com.trailmap.model.query.UserProfileUpdateRequest;
 import com.trailmap.model.query.UserUpdateRequest;
 import com.trailmap.model.response.AppUserResponse;
 import com.trailmap.model.response.PageResponse;
@@ -18,6 +19,8 @@ public interface AppUserService {
     AppUserResponse createUser(UserCreateRequest request);
 
     AppUserResponse updateUser(Long userId, UserUpdateRequest request);
+
+    AppUserResponse updateCurrentUserProfile(Long userId, UserProfileUpdateRequest request);
 
     void deleteUser(Long userId);
 }

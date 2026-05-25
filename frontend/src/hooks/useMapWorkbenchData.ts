@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
+import { fetchCurrentUser, loginUser, registerUser, updateCurrentUserProfile } from '../api/auth';
 import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinFootprint, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchPublicTripDetail, fetchRoutePlan, fetchSpotDetail, fetchUserProfileOverview, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot, updateUserTripName, updateUserTripShare } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
-import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
+import type { LoginRequestDto, RegisterRequestDto, UserProfileUpdateRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto, SaveTripRequestDto, UpdateTripNameRequestDto } from '../types/mapWorkbench';
 
 // 地图工作台查询集合，集中管理城市、标签、列表和详情请求。
@@ -274,6 +274,14 @@ export function useCurrentUserQuery(enabled: boolean) {
     queryFn: fetchCurrentUser,
     enabled,
     retry: false,
+  });
+}
+
+// 更新当前用户个人资料。
+export function useUpdateCurrentUserProfileMutation() {
+  return useMutation({
+    mutationFn: (payload: UserProfileUpdateRequestDto) =>
+      updateCurrentUserProfile(payload),
   });
 }
 

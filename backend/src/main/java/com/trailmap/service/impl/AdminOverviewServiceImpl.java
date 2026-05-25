@@ -176,6 +176,7 @@ public class AdminOverviewServiceImpl implements AdminOverviewService {
                 user.getAvatarUrl(),
                 user.getPhone(),
                 user.getEmail(),
+                user.getRegion(),
                 user.getStatus(),
                 user.getLastLoginAt(),
                 user.getCreatedAt(),

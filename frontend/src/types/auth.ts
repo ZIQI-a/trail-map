@@ -7,6 +7,7 @@ export interface AppUserDto {
   avatarUrl?: string | null;
   phone?: string | null;
   email?: string | null;
+  region?: string | null;
   status: number;
   lastLoginAt?: string | null;
   createdAt: string;
@@ -35,5 +36,14 @@ export interface UserUpdateRequestDto {
   avatarUrl?: string | null;
   phone?: string | null;
   email?: string | null;
+  region?: string | null;
   status?: number;
+}
+
+export interface UserProfileUpdateRequestDto {
+  nickname?: string | null;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  region?: string | null;
 }

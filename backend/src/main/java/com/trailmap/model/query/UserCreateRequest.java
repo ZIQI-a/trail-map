@@ -26,6 +26,8 @@ public record UserCreateRequest(
         @Email(message = "邮箱格式不正确")
         @Size(max = 100, message = "邮箱最多 100 个字符")
         String email,
+        @Size(max = 100, message = "地区最多 100 个字符")
+        String region,
         Integer status
 ) {
 }

@@ -13,6 +13,7 @@ public record AppUserResponse(
         String avatarUrl,
         String phone,
         String email,
+        String region,
         Integer status,
         LocalDateTime lastLoginAt,
         LocalDateTime createdAt,

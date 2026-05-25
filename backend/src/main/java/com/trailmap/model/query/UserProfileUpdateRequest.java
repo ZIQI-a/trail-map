@@ -5,12 +5,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * 用户更新请求，密码不放在普通资料更新里，后续可单独提供重置密码接口。
+ * 当前用户资料更新请求，只开放个人可编辑字段。
  */
-public record UserUpdateRequest(
+public record UserProfileUpdateRequest(
         @Size(max = 50, message = "昵称最多 50 个字符")
         String nickname,
-        String userType,
         @Size(max = 255, message = "头像地址最多 255 个字符")
         String avatarUrl,
         @Pattern(regexp = "^$|^1\\d{10}$", message = "手机号格式不正确")
@@ -19,7 +18,6 @@ public record UserUpdateRequest(
         @Size(max = 100, message = "邮箱最多 100 个字符")
         String email,
         @Size(max = 100, message = "地区最多 100 个字符")
-        String region,
-        Integer status
+        String region
 ) {
 }

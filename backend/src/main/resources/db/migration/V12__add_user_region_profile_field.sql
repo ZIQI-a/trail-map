@@ -1,0 +1,2 @@
+ALTER TABLE app_user
+    ADD COLUMN region VARCHAR(100);

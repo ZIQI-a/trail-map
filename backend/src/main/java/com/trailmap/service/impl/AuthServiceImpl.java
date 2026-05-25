@@ -52,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
                 request.avatarUrl(),
                 request.phone(),
                 request.email(),
+                request.region(),
                 STATUS_ENABLED);
         AppUserResponse user = appUserService.createUser(normalizedRequest);
         return new AuthLoginResponse(authTokenService.issueToken(user.id()), "Bearer", user);
@@ -93,6 +94,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getAvatarUrl(),
                 user.getPhone(),
                 user.getEmail(),
+                user.getRegion(),
                 user.getStatus(),
                 user.getLastLoginAt(),
                 user.getCreatedAt(),

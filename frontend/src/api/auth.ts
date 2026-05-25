@@ -4,6 +4,7 @@ import type {
   AuthLoginResponseDto,
   LoginRequestDto,
   RegisterRequestDto,
+  UserProfileUpdateRequestDto,
 } from "../types/auth";
 
 // 用户注册：后端注册成功后直接返回 token 和当前用户。
@@ -25,4 +26,12 @@ export function loginUser(payload: LoginRequestDto) {
 // 当前用户：依赖请求层自动携带 Authorization。
 export function fetchCurrentUser() {
   return request<AppUserDto>("/api/auth/me");
+}
+
+// 当前用户编辑个人资料。
+export function updateCurrentUserProfile(payload: UserProfileUpdateRequestDto) {
+  return request<AppUserDto>("/api/profile/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }

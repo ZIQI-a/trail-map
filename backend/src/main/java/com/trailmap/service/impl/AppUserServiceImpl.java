@@ -9,6 +9,7 @@ import com.trailmap.exception.BusinessException;
 import com.trailmap.mapper.AppUserMapper;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.UserCreateRequest;
+import com.trailmap.model.query.UserProfileUpdateRequest;
 import com.trailmap.model.query.UserUpdateRequest;
 import com.trailmap.model.response.AppUserResponse;
 import com.trailmap.model.response.PageResponse;
@@ -90,6 +91,7 @@ public class AppUserServiceImpl implements AppUserService {
         user.setAvatarUrl(normalizeBlank(request.avatarUrl()));
         user.setPhone(normalizeBlank(request.phone()));
         user.setEmail(normalizeBlank(request.email()));
+        user.setRegion(normalizeBlank(request.region()));
         user.setStatus(request.status() == null ? STATUS_ENABLED : request.status());
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
@@ -117,8 +119,36 @@ public class AppUserServiceImpl implements AppUserService {
         if (request.email() != null) {
             user.setEmail(normalizeBlank(request.email()));
         }
+        if (request.region() != null) {
+            user.setRegion(normalizeBlank(request.region()));
+        }
         if (request.status() != null) {
             user.setStatus(request.status());
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+        appUserMapper.updateById(user);
+        return toResponse(user);
+    }
+
+    @Override
+    public AppUserResponse updateCurrentUserProfile(Long userId, UserProfileUpdateRequest request) {
+        AppUser user = loadActiveUser(userId);
+        validateUniqueFields(userId, null, request.phone(), request.email());
+
+        if (request.nickname() != null) {
+            user.setNickname(normalizeBlank(request.nickname()));
+        }
+        if (request.avatarUrl() != null) {
+            user.setAvatarUrl(normalizeBlank(request.avatarUrl()));
+        }
+        if (request.phone() != null) {
+            user.setPhone(normalizeBlank(request.phone()));
+        }
+        if (request.email() != null) {
+            user.setEmail(normalizeBlank(request.email()));
+        }
+        if (request.region() != null) {
+            user.setRegion(normalizeBlank(request.region()));
         }
         user.setUpdatedAt(LocalDateTime.now());
         appUserMapper.updateById(user);
@@ -153,6 +183,7 @@ public class AppUserServiceImpl implements AppUserService {
                 user.getAvatarUrl(),
                 user.getPhone(),
                 user.getEmail(),
+                user.getRegion(),
                 user.getStatus(),
                 user.getLastLoginAt(),
                 user.getCreatedAt(),

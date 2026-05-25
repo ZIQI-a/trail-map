@@ -21,6 +21,7 @@ public class AppUser {
     private String avatarUrl;
     private String phone;
     private String email;
+    private String region;
     private Integer status;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
@@ -88,6 +89,14 @@ public class AppUser {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
     }
 
     public Integer getStatus() {

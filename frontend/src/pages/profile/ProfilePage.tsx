@@ -116,7 +116,11 @@ export function ProfilePage() {
     <PersonalPageLayout currentUser={currentUser} onLogout={handleLogout}>
       {/* 顶部 Hero 卡片 */}
       <section className={styles.heroCard}>
-        <Button className={styles.editBtn} icon={<EditOutlined />}>
+        <Button
+          className={styles.editBtn}
+          icon={<EditOutlined />}
+          onClick={() => navigate("/profile/edit")}
+        >
           编辑资料
         </Button>
 
@@ -129,7 +133,6 @@ export function ProfilePage() {
             >
               {currentUser.nickname?.slice(0, 1) ?? "旅"}
             </Avatar>
-            <div className={styles.levelBadge}>Lv.3</div>
           </div>
 
           <div className={styles.userInfo}>
@@ -140,8 +143,7 @@ export function ProfilePage() {
             <p className={styles.slogan}>用脚步丈量世界，用地图记录美好✨</p>
             <div className={styles.metaRow}>
               <span>
-                <EnvironmentOutlined /> 中国 ·{" "}
-                {userProfileOverviewQuery.data?.recentCityName || "旅行中国"}
+                <EnvironmentOutlined /> {currentUser.region || "未设置地区"}
               </span>
               <span>
                 <CalendarOutlined /> 加入时间：

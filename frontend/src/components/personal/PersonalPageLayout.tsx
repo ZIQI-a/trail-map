@@ -41,7 +41,7 @@ export function PersonalPageLayout({
           <nav className={styles.personalTabs} aria-label="个人中心页面切换">
             {personalNavItems.map((item) => (
               <button
-                className={`${styles.personalTab} ${location.pathname === item.path ? styles.personalTabActive : ""}`}
+                className={`${styles.personalTab} ${location.pathname === item.path || location.pathname.startsWith(`${item.path}/`) ? styles.personalTabActive : ""}`}
                 type="button"
                 key={item.path}
                 onClick={() => navigate(item.path)}
