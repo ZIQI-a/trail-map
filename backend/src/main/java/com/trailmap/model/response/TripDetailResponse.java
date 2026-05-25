@@ -24,6 +24,8 @@ public record TripDetailResponse(
     Integer totalDuration,
     Long routeRecordId,
     String coverUrl,
+    Boolean isPublic,
+    String shareToken,
     LocalDateTime createdAt,
     List<TripDaySpotsResponse> itineraryDays,
     List<RouteSegmentResponse> routeSegments

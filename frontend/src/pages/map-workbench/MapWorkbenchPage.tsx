@@ -49,12 +49,14 @@ import {
   useCurrentUserQuery,
   useLoginMutation,
   usePoiCandidatesQuery,
+  usePublicTripDetailQuery,
   useRegisterMutation,
   useRoutePlanMutation,
   useSaveUserTripMutation,
   useSpotDetailQuery,
   useUncheckinSpotMutation,
   useUnfavoriteSpotMutation,
+  useUpdateUserTripShareMutation,
   useUserTripDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -176,11 +178,13 @@ export function MapWorkbenchPage() {
   const [dragOverTripDock, setDragOverTripDock] = useState(false);
   const [routePlanResult, setRoutePlanResult] =
     useState<RoutePlanResponseDto>();
-  const [shareTripId, setShareTripId] = useState<number>();
+  const [activeTripId, setActiveTripId] = useState<number>();
+  const [activeShareToken, setActiveShareToken] = useState<string | null>();
 
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
   const saveUserTripMutation = useSaveUserTripMutation();
+  const updateUserTripShareMutation = useUpdateUserTripShareMutation();
   const loginMutation = useLoginMutation();
   const registerMutation = useRegisterMutation();
   const favoriteSpotMutation = useFavoriteSpotMutation();
@@ -189,9 +193,14 @@ export function MapWorkbenchPage() {
   const uncheckinSpotMutation = useUncheckinSpotMutation();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const savedTripId = parsePositiveNumber(searchParams.get("tripId"));
+  const publicShareToken = searchParams.get("shareToken")?.trim() || undefined;
   const savedTripDetailQuery = useUserTripDetailQuery(
     savedTripId,
     Boolean(authToken && savedTripId),
+  );
+  const publicTripDetailQuery = usePublicTripDetailQuery(
+    publicShareToken,
+    Boolean(publicShareToken),
   );
 
   const cities = useMemo(
@@ -408,7 +417,8 @@ export function MapWorkbenchPage() {
 
     queueMicrotask(() => {
       const nextRoutePlan = buildRoutePlanFromSavedTrip(savedTrip);
-      setShareTripId(savedTrip.id);
+      setActiveTripId(savedTrip.id);
+      setActiveShareToken(savedTrip.shareToken ?? null);
       setSelectedCityId(savedTrip.cityId);
       setSelectedTransport(savedTrip.transportType);
       setSelectedPlanMode(savedTrip.planMode);
@@ -439,6 +449,63 @@ export function MapWorkbenchPage() {
     savedTripDetailQuery.data,
     savedTripDetailQuery.error,
     savedTripId,
+  ]);
+
+  // 公开分享链接不依赖登录态；通过 shareToken 加载别人公开的行程。
+  useEffect(() => {
+    if (!publicShareToken) {
+      return;
+    }
+
+    if (publicTripDetailQuery.error) {
+      queueMicrotask(() => {
+        setPlannerAssistError(
+          publicTripDetailQuery.error instanceof Error
+            ? publicTripDetailQuery.error.message
+            : "公开行程加载失败",
+        );
+      });
+      return;
+    }
+
+    const publicTrip = publicTripDetailQuery.data;
+    if (!publicTrip) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      const nextRoutePlan = buildRoutePlanFromSavedTrip(publicTrip);
+      setActiveTripId(publicTrip.id);
+      setActiveShareToken(publicTrip.shareToken ?? publicShareToken);
+      setSelectedCityId(publicTrip.cityId);
+      setSelectedTransport(publicTrip.transportType);
+      setSelectedPlanMode(publicTrip.planMode);
+      setTripSpotIds(resolveSavedTripSpotIds(publicTrip));
+      setStartPoint(publicTrip.startName || `${publicTrip.cityName}市中心`);
+      setStartPointPosition(
+        nextRoutePlan.segments[0]?.fromPosition ?? undefined,
+      );
+      setScheduleConfig((currentConfig) => ({
+        ...currentConfig,
+        tripStartDate: publicTrip.startDate ?? currentConfig.tripStartDate,
+        tripEndDate: publicTrip.endDate ?? currentConfig.tripEndDate,
+        tripDays: publicTrip.days || currentConfig.tripDays,
+        dailyStartTime:
+          nextRoutePlan.itineraryDays[0]?.startTime ??
+          currentConfig.dailyStartTime,
+      }));
+      setRoutePlanResult(nextRoutePlan);
+      if (
+        nextRoutePlan.planMode === "schedule" &&
+        nextRoutePlan.itineraryDays[0]
+      ) {
+        setSelectedScheduleDay(nextRoutePlan.itineraryDays[0].dayIndex);
+      }
+    });
+  }, [
+    publicShareToken,
+    publicTripDetailQuery.data,
+    publicTripDetailQuery.error,
   ]);
 
   async function handleLogin(payload: LoginRequestDto) {
@@ -482,10 +549,12 @@ export function MapWorkbenchPage() {
 
   // 关闭已保存行程回放时同步移除 URL 参数，避免刷新页面后又自动打开同一条行程。
   function clearSavedTripReplayParam() {
-    setShareTripId(undefined);
+    setActiveTripId(undefined);
+    setActiveShareToken(undefined);
     setSearchParams((currentParams) => {
       const nextParams = new URLSearchParams(currentParams);
       nextParams.delete("tripId");
+      nextParams.delete("shareToken");
       return nextParams;
     });
   }
@@ -705,7 +774,8 @@ export function MapWorkbenchPage() {
       hotelLocation,
       returnToHotel: config?.returnToHotel,
     });
-    setShareTripId(undefined);
+    setActiveTripId(undefined);
+    setActiveShareToken(undefined);
     setRoutePlanResult(result);
     clearSavedTripReplayParam();
     if (result.planMode === "schedule" && result.itineraryDays.length > 0) {
@@ -736,13 +806,34 @@ export function MapWorkbenchPage() {
       scheduleConfig,
     });
     const tripId = await saveUserTripMutation.mutateAsync(payload);
-    setShareTripId(tripId);
+    setActiveTripId(tripId);
     await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
     message.success("行程已保存到我的行程");
     if (options?.redirect !== false) {
       navigate(`/trips`);
     }
     return tripId;
+  }
+
+  /**
+   * 分享行程时先确保已保存，再开启公开分享并返回 shareToken。
+   */
+  async function handleCreatePublicShareLink() {
+    let tripId = activeTripId;
+    if (!tripId) {
+      tripId = await handleSaveCurrentTrip({ redirect: false });
+    }
+    if (!tripId) {
+      return undefined;
+    }
+
+    const shareResult = await updateUserTripShareMutation.mutateAsync({
+      tripId,
+      enabled: true,
+    });
+    setActiveTripId(shareResult.tripId);
+    setActiveShareToken(shareResult.shareToken ?? null);
+    return shareResult.shareToken;
   }
 
   /**
@@ -1188,12 +1279,13 @@ export function MapWorkbenchPage() {
                   : undefined
               }
               selectedDayIndex={activeScheduleDay?.dayIndex}
-              shareTripId={savedTripId ?? shareTripId}
-              saving={saveUserTripMutation.isPending}
-              onFocusLocation={handleFocusRouteTimelineLocation}
-              onCreateShareLink={() =>
-                handleSaveCurrentTrip({ redirect: false })
+              shareToken={activeShareToken}
+              saving={
+                saveUserTripMutation.isPending ||
+                updateUserTripShareMutation.isPending
               }
+              onFocusLocation={handleFocusRouteTimelineLocation}
+              onCreateShareLink={handleCreatePublicShareLink}
               onSaveTrip={() => handleSaveCurrentTrip()}
               onClose={() => {
                 setRoutePlanResult(undefined);

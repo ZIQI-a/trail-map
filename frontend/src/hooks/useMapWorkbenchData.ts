@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchRoutePlan, fetchSpotDetail, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot } from '../api/mapWorkbench';
+import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchPublicTripDetail, fetchRoutePlan, fetchSpotDetail, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot, updateUserTripShare } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
 import type { RoutePlanRequestDto, SaveTripRequestDto } from '../types/mapWorkbench';
@@ -202,6 +202,23 @@ export function useUserTripDetailQuery(tripId?: number, enabled = false) {
     queryKey: ['user-trip-detail', tripId],
     queryFn: () => fetchUserTripDetail(tripId!),
     enabled: enabled && tripId != null,
+  });
+}
+
+// 公开分享行程详情查询，不依赖登录态。
+export function usePublicTripDetailQuery(shareToken?: string, enabled = false) {
+  return useQuery({
+    queryKey: ['public-trip-detail', shareToken],
+    queryFn: () => fetchPublicTripDetail(shareToken!),
+    enabled: enabled && Boolean(shareToken),
+  });
+}
+
+// 更新行程公开分享状态。
+export function useUpdateUserTripShareMutation() {
+  return useMutation({
+    mutationFn: (payload: { enabled: boolean; tripId: number }) =>
+      updateUserTripShare(payload.tripId, payload.enabled),
   });
 }
 

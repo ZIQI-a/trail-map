@@ -21,6 +21,8 @@ public record TripSummaryResponse(
     Integer totalDistance,
     Integer totalDuration,
     String coverUrl,
+    Boolean isPublic,
+    String shareToken,
     LocalDateTime createdAt
 ) {
 }

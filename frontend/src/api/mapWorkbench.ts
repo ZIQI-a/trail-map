@@ -10,6 +10,7 @@ import type {
   RoutePlanResponseDto,
   SaveTripRequestDto,
   SpotTagDto,
+  TripShareDto,
   TravelCityDto,
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
@@ -206,6 +207,18 @@ export function fetchUserTrips(params?: { pageNum?: number; pageSize?: number })
 // 获取指定已保存行程的详情。
 export function fetchUserTripDetail(tripId: number) {
   return request<UserTripDetailDto>(`/api/user-trips/${tripId}`);
+}
+
+// 获取公开分享的行程详情，未登录用户也可以访问。
+export function fetchPublicTripDetail(shareToken: string) {
+  return request<UserTripDetailDto>(`/api/public-trips/${shareToken}`);
+}
+
+// 开启或关闭当前用户行程的公开分享状态。
+export function updateUserTripShare(tripId: number, enabled: boolean) {
+  return request<TripShareDto>(`/api/user-trips/${tripId}/share?enabled=${String(enabled)}`, {
+    method: 'PUT',
+  });
 }
 
 // 删除指定已保存行程。

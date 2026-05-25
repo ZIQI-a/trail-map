@@ -30,6 +30,9 @@ public class UserTrip {
     private Integer totalStayDuration;
     private Integer totalTripDuration;
     private String coverUrl;
+    private Integer isPublic;
+    private String shareToken;
+    private LocalDateTime sharedAt;
     private Integer status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -168,6 +171,30 @@ public class UserTrip {
 
     public void setCoverUrl(String coverUrl) {
         this.coverUrl = coverUrl;
+    }
+
+    public Integer getIsPublic() {
+        return isPublic;
+    }
+
+    public void setIsPublic(Integer isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    public String getShareToken() {
+        return shareToken;
+    }
+
+    public void setShareToken(String shareToken) {
+        this.shareToken = shareToken;
+    }
+
+    public LocalDateTime getSharedAt() {
+        return sharedAt;
+    }
+
+    public void setSharedAt(LocalDateTime sharedAt) {
+        this.sharedAt = sharedAt;
     }
 
     public Integer getStatus() {

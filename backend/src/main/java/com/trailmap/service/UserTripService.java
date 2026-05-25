@@ -4,6 +4,7 @@ import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
+import com.trailmap.model.response.TripShareResponse;
 import com.trailmap.model.response.TripSummaryResponse;
 
 /**
@@ -25,6 +26,16 @@ public interface UserTripService {
      * 获取行程详情。
      */
     TripDetailResponse getTripDetail(Long userId, Long tripId);
+
+    /**
+     * 获取公开分享行程详情。
+     */
+    TripDetailResponse getPublicTripDetail(String shareToken);
+
+    /**
+     * 开启或关闭行程公开分享。
+     */
+    TripShareResponse updateTripShare(Long userId, Long tripId, boolean enabled);
 
     /**
      * 删除行程。

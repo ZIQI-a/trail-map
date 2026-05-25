@@ -8,20 +8,20 @@ interface RouteShareDialogProps {
   open: boolean;
   routeSummary: string;
   routeTitle: string;
-  shareTripId?: number;
+  shareToken?: string | null;
   onClose: () => void;
-  onCreateShareLink: () => Promise<number | undefined> | number | undefined;
+  onCreateShareLink: () => Promise<string | null | undefined> | string | null | undefined;
 }
 
 /**
- * RouteShareDialog 展示当前行程的分享链接；未保存时先触发保存再生成稳定链接。
+ * RouteShareDialog 展示当前行程的公开分享链接；未公开时先开启分享。
  */
 export function RouteShareDialog({
   loading = false,
   open,
   routeSummary,
   routeTitle,
-  shareTripId,
+  shareToken,
   onClose,
   onCreateShareLink,
 }: RouteShareDialogProps) {
@@ -30,10 +30,10 @@ export function RouteShareDialog({
   );
   const shareLink = useMemo(
     () =>
-      shareTripId
-        ? `${window.location.origin}/?tripId=${shareTripId}`
+      shareToken
+        ? `${window.location.origin}/?shareToken=${shareToken}`
         : undefined,
-    [shareTripId],
+    [shareToken],
   );
 
   /**
@@ -52,7 +52,7 @@ export function RouteShareDialog({
   }
 
   /**
-   * 保存当前行程并等待父级回填 tripId，随后弹窗展示可复制链接。
+   * 保存并开启公开分享，随后弹窗展示可复制链接。
    */
   async function handleCreateShareLink() {
     setCopyState("idle");
@@ -95,15 +95,15 @@ export function RouteShareDialog({
           </section>
         ) : (
           <section className={styles.unsavedPanel}>
-            <strong>保存后行程后才能分享哦~</strong>
-            <p>先保存到“我的行程”，系统会生成可回放的分享链接。</p>
+            <strong>当前行程还没有公开分享链接</strong>
+            <p>开启公开分享后，未登录用户也可以通过链接查看这条行程。</p>
             <Button
               type="primary"
               icon={<SaveOutlined />}
               loading={loading}
               onClick={() => void handleCreateShareLink()}
             >
-              保存并生成链接
+              开启公开分享
             </Button>
           </section>
         )}

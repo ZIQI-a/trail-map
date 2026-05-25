@@ -49,10 +49,10 @@ interface RoutePlanDrawerProps {
   startPosition?: GeoPoint;
   scheduleStartTime?: string;
   selectedDayIndex?: number;
-  shareTripId?: number;
+  shareToken?: string | null;
   saving?: boolean;
   onFocusLocation: (target: RouteTimelineFocusTarget) => void;
-  onCreateShareLink: () => Promise<number | undefined> | number | undefined;
+  onCreateShareLink: () => Promise<string | null | undefined> | string | null | undefined;
   onSaveTrip: () => Promise<number | undefined> | number | undefined;
   onClose: () => void;
 }
@@ -74,7 +74,7 @@ export function RoutePlanDrawer({
   startPosition,
   scheduleStartTime,
   selectedDayIndex,
-  shareTripId,
+  shareToken,
   saving = false,
   onFocusLocation,
   onCreateShareLink,
@@ -187,7 +187,7 @@ export function RoutePlanDrawer({
         loading={saving}
         routeTitle={`${cityName}${routePlan.planMode === "free" ? "一日游路线" : "完整行程"}`}
         routeSummary={summaryText}
-        shareTripId={shareTripId}
+        shareToken={shareToken}
         onClose={() => setShareOpen(false)}
         onCreateShareLink={onCreateShareLink}
       />

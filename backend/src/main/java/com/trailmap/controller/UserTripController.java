@@ -5,6 +5,7 @@ import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
+import com.trailmap.model.response.TripShareResponse;
 import com.trailmap.model.response.TripSummaryResponse;
 import com.trailmap.security.AuthUserPrincipal;
 import com.trailmap.service.UserTripService;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -72,6 +74,18 @@ public class UserTripController {
             @AuthenticationPrincipal AuthUserPrincipal principal,
             @PathVariable @Positive(message = "行程 ID 必须大于 0") Long id) {
         return ApiResponse.success(userTripService.getTripDetail(principal.userId(), id));
+    }
+
+    /**
+     * 更新指定行程的公开分享状态。
+     */
+    @PutMapping("/{id}/share")
+    @Operation(summary = "更新行程公开分享状态")
+    public ApiResponse<TripShareResponse> updateTripShare(
+            @AuthenticationPrincipal AuthUserPrincipal principal,
+            @PathVariable @Positive(message = "行程 ID 必须大于 0") Long id,
+            @RequestParam Boolean enabled) {
+        return ApiResponse.success(userTripService.updateTripShare(principal.userId(), id, Boolean.TRUE.equals(enabled)));
     }
 
     /**

@@ -468,6 +468,8 @@ export interface UserTripSummaryDto {
   totalDistance: number;
   totalDuration: number;
   coverUrl?: string | null;
+  isPublic?: boolean;
+  shareToken?: string | null;
   createdAt: string;
 }
 
@@ -537,7 +539,16 @@ export interface UserTripDetailDto {
   totalDuration: number;
   routeRecordId?: number | null;
   coverUrl?: string | null;
+  isPublic?: boolean;
+  shareToken?: string | null;
   createdAt: string;
   itineraryDays: UserTripDayDetailDto[];
   routeSegments: UserTripRouteSegmentDetailDto[];
+}
+
+// 行程公开分享状态响应。
+export interface TripShareDto {
+  tripId: number;
+  isPublic: boolean;
+  shareToken?: string | null;
 }

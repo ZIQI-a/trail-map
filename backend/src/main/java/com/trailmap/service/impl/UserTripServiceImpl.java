@@ -22,15 +22,15 @@ import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
+import com.trailmap.model.response.TripShareResponse;
 import com.trailmap.model.response.TripSummaryResponse;
 import com.trailmap.service.UserTripService;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,6 +101,7 @@ public class UserTripServiceImpl implements UserTripService {
         trip.setTotalStayDuration(request.getTotalStayDuration() != null ? request.getTotalStayDuration() : 0);
         trip.setTotalTripDuration(request.getTotalTripDuration() != null ? request.getTotalTripDuration() : 0);
         trip.setCoverUrl(request.getCoverUrl() != null ? request.getCoverUrl() : city.getCoverUrl());
+        trip.setIsPublic(0);
         trip.setStatus(1);
         trip.setCreatedAt(LocalDateTime.now());
         trip.setUpdatedAt(LocalDateTime.now());
@@ -329,8 +330,9 @@ public class UserTripServiceImpl implements UserTripService {
                         .orderByDesc(UserTrip::getCreatedAt));
 
         List<Long> cityIds = page.getRecords().stream().map(UserTrip::getCityId).distinct().toList();
-        Map<Long, String> cityIdToName = cityMapper.selectBatchIds(cityIds).stream()
-                .collect(Collectors.toMap(City::getId, City::getCityName));
+        Map<Long, String> cityIdToName = cityIds.isEmpty() ? Map.of()
+                : cityMapper.selectBatchIds(cityIds).stream()
+                        .collect(Collectors.toMap(City::getId, City::getCityName));
 
         List<TripSummaryResponse> list = page.getRecords().stream().map(t -> new TripSummaryResponse(
                 t.getId(),
@@ -347,6 +349,8 @@ public class UserTripServiceImpl implements UserTripService {
                 t.getTotalDistance(),
                 t.getTotalTripDuration(), // 列表展示总耗时
                 t.getCoverUrl(),
+                isPublicTrip(t),
+                t.getShareToken(),
                 t.getCreatedAt())).toList();
 
         return PageResponse.paged(list, page.getTotal(), page.getCurrent(), page.getSize());
@@ -359,6 +363,54 @@ public class UserTripServiceImpl implements UserTripService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "行程不存在或无权访问");
         }
 
+        return buildTripDetailResponse(trip);
+    }
+
+    @Override
+    public TripDetailResponse getPublicTripDetail(String shareToken) {
+        if (!StringUtils.hasText(shareToken)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "分享链接无效");
+        }
+        UserTrip trip = userTripMapper.selectOne(
+                new LambdaQueryWrapper<UserTrip>()
+                        .eq(UserTrip::getShareToken, shareToken)
+                        .eq(UserTrip::getIsPublic, 1)
+                        .eq(UserTrip::getStatus, 1));
+        if (trip == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公开行程不存在或已关闭分享");
+        }
+
+        return buildTripDetailResponse(trip);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TripShareResponse updateTripShare(Long userId, Long tripId, boolean enabled) {
+        UserTrip trip = userTripMapper.selectById(tripId);
+        if (trip == null || !trip.getUserId().equals(userId) || !Integer.valueOf(1).equals(trip.getStatus())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "行程不存在或无权访问");
+        }
+
+        if (enabled) {
+            trip.setIsPublic(1);
+            if (!StringUtils.hasText(trip.getShareToken())) {
+                trip.setShareToken(generateShareToken());
+            }
+            trip.setSharedAt(LocalDateTime.now());
+        } else {
+            trip.setIsPublic(0);
+        }
+        trip.setUpdatedAt(LocalDateTime.now());
+        userTripMapper.updateById(trip);
+
+        return new TripShareResponse(trip.getId(), isPublicTrip(trip), trip.getShareToken());
+    }
+
+    /**
+     * 组装行程详情响应，私有访问和公开分享访问复用同一套映射逻辑。
+     */
+    private TripDetailResponse buildTripDetailResponse(UserTrip trip) {
+        Long tripId = trip.getId();
         City city = cityMapper.selectById(trip.getCityId());
         List<UserTripItem> items = userTripItemMapper.selectList(
                 new LambdaQueryWrapper<UserTripItem>()
@@ -450,10 +502,26 @@ public class UserTripServiceImpl implements UserTripService {
                 trip.getTotalTripDuration(),
                 trip.getRouteRecordId(),
                 trip.getCoverUrl(),
+                isPublicTrip(trip),
+                trip.getShareToken(),
                 trip.getCreatedAt(),
                 itineraryDays,
                 routeSegments
         );
+    }
+
+    /**
+     * 生成公开分享令牌，使用无横线 UUID 降低被猜测概率。
+     */
+    private String generateShareToken() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    /**
+     * 将数据库 tinyint 分享状态转换为前端布尔值。
+     */
+    private boolean isPublicTrip(UserTrip trip) {
+        return Integer.valueOf(1).equals(trip.getIsPublic());
     }
 
     @Override
