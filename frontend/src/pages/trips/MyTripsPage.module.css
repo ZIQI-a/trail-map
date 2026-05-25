@@ -215,6 +215,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
   padding-top: 20px;
   border-top: 1px dashed #e1e9f4;
 }
@@ -223,6 +225,40 @@
   color: #a4b3cc;
   font-size: 13px;
   font-weight: 600;
+}
+
+.shareActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shareSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dce7f5;
+  border-radius: 999px;
+  background: #f8fbff;
+}
+
+.shareLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #55708f;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.copyShareButton {
+  height: 36px;
+  padding-inline: 14px;
+  border-radius: 10px;
+  font-weight: 800;
 }
 
 .cardActions {
@@ -302,6 +338,7 @@
     flex-direction: column;
     padding: 20px;
   }
+
   .cardCover {
     width: 100%;
     height: 200px;
@@ -313,8 +350,14 @@
     flex-direction: column;
     align-items: stretch;
   }
+
   .toolbarFilters {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .cardFooter {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

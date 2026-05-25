@@ -5,6 +5,8 @@ import {
   ClockCircleOutlined,
   DeleteOutlined,
   EnvironmentOutlined,
+  LinkOutlined,
+  ShareAltOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import {
@@ -16,6 +18,7 @@ import {
   Segmented,
   Select,
   Spin,
+  Switch,
   Tag,
   message,
 } from "antd";
@@ -27,6 +30,7 @@ import {
   useCitiesQuery,
   useCurrentUserQuery,
   useDeleteUserTripMutation,
+  useUpdateUserTripShareMutation,
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { clearAuthToken, getAuthToken } from "../../lib/authToken";
@@ -62,6 +66,7 @@ export function MyTripsPage() {
     Boolean(authToken),
   );
   const deleteUserTripMutation = useDeleteUserTripMutation();
+  const updateUserTripShareMutation = useUpdateUserTripShareMutation();
   const allTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
 
   const cityOptions = useMemo(
@@ -113,6 +118,33 @@ export function MyTripsPage() {
     await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
   }
 
+  /**
+   * 切换行程公开分享状态；开启后生成 shareToken，关闭后外部链接立即失效。
+   */
+  async function handleToggleTripShare(tripId: number, enabled: boolean) {
+    const result = await updateUserTripShareMutation.mutateAsync({
+      enabled,
+      tripId,
+    });
+    message.success(enabled ? "已开启公开分享" : "已关闭公开分享");
+    await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
+    return result;
+  }
+
+  /**
+   * 复制当前行程公开分享链接；未开启公开分享时先提示用户开启。
+   */
+  async function handleCopyShareLink(shareToken?: string | null) {
+    if (!shareToken) {
+      message.warning("请先开启公开分享");
+      return;
+    }
+
+    const shareLink = buildTripShareLink(shareToken);
+    await navigator.clipboard.writeText(shareLink);
+    message.success("分享链接已复制");
+  }
+
   if (!authToken) {
     return (
       <main className={styles.stateShell}>
@@ -154,7 +186,7 @@ export function MyTripsPage() {
     <PersonalPageLayout
       currentUser={currentUserQuery.data}
       title="我的行程"
-      description="规划每一次出发，记录每一段旅程。"
+      description="规划每一次出发，记录每一段旅程✨"
       onLogout={handleLogout}
     >
       <section className={styles.toolbar}>
@@ -250,8 +282,13 @@ export function MyTripsPage() {
                 key={trip.id}
                 trip={trip}
                 deleting={deleteUserTripMutation.isPending}
+                sharing={updateUserTripShareMutation.isPending}
                 onOpen={() => navigate(`/?tripId=${trip.id}`)}
                 onDelete={() => void handleDeleteTrip(trip.id)}
+                onToggleShare={(enabled) =>
+                  handleToggleTripShare(trip.id, enabled)
+                }
+                onCopyShare={() => void handleCopyShareLink(trip.shareToken)}
               />
             ))}
           </section>
@@ -278,7 +315,6 @@ export function MyTripsPage() {
           </footer>
         </>
       )}
-
     </PersonalPageLayout>
   );
 }
@@ -286,11 +322,25 @@ export function MyTripsPage() {
 type TripListCardProps = {
   trip: UserTripSummaryDto;
   deleting: boolean;
+  sharing: boolean;
   onOpen: () => void;
   onDelete: () => void;
+  onToggleShare: (enabled: boolean) => Promise<unknown> | void;
+  onCopyShare: () => void;
 };
 
-function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
+/**
+ * TripListCard 统一展示单条已保存规划，并承接公开分享、查看和删除操作。
+ */
+function TripListCard({
+  trip,
+  deleting,
+  sharing,
+  onOpen,
+  onDelete,
+  onToggleShare,
+  onCopyShare,
+}: TripListCardProps) {
   const isSchedule = trip.planMode === "schedule";
 
   return (
@@ -381,10 +431,41 @@ function TripListCard({ trip, deleting, onOpen, onDelete }: TripListCardProps) {
           <span className={styles.savedAt}>
             创建于 {formatDateTimeLabel(trip.createdAt)}
           </span>
+          <div className={styles.shareActions}>
+            <div className={styles.shareSwitch}>
+              <span className={styles.shareLabel}>
+                <ShareAltOutlined />
+                公开分享
+              </span>
+              <Switch
+                size="small"
+                checked={Boolean(trip.isPublic)}
+                loading={sharing}
+                onChange={(checked) => void onToggleShare(checked)}
+              />
+            </div>
+            <Button
+              type={trip.isPublic ? "default" : "text"}
+              size="small"
+              icon={<LinkOutlined />}
+              className={styles.copyShareButton}
+              disabled={!trip.isPublic || !trip.shareToken}
+              onClick={onCopyShare}
+            >
+              复制链接
+            </Button>
+          </div>
         </div>
       </div>
     </article>
   );
+}
+
+/**
+ * 统一生成公开分享链接，确保“我的行程”和地图工作台使用同一入口协议。
+ */
+function buildTripShareLink(shareToken: string) {
+  return `${window.location.origin}/?shareToken=${shareToken}`;
 }
 
 function formatTripDateRange(
