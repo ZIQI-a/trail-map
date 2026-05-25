@@ -3,6 +3,7 @@ package com.trailmap.service;
 import com.trailmap.model.query.CheckinSpotQuery;
 import com.trailmap.model.query.CheckinSpotRequest;
 import com.trailmap.model.query.PageQuery;
+import com.trailmap.model.response.CheckinFootprintResponse;
 import com.trailmap.model.response.CheckinSpotItemResponse;
 import com.trailmap.model.response.CheckinSpotStatusResponse;
 import com.trailmap.model.response.PageResponse;
@@ -13,6 +14,9 @@ import com.trailmap.model.response.PageResponse;
 public interface CheckinSpotService {
     // 查询用户打卡景点列表
     PageResponse<CheckinSpotItemResponse> listCheckinSpots(Long userId, CheckinSpotQuery query, PageQuery pageQuery);
+
+    // 查询当前用户足迹地图聚合数据
+    CheckinFootprintResponse getCheckinFootprint(Long userId, CheckinSpotQuery query);
 
     // 查询用户打卡状态
     CheckinSpotStatusResponse getCheckinStatus(Long userId, Long spotId);

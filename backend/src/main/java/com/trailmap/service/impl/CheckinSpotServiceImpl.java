@@ -14,6 +14,11 @@ import com.trailmap.mapper.UserCheckinSpotMapper;
 import com.trailmap.model.query.CheckinSpotQuery;
 import com.trailmap.model.query.CheckinSpotRequest;
 import com.trailmap.model.query.PageQuery;
+import com.trailmap.model.response.CheckinFootprintCityStatRecord;
+import com.trailmap.model.response.CheckinFootprintCityStatResponse;
+import com.trailmap.model.response.CheckinFootprintProvinceStatRecord;
+import com.trailmap.model.response.CheckinFootprintProvinceStatResponse;
+import com.trailmap.model.response.CheckinFootprintResponse;
 import com.trailmap.model.response.CheckinSpotBaseRecord;
 import com.trailmap.model.response.CheckinSpotItemResponse;
 import com.trailmap.model.response.CheckinSpotStatusResponse;
@@ -87,6 +92,31 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
                 .map(record -> toCheckinItemResponse(record, tagMapping))
                 .toList();
         return PageResponse.paged(pagedItems, total, pageQuery.resolvedPageNum(), pageQuery.resolvedPageSize());
+    }
+
+    @Override
+    public CheckinFootprintResponse getCheckinFootprint(Long userId, CheckinSpotQuery query) {
+        validateSortBy(query.sortBy());
+        LocalDateTime checkedInAfter = query.checkedInWithinDays() == null
+                ? null
+                : LocalDateTime.now().minusDays(query.checkedInWithinDays());
+        List<CheckinFootprintProvinceStatResponse> provinceStats = userCheckinSpotMapper
+                .selectProvinceFootprintStats(userId, query, checkedInAfter)
+                .stream()
+                .map(this::toProvinceFootprintResponse)
+                .toList();
+        List<CheckinFootprintCityStatResponse> cityStats = userCheckinSpotMapper
+                .selectCityFootprintStats(userId, query, checkedInAfter)
+                .stream()
+                .map(this::toCityFootprintResponse)
+                .toList();
+        long totalCheckinCount = provinceStats.stream()
+                .mapToLong(CheckinFootprintProvinceStatResponse::checkinCount)
+                .sum();
+        long unlockedProvinceCount = provinceStats.stream()
+                .filter(item -> item.checkinCount() > 0)
+                .count();
+        return new CheckinFootprintResponse(totalCheckinCount, unlockedProvinceCount, provinceStats, cityStats);
     }
 
     @Override
@@ -191,6 +221,29 @@ public class CheckinSpotServiceImpl implements CheckinSpotService {
             return null;
         }
         return new CoordinateResponse(lng, lat);
+    }
+
+    /**
+     * 省级聚合只保留地图所需字段，避免前端再从散点自行统计。
+     */
+    private CheckinFootprintProvinceStatResponse toProvinceFootprintResponse(
+            CheckinFootprintProvinceStatRecord record) {
+        return new CheckinFootprintProvinceStatResponse(
+                record.provinceName(),
+                record.checkinCount(),
+                record.cityCount());
+    }
+
+    /**
+     * 市级聚合统一附带城市中心点，供省份视图定位和点位渲染使用。
+     */
+    private CheckinFootprintCityStatResponse toCityFootprintResponse(CheckinFootprintCityStatRecord record) {
+        return new CheckinFootprintCityStatResponse(
+                record.cityId(),
+                record.cityName(),
+                record.provinceName(),
+                new CoordinateResponse(record.centerLng(), record.centerLat()),
+                record.checkinCount());
     }
 
     private Map<Long, List<SpotTagResponse>> buildSpotTagMapping() {

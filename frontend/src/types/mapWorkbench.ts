@@ -261,6 +261,30 @@ export interface CheckinSpotItemDto {
   tags: SpotTagDto[];
 }
 
+// 足迹地图省级聚合项，由后端直接返回用于全国视图渲染。
+export interface CheckinFootprintProvinceStatDto {
+  provinceName: string;
+  checkinCount: number;
+  cityCount: number;
+}
+
+// 足迹地图市级聚合项，由后端直接返回用于省份视图渲染。
+export interface CheckinFootprintCityStatDto {
+  cityId: number;
+  cityName: string;
+  provinceName: string;
+  center: GeoPoint;
+  checkinCount: number;
+}
+
+// 足迹地图聚合响应，避免前端再依赖打卡列表自行统计。
+export interface CheckinFootprintDto {
+  totalCheckinCount: number;
+  unlockedProvinceCount: number;
+  provinces: CheckinFootprintProvinceStatDto[];
+  cities: CheckinFootprintCityStatDto[];
+}
+
 // 起点候选项：复用百度地点检索结果，优先给行程规划起点做名称转坐标。
 export interface PoiCalibrationCandidateDto {
   name: string;
@@ -309,6 +333,7 @@ export interface RoutePlanRequestDto {
 
 // 完整行程配置：规划前弹窗和结果页设置抽屉共用这一套前端状态。
 export interface SchedulePlanConfig {
+  tripName: string;
   tripStartDate: string;
   tripEndDate: string;
   tripDays: number;
@@ -561,4 +586,9 @@ export interface TripShareDto {
   tripId: number;
   isPublic: boolean;
   shareToken?: string | null;
+}
+
+// 更新行程名称请求。
+export interface UpdateTripNameRequestDto {
+  tripName: string;
 }

@@ -36,6 +36,27 @@
         </choose>
     </sql>
 
+    <sql id="checkinFootprintWhere">
+        ci.user_id = #{userId}
+        AND s.status = 1
+        <if test="query.tagCode != null and query.tagCode != ''">
+            AND EXISTS (
+                SELECT 1
+                FROM spot_tag_relation str
+                INNER JOIN spot_tag st ON str.tag_id = st.id
+                WHERE str.spot_id = s.id
+                  AND st.status = 1
+                  AND st.tag_code = #{query.tagCode}
+            )
+        </if>
+        <if test="query.cityName != null and query.cityName != ''">
+            AND c.city_name = #{query.cityName}
+        </if>
+        <if test="query.checkedInWithinDays != null">
+            AND ci.checkin_time <![CDATA[>=]]> #{checkedInAfter}
+        </if>
+    </sql>
+
     <select id="selectCheckinSpotPage" resultType="com.trailmap.model.response.CheckinSpotBaseRecord">
         SELECT
             ci.id AS checkinId,
@@ -82,5 +103,36 @@
         LEFT JOIN city c ON s.city_id = c.id
         WHERE
         <include refid="checkinSpotWhere"/>
+    </select>
+
+    <select id="selectProvinceFootprintStats" resultType="com.trailmap.model.response.CheckinFootprintProvinceStatRecord">
+        SELECT
+            c.province_name AS provinceName,
+            COUNT(1) AS checkinCount,
+            COUNT(DISTINCT c.id) AS cityCount
+        FROM user_checkin_spot ci
+        INNER JOIN spot s ON ci.spot_id = s.id
+        INNER JOIN city c ON s.city_id = c.id
+        WHERE
+        <include refid="checkinFootprintWhere"/>
+        GROUP BY c.province_name
+        ORDER BY checkinCount DESC, c.province_name ASC
+    </select>
+
+    <select id="selectCityFootprintStats" resultType="com.trailmap.model.response.CheckinFootprintCityStatRecord">
+        SELECT
+            c.id AS cityId,
+            c.city_name AS cityName,
+            c.province_name AS provinceName,
+            c.center_lng AS centerLng,
+            c.center_lat AS centerLat,
+            COUNT(1) AS checkinCount
+        FROM user_checkin_spot ci
+        INNER JOIN spot s ON ci.spot_id = s.id
+        INNER JOIN city c ON s.city_id = c.id
+        WHERE
+        <include refid="checkinFootprintWhere"/>
+        GROUP BY c.id, c.city_name, c.province_name, c.center_lng, c.center_lat
+        ORDER BY checkinCount DESC, c.city_name ASC
     </select>
 </mapper>

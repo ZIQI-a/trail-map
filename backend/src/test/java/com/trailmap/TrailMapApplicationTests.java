@@ -589,6 +589,17 @@ class TrailMapApplicationTests {
                 .andExpect(jsonPath("$.data.totalTravelDays").value(2))
                 .andExpect(jsonPath("$.data.visitedCityCount").value(2))
                 .andExpect(jsonPath("$.data.recentCityName").value("成都市"));
+
+        mockMvc.perform(get("/api/checkin-spots/footprint")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCheckinCount").value(1))
+                .andExpect(jsonPath("$.data.unlockedProvinceCount").value(1))
+                .andExpect(jsonPath("$.data.provinces[0].provinceName").value("四川省"))
+                .andExpect(jsonPath("$.data.provinces[0].checkinCount").value(1))
+                .andExpect(jsonPath("$.data.provinces[0].cityCount").value(1))
+                .andExpect(jsonPath("$.data.cities[0].cityName").value("成都市"))
+                .andExpect(jsonPath("$.data.cities[0].checkinCount").value(1));
     }
 
     @Test

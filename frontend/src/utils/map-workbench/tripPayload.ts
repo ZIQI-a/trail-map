@@ -98,11 +98,9 @@ export function buildSaveTripPayload(
 
   return {
     cityId: city.id,
-    tripName: buildDefaultTripName(
-      city.name,
-      routePlan.planMode,
-      scheduleDayCount,
-    ),
+    tripName:
+      scheduleConfig.tripName.trim() ||
+      buildDefaultTripName(city.name, routePlan.planMode, scheduleDayCount),
     startName: startPoint,
     endName: lastSegment?.toName,
     startPosition: startPointPosition,

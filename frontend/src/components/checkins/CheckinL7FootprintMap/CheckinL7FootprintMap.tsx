@@ -3,7 +3,6 @@ import { Scene, Map as L7Map, PointLayer, PolygonLayer, Popup } from "@antv/l7";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import type {
-  CheckinSpotItemDto,
   TravelCityDto,
 } from "../../../types/mapWorkbench";
 import {
@@ -17,6 +16,7 @@ import {
   buildCityFeatureCollection,
   buildCityLabelData,
   buildCityStats,
+  filterFootprintCitiesByProvince,
   buildProvinceFeatureCollection,
   buildProvinceLabelData,
   buildProvinceStats,
@@ -26,11 +26,11 @@ import {
   normalizeProvinceName,
   resolveMapCenter,
   resolveProvinceAdcodeFromCityCode,
-  resolveProvinceName,
 } from "./geoUtils";
 import styles from "./CheckinL7FootprintMap.module.css";
 import type {
   CityStatistic,
+  FootprintStatisticBundle,
   FootprintMapMode,
   ProvinceFeatureCollection,
   ProvinceStatistic,
@@ -38,6 +38,7 @@ import type {
 
 interface CheckinL7FootprintMapProps {
   availableCities: TravelCityDto[];
+  footprint: FootprintStatisticBundle;
   interactive?: boolean;
   mode: FootprintMapMode;
   onOpenCity?: (cityId: number) => void;
@@ -45,7 +46,6 @@ interface CheckinL7FootprintMapProps {
   selectedCityName?: string;
   showHeader?: boolean;
   showLegend?: boolean;
-  spots: CheckinSpotItemDto[];
 }
 
 interface L7FeatureEvent {
@@ -54,10 +54,11 @@ interface L7FeatureEvent {
 }
 
 /**
- * CheckinL7FootprintMap 专注承载 AntV L7 地理可视化，页面层只负责传入打卡数据和选中状态。
+ * CheckinL7FootprintMap 专注承载 AntV L7 地理可视化，页面层只负责传入聚合统计和选中状态。
  */
 export function CheckinL7FootprintMap({
   availableCities,
+  footprint,
   interactive = true,
   mode,
   onOpenCity,
@@ -65,7 +66,6 @@ export function CheckinL7FootprintMap({
   selectedCityName,
   showHeader = true,
   showLegend = true,
-  spots,
 }: CheckinL7FootprintMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<Scene | null>(null);
@@ -83,19 +83,17 @@ export function CheckinL7FootprintMap({
     ? resolveProvinceAdcodeFromCityCode(selectedCity.cityCode)
     : undefined;
   const provinceSpots = useMemo(
-    () =>
-      selectedProvinceName
-        ? spots.filter(
-            (spot) =>
-              resolveProvinceName(spot.cityName) === selectedProvinceName,
-          )
-        : spots,
-    [selectedProvinceName, spots],
+    () => filterFootprintCitiesByProvince(footprint, selectedProvinceName),
+    [footprint, selectedProvinceName],
   );
-  const provinceStats = useMemo(() => buildProvinceStats(spots), [spots]);
+  const provinceStats = useMemo(() => buildProvinceStats(footprint), [footprint]);
   const cityStats = useMemo(
-    () => buildCityStats(provinceSpots),
-    [provinceSpots],
+    () =>
+      buildCityStats({
+        ...footprint,
+        cities: provinceSpots,
+      }),
+    [footprint, provinceSpots],
   );
   const activeProvinceCityGeoJson =
     provinceCityGeoJson && provinceCityGeoJson.adcode === selectedProvinceAdcode
@@ -276,14 +274,10 @@ export function CheckinL7FootprintMap({
     selectedProvinceName,
   ]);
 
-  const unlockedProvinceCount = Array.from(provinceStats.values()).filter(
-    (item) => item.count > 0,
-  ).length;
-
   return (
     <section className={styles.mapPanel}>
       <div className={styles.mapCanvas} ref={containerRef} />
-      {spots.length === 0 ? (
+      {footprint.totalCheckinCount === 0 ? (
         <div className={styles.mapEmpty}>
           <EnvironmentOutlined />
           <span>暂无可展示的打卡点</span>
@@ -298,8 +292,8 @@ export function CheckinL7FootprintMap({
           </strong>
           <span>
             {mode === "country"
-              ? `已解锁 ${unlockedProvinceCount} 个省市 · ${spots.length} 个景点`
-              : `覆盖 ${cityStats.size} 个城市 · ${provinceSpots.length} 个足迹`}
+              ? `已解锁 ${footprint.unlockedProvinceCount} 个省市 · ${footprint.totalCheckinCount} 个景点`
+              : `覆盖 ${cityStats.size} 个城市 · ${provinceSpots.reduce((total, item) => total + item.checkinCount, 0)} 个足迹`}
           </span>
         </div>
       ) : null}
@@ -352,7 +346,7 @@ function resolveMapOptions({
   selectedProvinceAdcode,
 }: {
   mode: FootprintMapMode;
-  provinceSpots: CheckinSpotItemDto[];
+  provinceSpots: FootprintStatisticBundle["cities"];
   selectedCity?: TravelCityDto;
   selectedProvinceAdcode?: string;
 }) {

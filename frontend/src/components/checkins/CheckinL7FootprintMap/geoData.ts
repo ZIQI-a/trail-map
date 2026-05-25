@@ -1,42 +1,34 @@
-import type { CheckinSpotItemDto } from "../../../types/mapWorkbench";
 import { resolveProvinceColor } from "./geoUtils";
-import { normalizeCityName, normalizeProvinceName, resolveProvinceName } from "./geoUtils";
+import { normalizeCityName, normalizeProvinceName } from "./geoUtils";
 import type {
   CityStatistic,
+  FootprintStatisticBundle,
   ProvinceFeatureCollection,
   ProvinceStatistic,
 } from "./types";
 
 /**
- * 按省份汇总足迹数量和覆盖城市数，用于全国视图分级着色。
+ * 将后端返回的省级足迹统计转换为地图内部结构，用于全国视图分级着色。
  */
-export function buildProvinceStats(spots: CheckinSpotItemDto[]) {
-  return spots.reduce((stats, spot) => {
-    const provinceName = resolveProvinceName(spot.cityName);
-    const current = stats.get(provinceName) ?? {
-      cityNames: new Set<string>(),
-      count: 0,
-    };
-    current.count += 1;
-    current.cityNames.add(spot.cityName);
-    stats.set(provinceName, current);
+export function buildProvinceStats(footprint: FootprintStatisticBundle) {
+  return footprint.provinces.reduce((stats, province) => {
+    stats.set(normalizeProvinceName(province.provinceName), {
+      cityCount: province.cityCount,
+      count: province.checkinCount,
+    });
     return stats;
   }, new Map<string, ProvinceStatistic>());
 }
 
 /**
- * 按城市汇总足迹数量和一个代表坐标，用于省份视图的城市聚合点。
+ * 将后端返回的市级足迹统计转换为地图内部结构，用于省份视图聚合点。
  */
-export function buildCityStats(spots: CheckinSpotItemDto[]) {
-  return spots.reduce((stats, spot) => {
-    const cityName = normalizeCityName(spot.cityName);
-    const current = stats.get(cityName) ?? {
-      count: 0,
-      firstSpotId: spot.spotId,
-      position: spot.position,
-    };
-    current.count += 1;
-    stats.set(cityName, current);
+export function buildCityStats(footprint: FootprintStatisticBundle) {
+  return footprint.cities.reduce((stats, city) => {
+    stats.set(normalizeCityName(city.cityName), {
+      count: city.checkinCount,
+      position: city.center,
+    });
     return stats;
   }, new Map<string, CityStatistic>());
 }
@@ -59,7 +51,7 @@ export function buildProvinceFeatureCollection(
         type: "Feature",
         properties: {
           ...feature.properties,
-          cityCount: stat?.cityNames.size ?? 0,
+          cityCount: stat?.cityCount ?? 0,
           color: resolveProvinceColor(count),
           count,
           name: provinceName,
@@ -144,4 +136,19 @@ export function buildCityLabelData(
       lng: labelPoint?.[0] ?? 104.6,
     };
   });
+}
+
+/**
+ * 省份视图只取当前选中省份下的城市统计，避免前端继续基于散点列表做过滤。
+ */
+export function filterFootprintCitiesByProvince(
+  footprint: FootprintStatisticBundle,
+  provinceName?: string,
+) {
+  if (!provinceName) {
+    return [];
+  }
+  return footprint.cities.filter(
+    (city) => normalizeProvinceName(city.provinceName) === normalizeProvinceName(provinceName),
+  );
 }

@@ -2,6 +2,7 @@ import { request } from '../lib/http';
 import type {
   PageResponse,
   CheckinSpotItemDto,
+  CheckinFootprintDto,
   CheckinSpotStatusDto,
   FavoriteSpotStatusDto,
   FavoriteSpotItemDto,
@@ -11,6 +12,7 @@ import type {
   SaveTripRequestDto,
   SpotTagDto,
   TripShareDto,
+  UpdateTripNameRequestDto,
   TravelCityDto,
   TravelSpotDetailDto,
   TravelSpotSummaryDto,
@@ -164,6 +166,30 @@ export function fetchCheckinSpots(params?: {
   return request<PageResponse<CheckinSpotItemDto>>(`/api/checkin-spots${queryString ? `?${queryString}` : ''}`);
 }
 
+// 获取当前登录用户的足迹地图聚合统计，供全国/省份足迹地图直接渲染。
+export function fetchCheckinFootprint(params?: {
+  tagCode?: string;
+  cityName?: string;
+  checkedInWithinDays?: number;
+  sortBy?: string;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.tagCode) {
+    searchParams.set('tagCode', params.tagCode);
+  }
+  if (params?.cityName) {
+    searchParams.set('cityName', params.cityName);
+  }
+  if (params?.checkedInWithinDays) {
+    searchParams.set('checkedInWithinDays', String(params.checkedInWithinDays));
+  }
+  if (params?.sortBy) {
+    searchParams.set('sortBy', params.sortBy);
+  }
+  const queryString = searchParams.toString();
+  return request<CheckinFootprintDto>(`/api/checkin-spots/footprint${queryString ? `?${queryString}` : ''}`);
+}
+
 // 获取个人主页概览统计，避免前端依赖当前页列表自行计数。
 export function fetchUserProfileOverview() {
   return request<UserProfileOverviewDto>('/api/profile/overview');
@@ -239,6 +265,14 @@ export function fetchPublicTripDetail(shareToken: string) {
 export function updateUserTripShare(tripId: number, enabled: boolean) {
   return request<TripShareDto>(`/api/user-trips/${tripId}/share?enabled=${String(enabled)}`, {
     method: 'PUT',
+  });
+}
+
+// 更新当前用户已保存行程的名称。
+export function updateUserTripName(tripId: number, payload: UpdateTripNameRequestDto) {
+  return request<null>(`/api/user-trips/${tripId}/name`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
 }
 

@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CheckinL7FootprintMap } from "../../components/checkins";
 import { PersonalPageLayout } from "../../components/personal";
 import {
+  useCheckinFootprintQuery,
   useCheckinSpotsQuery,
   useCurrentUserQuery,
   useFavoriteSpotsQuery,
@@ -28,7 +29,6 @@ import styles from "./ProfilePage.module.css";
 
 const PROFILE_FAVORITE_PAGE_SIZE = 6;
 const PROFILE_CHECKIN_PAGE_SIZE = 4;
-const PROFILE_MAP_CHECKIN_PAGE_SIZE = 500;
 const PROFILE_TRIP_PAGE_SIZE = 3;
 
 type ProfileStatItem = {
@@ -56,12 +56,8 @@ export function ProfilePage() {
     { sortBy: "latest", pageNum: 1, pageSize: PROFILE_CHECKIN_PAGE_SIZE },
     Boolean(authToken),
   );
-  const profileMapCheckinsQuery = useCheckinSpotsQuery(
-    {
-      sortBy: "latest",
-      pageNum: 1,
-      pageSize: PROFILE_MAP_CHECKIN_PAGE_SIZE,
-    },
+  const profileFootprintQuery = useCheckinFootprintQuery(
+    { sortBy: "latest" },
     Boolean(authToken),
   );
   const userTripsQuery = useUserTripsQuery(
@@ -73,10 +69,6 @@ export function ProfilePage() {
   const checkinSpots = useMemo(
     () => checkinSpotsQuery.data?.list ?? [],
     [checkinSpotsQuery.data?.list],
-  );
-  const profileMapCheckins = useMemo(
-    () => profileMapCheckinsQuery.data?.list ?? checkinSpots,
-    [checkinSpots, profileMapCheckinsQuery.data?.list],
   );
   const userTrips = useMemo(
     () => userTripsQuery.data?.list ?? [],
@@ -190,11 +182,18 @@ export function ProfilePage() {
           <div className={styles.mapSketch}>
             <CheckinL7FootprintMap
               availableCities={[]}
+              footprint={
+                profileFootprintQuery.data ?? {
+                  totalCheckinCount: 0,
+                  unlockedProvinceCount: 0,
+                  provinces: [],
+                  cities: [],
+                }
+              }
               interactive={false}
               mode="country"
               showHeader={false}
               showLegend={false}
-              spots={profileMapCheckins}
             />
           </div>
           <div className={styles.mapFooter}>

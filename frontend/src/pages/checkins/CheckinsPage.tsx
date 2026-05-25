@@ -25,6 +25,7 @@ import { PersonalPageLayout } from "../../components/personal";
 import {
   useAllTagsQuery,
   useCheckinSpotsQuery,
+  useCheckinFootprintQuery,
   useCitiesQuery,
   useCityTagsQuery,
   useCurrentUserQuery,
@@ -88,18 +89,16 @@ export function CheckinsPage() {
     checkinQueryParams,
     Boolean(authToken),
   );
-  const mapCheckinsQuery = useCheckinSpotsQuery(
+  const footprintQuery = useCheckinFootprintQuery(
     {
-      ...checkinQueryParams,
-      cityName: undefined,
-      pageNum: 1,
-      pageSize: 500,
+      tagCode: checkinQueryParams.tagCode,
+      checkedInWithinDays: checkinQueryParams.checkedInWithinDays,
+      sortBy: checkinQueryParams.sortBy,
     },
     Boolean(authToken),
   );
   const uncheckinSpotMutation = useUncheckinSpotMutation();
   const currentPageCheckins = checkinSpotsQuery.data?.list ?? [];
-  const mapCheckins = mapCheckinsQuery.data?.list ?? currentPageCheckins;
   const totalCheckins = checkinSpotsQuery.data?.total ?? 0;
   const selectedCity = useMemo(
     () =>
@@ -138,6 +137,7 @@ export function CheckinsPage() {
     clearAuthToken();
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
     queryClient.removeQueries({ queryKey: ["checkin-spots"] });
+    queryClient.removeQueries({ queryKey: ["checkin-footprint"] });
     queryClient.removeQueries({ queryKey: ["checkin-spot-status"] });
     navigate("/");
   }
@@ -148,6 +148,7 @@ export function CheckinsPage() {
   async function handleCancelCheckin(spotId: number) {
     await uncheckinSpotMutation.mutateAsync(spotId);
     await queryClient.invalidateQueries({ queryKey: ["checkin-spots"] });
+    await queryClient.invalidateQueries({ queryKey: ["checkin-footprint"] });
     await queryClient.invalidateQueries({
       queryKey: ["checkin-spot-status", spotId],
     });
@@ -209,9 +210,16 @@ export function CheckinsPage() {
         <CheckinL7FootprintMap
           mode={cityFilter === "all" ? "country" : "province"}
           availableCities={citiesQuery.data?.list ?? []}
+          footprint={
+            footprintQuery.data ?? {
+              totalCheckinCount: 0,
+              unlockedProvinceCount: 0,
+              provinces: [],
+              cities: [],
+            }
+          }
           selectedCity={selectedCity}
           selectedCityName={cityFilter === "all" ? undefined : cityFilter}
-          spots={mapCheckins}
           onOpenCity={handleOpenCity}
         />
 

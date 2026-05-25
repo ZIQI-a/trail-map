@@ -1,4 +1,8 @@
-import type { GeoPoint } from "../../../types/mapWorkbench";
+import type {
+  CheckinFootprintCityStatDto,
+  CheckinFootprintProvinceStatDto,
+  GeoPoint,
+} from "../../../types/mapWorkbench";
 
 export type FootprintMapMode = "country" | "province";
 
@@ -33,15 +37,22 @@ export interface ProvinceFeatureCollection {
 
 // 全国视图按省份聚合后的统计结果。
 export interface ProvinceStatistic {
-  cityNames: Set<string>;
+  cityCount: number;
   count: number;
 }
 
 // 省份视图按城市聚合后的统计结果。
 export interface CityStatistic {
   count: number;
-  firstSpotId?: number;
   position: GeoPoint;
+}
+
+// 足迹地图的聚合输入结构，统一承接后端统计结果。
+export interface FootprintStatisticBundle {
+  cities: CheckinFootprintCityStatDto[];
+  provinces: CheckinFootprintProvinceStatDto[];
+  totalCheckinCount: number;
+  unlockedProvinceCount: number;
 }
 
 // 省份视图的固定视口配置，避免部分省份自动居中效果不稳定。

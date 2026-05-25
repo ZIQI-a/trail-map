@@ -1,4 +1,4 @@
-import type { CheckinSpotItemDto, GeoPoint } from "../../../types/mapWorkbench";
+import type { CheckinFootprintCityStatDto, GeoPoint } from "../../../types/mapWorkbench";
 import {
   CITY_PROVINCE_MAP,
   DEFAULT_MAP_CENTER,
@@ -51,21 +51,21 @@ export function resolveProvinceColor(count: number) {
 }
 
 /**
- * 计算点位集合的中心点，省份缺少固定配置时作为地图中心兜底。
+ * 计算城市中心点集合的平均中心，省份缺少固定配置时作为地图中心兜底。
  */
-export function resolveMapCenter(spots: CheckinSpotItemDto[]): GeoPoint {
-  if (spots.length === 0) {
+export function resolveMapCenter(cities: CheckinFootprintCityStatDto[]): GeoPoint {
+  if (cities.length === 0) {
     return DEFAULT_MAP_CENTER;
   }
-  const totals = spots.reduce(
+  const totals = cities.reduce(
     (acc, spot) => ({
-      lng: acc.lng + spot.position.lng,
-      lat: acc.lat + spot.position.lat,
+      lng: acc.lng + spot.center.lng,
+      lat: acc.lat + spot.center.lat,
     }),
     { lng: 0, lat: 0 },
   );
   return {
-    lng: totals.lng / spots.length,
-    lat: totals.lat / spots.length,
+    lng: totals.lng / cities.length,
+    lat: totals.lat / cities.length,
   };
 }

@@ -3,6 +3,8 @@ package com.trailmap.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.trailmap.entity.UserCheckinSpot;
 import com.trailmap.model.query.CheckinSpotQuery;
+import com.trailmap.model.response.CheckinFootprintCityStatRecord;
+import com.trailmap.model.response.CheckinFootprintProvinceStatRecord;
 import com.trailmap.model.response.CheckinSpotBaseRecord;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +25,16 @@ public interface UserCheckinSpotMapper extends BaseMapper<UserCheckinSpot> {
             @Param("limit") long limit);
 
     long countCheckinSpots(
+            @Param("userId") Long userId,
+            @Param("query") CheckinSpotQuery query,
+            @Param("checkedInAfter") LocalDateTime checkedInAfter);
+
+    List<CheckinFootprintProvinceStatRecord> selectProvinceFootprintStats(
+            @Param("userId") Long userId,
+            @Param("query") CheckinSpotQuery query,
+            @Param("checkedInAfter") LocalDateTime checkedInAfter);
+
+    List<CheckinFootprintCityStatRecord> selectCityFootprintStats(
             @Param("userId") Long userId,
             @Param("query") CheckinSpotQuery query,
             @Param("checkedInAfter") LocalDateTime checkedInAfter);

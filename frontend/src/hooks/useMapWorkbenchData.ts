@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '../api/auth';
-import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchPublicTripDetail, fetchRoutePlan, fetchSpotDetail, fetchUserProfileOverview, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot, updateUserTripShare } from '../api/mapWorkbench';
+import { checkinSpot, deleteUserTrip, favoriteSpot, fetchAllTags, fetchCheckinFootprint, fetchCheckinSpotStatus, fetchCheckinSpots, fetchCities, fetchCity, fetchCitySpots, fetchCityTags, fetchFavoriteSpotStatus, fetchFavoriteSpots, fetchPoiCalibrationCandidates, fetchPublicTripDetail, fetchRoutePlan, fetchSpotDetail, fetchUserProfileOverview, fetchUserTripDetail, fetchUserTrips, saveUserTrip, uncheckinSpot, unfavoriteSpot, updateUserTripName, updateUserTripShare } from '../api/mapWorkbench';
 import type { ActiveSpotFilter } from '../components/map-workbench/WorkbenchHeader';
 import type { LoginRequestDto, RegisterRequestDto } from '../types/auth';
-import type { RoutePlanRequestDto, SaveTripRequestDto } from '../types/mapWorkbench';
+import type { RoutePlanRequestDto, SaveTripRequestDto, UpdateTripNameRequestDto } from '../types/mapWorkbench';
 
 // 地图工作台查询集合，集中管理城市、标签、列表和详情请求。
 export function useCitiesQuery() {
@@ -145,6 +145,24 @@ export function useCheckinSpotsQuery(
   });
 }
 
+// 足迹地图聚合查询，统一返回省级/市级统计，避免前端用大页列表自行计数。
+export function useCheckinFootprintQuery(
+  params: {
+    tagCode?: string;
+    cityName?: string;
+    checkedInWithinDays?: number;
+    sortBy?: string;
+  },
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ['checkin-footprint', params],
+    queryFn: () => fetchCheckinFootprint(params),
+    enabled,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
 // 个人主页概览查询，统一返回真实统计口径。
 export function useUserProfileOverviewQuery(enabled: boolean) {
   return useQuery({
@@ -231,6 +249,14 @@ export function useUpdateUserTripShareMutation() {
   return useMutation({
     mutationFn: (payload: { enabled: boolean; tripId: number }) =>
       updateUserTripShare(payload.tripId, payload.enabled),
+  });
+}
+
+// 更新行程名称。
+export function useUpdateUserTripNameMutation() {
+  return useMutation({
+    mutationFn: (payload: { tripId: number } & UpdateTripNameRequestDto) =>
+      updateUserTripName(payload.tripId, { tripName: payload.tripName }),
   });
 }
 

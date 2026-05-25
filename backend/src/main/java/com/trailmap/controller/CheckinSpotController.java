@@ -4,6 +4,7 @@ import com.trailmap.common.ApiResponse;
 import com.trailmap.model.query.CheckinSpotQuery;
 import com.trailmap.model.query.CheckinSpotRequest;
 import com.trailmap.model.query.PageQuery;
+import com.trailmap.model.response.CheckinFootprintResponse;
 import com.trailmap.model.response.CheckinSpotItemResponse;
 import com.trailmap.model.response.CheckinSpotStatusResponse;
 import com.trailmap.model.response.PageResponse;
@@ -56,6 +57,22 @@ public class CheckinSpotController {
                 principal.userId(),
                 new CheckinSpotQuery(tagCode, cityName, checkedInWithinDays, sortBy),
                 new PageQuery(pageNum, pageSize)));
+    }
+
+    /**
+     * 获取当前用户足迹地图聚合统计，供全国/省份足迹地图直接渲染。
+     */
+    @GetMapping("/footprint")
+    @Operation(summary = "获取足迹地图聚合统计")
+    public ApiResponse<CheckinFootprintResponse> getCheckinFootprint(
+            @AuthenticationPrincipal AuthUserPrincipal principal,
+            @RequestParam(required = false) String tagCode,
+            @RequestParam(required = false) String cityName,
+            @RequestParam(required = false) @Positive(message = "打卡天数必须大于 0") Integer checkedInWithinDays,
+            @RequestParam(required = false) String sortBy) {
+        return ApiResponse.success(checkinSpotService.getCheckinFootprint(
+                principal.userId(),
+                new CheckinSpotQuery(tagCode, cityName, checkedInWithinDays, sortBy)));
     }
 
     /**
