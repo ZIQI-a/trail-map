@@ -190,6 +190,22 @@ function TripInfoStep({
         </header>
 
         <div className={styles.basicGrid}>
+          <label
+            className={`${styles.field} ${styles.infoCard} ${styles.tripNameField}`}
+          >
+            <span className={styles.label}>
+              <SmileOutlined />
+              行程名称
+            </span>
+            <Input
+              maxLength={40}
+              placeholder={`${cityName}${value.tripDays}天行程`}
+              value={value.tripName}
+              onChange={(event) =>
+                onChange({ ...value, tripName: event.target.value })
+              }
+            />
+          </label>
           <div className={`${styles.infoCard} ${styles.summaryCard}`}>
             <span className={styles.label}>
               <EnvironmentOutlined />
@@ -553,6 +569,11 @@ function ConfirmStep({
             icon={<EnvironmentOutlined />}
             label="目的地"
             value={cityName}
+          />
+          <SummaryBox
+            icon={<SmileOutlined />}
+            label="行程名称"
+            value={value.tripName || `${cityName}${value.tripDays}天行程`}
           />
           <SummaryBox
             icon={<CalendarOutlined />}

@@ -59,6 +59,15 @@
   line-height: 1.22;
 }
 
+.heroTitleInput {
+  max-width: 300px;
+  height: 44px;
+  border-radius: 14px;
+  color: #142d52;
+  font-size: 20px;
+  font-weight: 900;
+}
+
 .heroTitle span {
   display: block;
   margin-top: 10px;
@@ -250,6 +259,10 @@
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.75fr);
 }
 
+.fullField {
+  grid-column: 1 / -1;
+}
+
 .preferenceGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -321,12 +334,14 @@
 }
 
 .formField :global(.ant-picker),
+.formField :global(.ant-input),
 .formField :global(.ant-input-number),
 .formField :global(.ant-select) {
   width: 100%;
 }
 
 .formField :global(.ant-picker),
+.formField :global(.ant-input),
 .formField :global(.ant-input-number),
 .formField :global(.ant-select-selector) {
   min-height: 40px;

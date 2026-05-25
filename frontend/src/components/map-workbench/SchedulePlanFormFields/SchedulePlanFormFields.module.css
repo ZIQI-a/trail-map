@@ -121,6 +121,10 @@
   align-items: stretch;
 }
 
+.tripNameField {
+  grid-column: 1 / -1;
+}
+
 .summaryBox {
   min-width: 0;
   display: grid;
@@ -467,5 +471,9 @@
   .twoColumn,
   .switchRow {
     grid-template-columns: 1fr;
+  }
+
+  .tripNameField {
+    grid-column: auto;
   }
 }

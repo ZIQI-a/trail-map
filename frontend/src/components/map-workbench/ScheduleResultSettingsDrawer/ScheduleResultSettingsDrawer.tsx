@@ -11,6 +11,7 @@ import {
   Button,
   DatePicker,
   Drawer,
+  Input,
   InputNumber,
   Select,
   Switch,
@@ -48,10 +49,12 @@ interface ScheduleResultSettingsDrawerProps {
   loading: boolean;
   open: boolean;
   routePlan?: RoutePlanResponseDto;
+  savingTripName?: boolean;
   tripSpots: TravelSpot[];
   value: SchedulePlanConfig;
   onChange: (value: SchedulePlanConfig) => void;
   onClose: () => void;
+  onTripNameSave?: (tripName: string) => Promise<void> | void;
   onRegenerate: () => Promise<void> | void;
 }
 
@@ -65,14 +68,17 @@ export function ScheduleResultSettingsDrawer({
   loading,
   open,
   routePlan,
+  savingTripName = false,
   tripSpots,
   value,
   onChange,
   onClose,
+  onTripNameSave,
   onRegenerate,
 }: ScheduleResultSettingsDrawerProps) {
   const generatedItems = buildGeneratedArrangementItems(routePlan);
   const tripNightCount = Math.max(0, value.tripDays - 1);
+  const displayTripName = value.tripName || `${cityName}${value.tripDays}天行程`;
   const [isEditing, setIsEditing] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -89,6 +95,16 @@ export function ScheduleResultSettingsDrawer({
     setIsEditing(false);
     setDirty(false);
     await onRegenerate();
+  };
+  /**
+   * 行程名属于轻量元数据，直接保存，不触发重新生成。
+   */
+  const handleTripNameSave = async () => {
+    const nextTripName = value.tripName.trim();
+    if (!nextTripName) {
+      return;
+    }
+    await onTripNameSave?.(nextTripName);
   };
 
   return (
@@ -117,9 +133,22 @@ export function ScheduleResultSettingsDrawer({
         <section className={styles.heroCard}>
           <div className={styles.heroTitle}>
             <div>
-              <strong>
-                {cityName} {value.tripDays} 天 {tripNightCount} 晚完整行程
-              </strong>
+              {isEditing ? (
+                <Input
+                  className={styles.heroTitleInput}
+                  maxLength={40}
+                  placeholder={`${cityName}${value.tripDays}天行程`}
+                  value={value.tripName}
+                  disabled={savingTripName}
+                  onChange={(event) =>
+                    onChange({ ...value, tripName: event.target.value })
+                  }
+                  onBlur={() => void handleTripNameSave()}
+                  onPressEnter={() => void handleTripNameSave()}
+                />
+              ) : (
+                <strong>{displayTripName}</strong>
+              )}
             </div>
             <button
               className={styles.editButton}
@@ -173,6 +202,23 @@ export function ScheduleResultSettingsDrawer({
           <SectionTitle title="基础信息" />
           {isEditing ? (
             <div className={styles.formGrid}>
+              <label className={`${styles.formField} ${styles.fullField}`}>
+                <span>
+                  <SmileOutlined />
+                  行程名称
+                </span>
+                <Input
+                  maxLength={40}
+                  placeholder={`${cityName}${value.tripDays}天行程`}
+                  value={value.tripName}
+                  onChange={(event) =>
+                    handleConfigChange({
+                      ...value,
+                      tripName: event.target.value,
+                    })
+                  }
+                />
+              </label>
               <label className={styles.formField}>
                 <span>
                   <CalendarOutlined />
@@ -211,6 +257,11 @@ export function ScheduleResultSettingsDrawer({
             </div>
           ) : (
             <div className={styles.readonlyGrid}>
+              <ReadonlyItem
+                icon={<SmileOutlined />}
+                label="行程名称"
+                value={displayTripName}
+              />
               <ReadonlyItem
                 icon={<CalendarOutlined />}
                 label="出行日期"
