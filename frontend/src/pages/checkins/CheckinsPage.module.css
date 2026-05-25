@@ -102,7 +102,7 @@
   flex: none;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   padding: 20px 20px 14px;
   border-bottom: 1px solid #edf2f8;
@@ -123,13 +123,40 @@
 
 .viewSwitch {
   min-width: 148px;
-  padding: 4px;
-  border-radius: 14px;
-  background: #eff4fa;
+  height: 40px;
+  padding: 2px;
+  background: #f0f4f9;
+  border: 1px solid #dce5f2;
+  border-radius: 12px;
 }
 
-.viewSwitch :global(.ant-segmented-item) {
-  border-radius: 11px !important;
+.viewSwitch :global(.ant-segmented-group) {
+  height: 100%;
+  gap: 2px;
+}
+
+/* 通过增加父级约束提升权重，确保高度撑满解决空隙问题 */
+.recordPanel .viewSwitch :global(.ant-segmented-item) {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  border-radius: 9px;
+  color: #6a7c92;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.recordPanel .viewSwitch :global(.ant-segmented-item-selected) {
+  color: #2e6cff;
+  background: transparent;
+}
+
+.recordPanel .viewSwitch :global(.ant-segmented-thumb) {
+  height: 36px;
+  background: #ffffff;
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgba(46, 108, 255, 0.12);
 }
 
 .filterBar {
@@ -137,14 +164,33 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  padding: 14px 20px 12px;
+  padding: 12px 18px;
   border-bottom: 1px solid #edf2f8;
 }
 
-.filterBar :global(.ant-select-selector) {
-  height: 38px !important;
-  border-radius: 12px !important;
-  background: #f8fbff !important;
+/* 提升 Select 覆盖权重，高度对齐为 40px */
+.recordPanel .filterBar :global(.ant-select-selector) {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dce7f5;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.recordPanel .filterBar :global(.ant-select-focused .ant-select-selector),
+.recordPanel .filterBar :global(.ant-select-selector:hover) {
+  border-color: #2e6cff;
+  background: #f8fbff;
+}
+
+.filterBar :global(.ant-select-selection-item) {
+  font-weight: 700;
+  font-size: 13px;
+  color: #344767;
 }
 
 .timelineList {

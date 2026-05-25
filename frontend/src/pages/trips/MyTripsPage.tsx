@@ -192,7 +192,6 @@ export function MyTripsPage() {
     >
       <section className={styles.toolbar}>
         <Segmented
-          size="large"
           className={styles.scopeSwitch}
           value={scope}
           options={[
@@ -208,7 +207,6 @@ export function MyTripsPage() {
 
         <div className={styles.toolbarFilters}>
           <Select
-            size="large"
             value={cityFilter}
             options={cityOptions}
             onChange={(value) => {
@@ -217,7 +215,6 @@ export function MyTripsPage() {
             }}
           />
           <Select
-            size="large"
             value={sortMode}
             options={[
               { label: "创建时间", value: "latest" },
@@ -229,7 +226,6 @@ export function MyTripsPage() {
             }}
           />
           <Segmented
-            size="large"
             className={styles.viewSwitch}
             value={viewMode}
             options={[
