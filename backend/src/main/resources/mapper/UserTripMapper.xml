@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trailmap.mapper.UserTripMapper">
+
+    <sql id="userTripWhere">
+        ut.user_id = #{userId}
+        AND ut.status = 1
+        <if test="query.planMode != null and query.planMode != ''">
+            AND ut.plan_mode = #{query.planMode}
+        </if>
+        <if test="query.cityName != null and query.cityName != ''">
+            AND c.city_name = #{query.cityName}
+        </if>
+    </sql>
+
+    <sql id="userTripOrderBy">
+        <choose>
+            <when test="query.sortBy == 'city'">
+                ORDER BY c.city_name ASC, ut.created_at DESC, ut.id DESC
+            </when>
+            <otherwise>
+                ORDER BY ut.created_at DESC, ut.id DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectUserTripPage" resultType="com.trailmap.model.response.TripSummaryBaseRecord">
+        SELECT
+            ut.id AS id,
+            ut.city_id AS cityId,
+            c.city_name AS cityName,
+            ut.trip_name AS tripName,
+            ut.start_name AS startName,
+            ut.end_name AS endName,
+            ut.start_date AS startDate,
+            ut.end_date AS endDate,
+            ut.days AS days,
+            ut.transport_type AS transportType,
+            ut.plan_mode AS planMode,
+            ut.total_distance AS totalDistance,
+            ut.total_trip_duration AS totalDuration,
+            ut.cover_url AS coverUrl,
+            ut.is_public AS isPublic,
+            ut.share_token AS shareToken,
+            ut.created_at AS createdAt
+        FROM user_trip ut
+        LEFT JOIN city c ON ut.city_id = c.id
+        WHERE
+        <include refid="userTripWhere"/>
+        <include refid="userTripOrderBy"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countUserTrips" resultType="long">
+        SELECT COUNT(1)
+        FROM user_trip ut
+        LEFT JOIN city c ON ut.city_id = c.id
+        WHERE
+        <include refid="userTripWhere"/>
+    </select>
+</mapper>

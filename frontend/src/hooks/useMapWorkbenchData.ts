@@ -183,8 +183,11 @@ export function useSaveUserTripMutation() {
 // 我的行程列表查询。
 export function useUserTripsQuery(
   params: {
+    cityName?: string;
     pageNum: number;
     pageSize: number;
+    planMode?: string;
+    sortBy?: string;
   },
   enabled: boolean,
 ) {

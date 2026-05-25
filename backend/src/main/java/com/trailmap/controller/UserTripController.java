@@ -3,6 +3,7 @@ package com.trailmap.controller;
 import com.trailmap.common.ApiResponse;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
+import com.trailmap.model.query.UserTripQuery;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
 import com.trailmap.model.response.TripShareResponse;
@@ -58,10 +59,14 @@ public class UserTripController {
     @Operation(summary = "获取我的行程列表")
     public ApiResponse<PageResponse<TripSummaryResponse>> listUserTrips(
             @AuthenticationPrincipal AuthUserPrincipal principal,
+            @RequestParam(required = false) String cityName,
+            @RequestParam(required = false) String planMode,
+            @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) @Positive(message = "页号必须大于 0") Integer pageNum,
             @RequestParam(required = false) @Positive(message = "每页大小必须大于 0") Integer pageSize) {
         return ApiResponse.success(userTripService.listUserTrips(
                 principal.userId(),
+                new UserTripQuery(cityName, planMode, sortBy),
                 new PageQuery(pageNum, pageSize)));
     }
 

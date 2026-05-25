@@ -2,6 +2,7 @@ package com.trailmap.service;
 
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
+import com.trailmap.model.query.UserTripQuery;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
 import com.trailmap.model.response.TripShareResponse;
@@ -20,7 +21,7 @@ public interface UserTripService {
     /**
      * 获取当前用户的行程列表。
      */
-    PageResponse<TripSummaryResponse> listUserTrips(Long userId, PageQuery pageQuery);
+    PageResponse<TripSummaryResponse> listUserTrips(Long userId, UserTripQuery query, PageQuery pageQuery);
 
     /**
      * 获取行程详情。

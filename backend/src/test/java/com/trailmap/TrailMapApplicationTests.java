@@ -474,6 +474,74 @@ class TrailMapApplicationTests {
     }
 
     @Test
+    void shouldFilterAndSortUserTripsFromBackend() throws Exception {
+        String userToken = registerAndLogin("trip_query_user", "筛选行程用户");
+        String chengduTripBody = """
+                {
+                  "cityId": 1,
+                  "tripName": "成都完整行程",
+                  "days": 2,
+                  "transportType": "transit",
+                  "planMode": "schedule",
+                  "items": [
+                    {
+                      "spotId": 101,
+                      "itemName": "宽窄巷子",
+                      "itemType": "spot",
+                      "dayIndex": 1,
+                      "sortOrder": 1
+                    }
+                  ]
+                }
+                """;
+        String xianTripBody = """
+                {
+                  "cityId": 2,
+                  "tripName": "西安自由路线",
+                  "days": 1,
+                  "transportType": "walk",
+                  "planMode": "free",
+                  "items": [
+                    {
+                      "spotId": 201,
+                      "itemName": "陕西历史博物馆",
+                      "itemType": "spot",
+                      "dayIndex": 1,
+                      "sortOrder": 1
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content(chengduTripBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+        mockMvc.perform(post("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType("application/json")
+                        .content(xianTripBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/user-trips")
+                        .header("Authorization", "Bearer " + userToken)
+                        .param("planMode", "schedule")
+                        .param("cityName", "成都市")
+                        .param("sortBy", "city")
+                        .param("pageNum", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.paged").value(true))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.list[0].tripName").value("成都完整行程"))
+                .andExpect(jsonPath("$.data.list[0].cityName").value("成都市"))
+                .andExpect(jsonPath("$.data.list[0].planMode").value("schedule"));
+    }
+
+    @Test
     void shouldCheckinListAndCancelSpot() throws Exception {
         String userToken = registerAndLogin("checkin_owner_user", "足迹用户");
         String checkinBody = """

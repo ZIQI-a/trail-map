@@ -191,14 +191,29 @@ export function saveUserTrip(payload: SaveTripRequestDto) {
   });
 }
 
-// 获取当前登录用户的行程列表。
-export function fetchUserTrips(params?: { pageNum?: number; pageSize?: number }) {
+// 获取当前登录用户的行程列表，筛选、排序和分页统一交给后端处理。
+export function fetchUserTrips(params?: {
+  cityName?: string;
+  pageNum?: number;
+  pageSize?: number;
+  planMode?: string;
+  sortBy?: string;
+}) {
   const searchParams = new URLSearchParams();
+  if (params?.cityName) {
+    searchParams.set('cityName', params.cityName);
+  }
   if (params?.pageNum) {
     searchParams.set('pageNum', String(params.pageNum));
   }
   if (params?.pageSize) {
     searchParams.set('pageSize', String(params.pageSize));
+  }
+  if (params?.planMode) {
+    searchParams.set('planMode', params.planMode);
+  }
+  if (params?.sortBy) {
+    searchParams.set('sortBy', params.sortBy);
   }
   const queryString = searchParams.toString();
   return request<PageResponse<UserTripSummaryDto>>(`/api/user-trips${queryString ? `?${queryString}` : ''}`);

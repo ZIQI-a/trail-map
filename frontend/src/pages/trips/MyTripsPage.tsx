@@ -62,12 +62,19 @@ export function MyTripsPage() {
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const citiesQuery = useCitiesQuery();
   const userTripsQuery = useUserTripsQuery(
-    { pageNum, pageSize: 200 }, // 目前先拉取较多数据在前端过滤，后续可由后端支持
+    {
+      cityName: cityFilter === "all" ? undefined : cityFilter,
+      pageNum,
+      pageSize,
+      planMode: scope === "all" ? undefined : scope,
+      sortBy: sortMode,
+    },
     Boolean(authToken),
   );
   const deleteUserTripMutation = useDeleteUserTripMutation();
   const updateUserTripShareMutation = useUpdateUserTripShareMutation();
-  const allTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
+  const pagedTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
+  const totalTrips = userTripsQuery.data?.total ?? 0;
 
   const cityOptions = useMemo(
     () => [
@@ -79,30 +86,6 @@ export function MyTripsPage() {
     ],
     [citiesQuery.data?.list],
   );
-
-  const filteredTrips = useMemo(() => {
-    const scopedTrips = allTrips.filter((trip) => {
-      if (scope !== "all" && trip.planMode !== scope) {
-        return false;
-      }
-      if (cityFilter !== "all" && trip.cityName !== cityFilter) {
-        return false;
-      }
-      return true;
-    });
-
-    return [...scopedTrips].sort((left, right) => {
-      if (sortMode === "city") {
-        return left.cityName.localeCompare(right.cityName, "zh-CN");
-      }
-      return right.createdAt.localeCompare(left.createdAt);
-    });
-  }, [allTrips, cityFilter, scope, sortMode]);
-
-  const pagedTrips = useMemo(() => {
-    const startIndex = (pageNum - 1) * pageSize;
-    return filteredTrips.slice(startIndex, startIndex + pageSize);
-  }, [filteredTrips, pageNum, pageSize]);
 
   function handleLogout() {
     clearAuthToken();
@@ -262,7 +245,7 @@ export function MyTripsPage() {
         <section className={styles.feedbackCard}>
           <Empty
             description={
-              filteredTrips.length === 0 && allTrips.length > 0
+              cityFilter !== "all" || scope !== "all"
                 ? "当前筛选条件下暂无匹配的行程记录"
                 : "你还没有保存行程，先去地图工作台生成一条吧"
             }
@@ -295,12 +278,12 @@ export function MyTripsPage() {
 
           <footer className={styles.paginationBar}>
             <span className={styles.totalText}>
-              共 {filteredTrips.length} 条行程
+              共 {totalTrips} 条行程
             </span>
             <Pagination
               current={pageNum}
               pageSize={pageSize}
-              total={filteredTrips.length}
+              total={totalTrips}
               showSizeChanger
               pageSizeOptions={["8", "12", "16", "24"]}
               onChange={(nextPage, nextPageSize) => {
@@ -468,6 +451,7 @@ function buildTripShareLink(shareToken: string) {
   return `${window.location.origin}/?shareToken=${shareToken}`;
 }
 
+// 格式化行程日期范围
 function formatTripDateRange(
   startDate?: string | null,
   endDate?: string | null,
@@ -481,6 +465,7 @@ function formatTripDateRange(
   return startDate || endDate || "日期未设置";
 }
 
+// 格式化日期时间标签
 function formatDateTimeLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

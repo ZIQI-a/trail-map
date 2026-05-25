@@ -1,7 +1,6 @@
 package com.trailmap.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trailmap.common.ErrorCode;
@@ -21,9 +20,11 @@ import com.trailmap.mapper.UserTripItemMapper;
 import com.trailmap.model.query.CoordinateRequest;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
+import com.trailmap.model.query.UserTripQuery;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
 import com.trailmap.model.response.TripShareResponse;
+import com.trailmap.model.response.TripSummaryBaseRecord;
 import com.trailmap.model.response.TripSummaryResponse;
 import com.trailmap.service.UserTripService;
 import java.math.BigDecimal;
@@ -444,39 +445,75 @@ public class UserTripServiceImpl implements UserTripService {
     }
 
     @Override
-    public PageResponse<TripSummaryResponse> listUserTrips(Long userId, PageQuery pageQuery) {
-        Page<UserTrip> page = userTripMapper.selectPage(
-                new Page<>(pageQuery.resolvedPageNum(), pageQuery.resolvedPageSize()),
-                new LambdaQueryWrapper<UserTrip>()
-                        .eq(UserTrip::getUserId, userId)
-                        .eq(UserTrip::getStatus, 1)
-                        .orderByDesc(UserTrip::getCreatedAt));
+    public PageResponse<TripSummaryResponse> listUserTrips(Long userId, UserTripQuery query, PageQuery pageQuery) {
+        validateTripListQuery(query);
 
-        List<Long> cityIds = page.getRecords().stream().map(UserTrip::getCityId).distinct().toList();
-        Map<Long, String> cityIdToName = cityIds.isEmpty() ? Map.of()
-                : cityMapper.selectBatchIds(cityIds).stream()
-                        .collect(Collectors.toMap(City::getId, City::getCityName));
+        if (!pageQuery.isPaged()) {
+            List<TripSummaryResponse> items = userTripMapper.selectUserTripPage(
+                            userId,
+                            query,
+                            0,
+                            Integer.MAX_VALUE)
+                    .stream()
+                    .map(this::toTripSummaryResponse)
+                    .toList();
+            return PageResponse.unpaged(items);
+        }
 
-        List<TripSummaryResponse> list = page.getRecords().stream().map(t -> new TripSummaryResponse(
-                t.getId(),
-                t.getCityId(),
-                cityIdToName.getOrDefault(t.getCityId(), "未知城市"),
-                t.getTripName(),
-                t.getStartName(),
-                t.getEndName(),
-                t.getStartDate(),
-                t.getEndDate(),
-                t.getDays(),
-                t.getTransportType(),
-                t.getPlanMode(),
-                t.getTotalDistance(),
-                t.getTotalTripDuration(), // 列表展示总耗时
-                t.getCoverUrl(),
-                isPublicTrip(t),
-                t.getShareToken(),
-                t.getCreatedAt())).toList();
+        long total = userTripMapper.countUserTrips(userId, query);
+        long offset = (pageQuery.resolvedPageNum() - 1) * pageQuery.resolvedPageSize();
+        List<TripSummaryResponse> pagedItems = userTripMapper.selectUserTripPage(
+                        userId,
+                        query,
+                        offset,
+                        pageQuery.resolvedPageSize())
+                .stream()
+                .map(this::toTripSummaryResponse)
+                .toList();
+        return PageResponse.paged(pagedItems, total, pageQuery.resolvedPageNum(), pageQuery.resolvedPageSize());
+    }
 
-        return PageResponse.paged(list, page.getTotal(), page.getCurrent(), page.getSize());
+    /**
+     * 将 SQL 查询记录映射成前端行程列表响应。
+     */
+    private TripSummaryResponse toTripSummaryResponse(TripSummaryBaseRecord record) {
+        return new TripSummaryResponse(
+                record.id(),
+                record.cityId(),
+                record.cityName(),
+                record.tripName(),
+                record.startName(),
+                record.endName(),
+                record.startDate(),
+                record.endDate(),
+                record.days(),
+                record.transportType(),
+                record.planMode(),
+                record.totalDistance(),
+                record.totalDuration(),
+                record.coverUrl(),
+                record.isPublic() != null && record.isPublic() == 1,
+                record.shareToken(),
+                record.createdAt());
+    }
+
+    /**
+     * 行程列表筛选值只允许当前产品约定的字段范围。
+     */
+    private void validateTripListQuery(UserTripQuery query) {
+        if (query == null) {
+            return;
+        }
+        if (StringUtils.hasText(query.planMode())
+                && !"schedule".equals(query.planMode())
+                && !"free".equals(query.planMode())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "不支持的行程类型筛选: " + query.planMode());
+        }
+        if (StringUtils.hasText(query.sortBy())
+                && !"latest".equals(query.sortBy())
+                && !"city".equals(query.sortBy())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "不支持的行程排序方式: " + query.sortBy());
+        }
     }
 
     @Override
