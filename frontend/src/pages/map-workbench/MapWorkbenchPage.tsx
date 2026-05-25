@@ -140,6 +140,7 @@ export function MapWorkbenchPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [notificationApi, notificationContextHolder] =
     notification.useNotification();
   const [authToken, setAuthTokenState] = useState(() => getAuthToken());
@@ -847,7 +848,7 @@ export function MapWorkbenchPage() {
       return tripId;
     } catch (error) {
       if (options?.notify !== false) {
-        message.error(
+        messageApi.error(
           error instanceof Error ? error.message : "请稍后再尝试保存行程。",
         );
       }
@@ -1087,23 +1088,23 @@ export function MapWorkbenchPage() {
           position: currentPosition,
           zoom: 15,
         });
-        message.success(`已根据当前位置切换到${matchedCity.name}`);
+        messageApi.success(`已根据当前位置切换到${matchedCity.name}`);
         return;
       }
 
       if (locatedCity && !matchedCity) {
-        message.warning(
+        messageApi.warning(
           `${locatedCity.city || locatedCity.province}暂未收录，已定位到当前位置`,
         );
         return;
       }
 
       if (matchedCity) {
-        message.success("已定位到我的位置");
+        messageApi.success("已定位到我的位置");
         return;
       }
 
-      message.warning("无法识别当前位置所在城市，已定位到当前位置");
+      messageApi.warning("无法识别当前位置所在城市，已定位到当前位置");
     } catch (error) {
       setPlannerAssistError(
         error instanceof Error ? error.message : "定位城市识别失败",
@@ -1159,6 +1160,7 @@ export function MapWorkbenchPage() {
 
   return (
     <main className={styles.workbenchShell}>
+      {messageContextHolder}
       {notificationContextHolder}
       <WorkbenchHeader
         cities={cities}
