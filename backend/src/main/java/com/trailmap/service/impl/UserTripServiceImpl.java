@@ -566,6 +566,22 @@ public class UserTripServiceImpl implements UserTripService {
         return new TripShareResponse(trip.getId(), isPublicTrip(trip), trip.getShareToken());
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTripName(Long userId, Long tripId, String tripName) {
+        UserTrip trip = userTripMapper.selectById(tripId);
+        if (trip == null || !trip.getUserId().equals(userId) || !Integer.valueOf(1).equals(trip.getStatus())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "行程不存在或无权访问");
+        }
+        if (!StringUtils.hasText(tripName)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "行程名称不能为空");
+        }
+
+        trip.setTripName(tripName.trim());
+        trip.setUpdatedAt(LocalDateTime.now());
+        userTripMapper.updateById(trip);
+    }
+
     /**
      * 组装行程详情响应，私有访问和公开分享访问复用同一套映射逻辑。
      */

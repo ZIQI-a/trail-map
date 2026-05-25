@@ -57,6 +57,7 @@ import {
   useSpotDetailQuery,
   useUncheckinSpotMutation,
   useUnfavoriteSpotMutation,
+  useUpdateUserTripNameMutation,
   useUpdateUserTripShareMutation,
   useUserTripDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
@@ -113,6 +114,7 @@ const defaultTripStartDate = formatDateOffset(1);
 const defaultTripEndDate = formatDateOffset(2);
 
 const defaultScheduleConfig: SchedulePlanConfig = {
+  tripName: "",
   tripStartDate: defaultTripStartDate,
   tripEndDate: defaultTripEndDate,
   tripDays: 2,
@@ -188,6 +190,7 @@ export function MapWorkbenchPage() {
   const citiesQuery = useCitiesQuery();
   const routePlanMutation = useRoutePlanMutation();
   const saveUserTripMutation = useSaveUserTripMutation();
+  const updateUserTripNameMutation = useUpdateUserTripNameMutation();
   const updateUserTripShareMutation = useUpdateUserTripShareMutation();
   const loginMutation = useLoginMutation();
   const registerMutation = useRegisterMutation();
@@ -436,6 +439,7 @@ export function MapWorkbenchPage() {
         tripStartDate: savedTrip.startDate ?? currentConfig.tripStartDate,
         tripEndDate: savedTrip.endDate ?? currentConfig.tripEndDate,
         tripDays: savedTrip.days || currentConfig.tripDays,
+        tripName: savedTrip.tripName || currentConfig.tripName,
         dailyStartTime:
           nextRoutePlan.itineraryDays[0]?.startTime ??
           currentConfig.dailyStartTime,
@@ -494,6 +498,7 @@ export function MapWorkbenchPage() {
         tripStartDate: publicTrip.startDate ?? currentConfig.tripStartDate,
         tripEndDate: publicTrip.endDate ?? currentConfig.tripEndDate,
         tripDays: publicTrip.days || currentConfig.tripDays,
+        tripName: publicTrip.tripName || currentConfig.tripName,
         dailyStartTime:
           nextRoutePlan.itineraryDays[0]?.startTime ??
           currentConfig.dailyStartTime,
@@ -875,6 +880,25 @@ export function MapWorkbenchPage() {
     setActiveTripId(shareResult.tripId);
     setActiveShareToken(shareResult.shareToken ?? null);
     return shareResult.shareToken;
+  }
+
+  /**
+   * 保存已落库行程的名称；未保存的新行程只更新本地配置状态。
+   */
+  async function handleSaveActiveTripName(tripName: string) {
+    const nextTripName = tripName.trim();
+    if (!nextTripName || !activeTripId) {
+      return;
+    }
+    await updateUserTripNameMutation.mutateAsync({
+      tripId: activeTripId,
+      tripName: nextTripName,
+    });
+    await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["user-trip-detail", activeTripId],
+    });
+    messageApi.success("行程名称已更新");
   }
 
   /**
@@ -1495,12 +1519,14 @@ export function MapWorkbenchPage() {
       <ScheduleResultSettingsDrawer
         open={scheduleSettingsOpen}
         loading={routePlanMutation.isPending}
+        savingTripName={updateUserTripNameMutation.isPending}
         cityName={city.name}
         value={scheduleConfig}
         routePlan={routePlanResult}
         tripSpots={tripSpots}
         onChange={setScheduleConfig}
         onClose={() => setScheduleSettingsOpen(false)}
+        onTripNameSave={handleSaveActiveTripName}
         onRegenerate={async () => {
           setScheduleSettingsOpen(false);
           await submitRoutePlan(scheduleConfig);

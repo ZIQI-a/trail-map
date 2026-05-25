@@ -4,6 +4,7 @@ import {
   CarOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
+  EditOutlined,
   EnvironmentOutlined,
   LinkOutlined,
   ShareAltOutlined,
@@ -15,6 +16,7 @@ import {
   Empty,
   Pagination,
   Popconfirm,
+  Input,
   Segmented,
   Select,
   Spin,
@@ -30,6 +32,7 @@ import {
   useCitiesQuery,
   useCurrentUserQuery,
   useDeleteUserTripMutation,
+  useUpdateUserTripNameMutation,
   useUpdateUserTripShareMutation,
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
@@ -72,6 +75,7 @@ export function MyTripsPage() {
     Boolean(authToken),
   );
   const deleteUserTripMutation = useDeleteUserTripMutation();
+  const updateUserTripNameMutation = useUpdateUserTripNameMutation();
   const updateUserTripShareMutation = useUpdateUserTripShareMutation();
   const pagedTrips = userTripsQuery.data?.list ?? EMPTY_TRIPS;
   const totalTrips = userTripsQuery.data?.total ?? 0;
@@ -98,6 +102,20 @@ export function MyTripsPage() {
   async function handleDeleteTrip(tripId: number) {
     await deleteUserTripMutation.mutateAsync(tripId);
     message.success("规划已删除");
+    await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
+  }
+
+  /**
+   * 保存行程名称，并刷新当前行程列表。
+   */
+  async function handleUpdateTripName(tripId: number, tripName: string) {
+    const nextTripName = tripName.trim();
+    if (!nextTripName) {
+      message.warning("行程名称不能为空");
+      return;
+    }
+    await updateUserTripNameMutation.mutateAsync({ tripId, tripName: nextTripName });
+    message.success("行程名称已更新");
     await queryClient.invalidateQueries({ queryKey: ["user-trips"] });
   }
 
@@ -265,9 +283,11 @@ export function MyTripsPage() {
                 key={trip.id}
                 trip={trip}
                 deleting={deleteUserTripMutation.isPending}
+                renaming={updateUserTripNameMutation.isPending}
                 sharing={updateUserTripShareMutation.isPending}
                 onOpen={() => navigate(`/?tripId=${trip.id}`)}
                 onDelete={() => void handleDeleteTrip(trip.id)}
+                onRename={(tripName) => void handleUpdateTripName(trip.id, tripName)}
                 onToggleShare={(enabled) =>
                   handleToggleTripShare(trip.id, enabled)
                 }
@@ -305,9 +325,11 @@ export function MyTripsPage() {
 type TripListCardProps = {
   trip: UserTripSummaryDto;
   deleting: boolean;
+  renaming: boolean;
   sharing: boolean;
   onOpen: () => void;
   onDelete: () => void;
+  onRename: (tripName: string) => Promise<unknown> | void;
   onToggleShare: (enabled: boolean) => Promise<unknown> | void;
   onCopyShare: () => void;
 };
@@ -318,13 +340,33 @@ type TripListCardProps = {
 function TripListCard({
   trip,
   deleting,
+  renaming,
   sharing,
   onOpen,
   onDelete,
+  onRename,
   onToggleShare,
   onCopyShare,
 }: TripListCardProps) {
   const isSchedule = trip.planMode === "schedule";
+  const [editingName, setEditingName] = useState(false);
+  const [draftTripName, setDraftTripName] = useState(trip.tripName);
+
+  /**
+   * 提交卡片行程名修改，空值回退到原名称。
+   */
+  async function handleSubmitTripName() {
+    const nextTripName = draftTripName.trim();
+    if (!nextTripName) {
+      setDraftTripName(trip.tripName);
+      setEditingName(false);
+      return;
+    }
+    if (nextTripName !== trip.tripName) {
+      await onRename(nextTripName);
+    }
+    setEditingName(false);
+  }
 
   return (
     <article className={styles.tripCard}>
@@ -348,7 +390,34 @@ function TripListCard({
             >
               {isSchedule ? "完整行程" : "自由路线"}
             </Tag>
-            <h2>{trip.tripName}</h2>
+            <div className={styles.cardTitleRow}>
+              {editingName ? (
+                <Input
+                  autoFocus
+                  className={styles.tripNameInput}
+                  maxLength={40}
+                  value={draftTripName}
+                  disabled={renaming}
+                  onChange={(event) => setDraftTripName(event.target.value)}
+                  onBlur={() => void handleSubmitTripName()}
+                  onPressEnter={() => void handleSubmitTripName()}
+                />
+              ) : (
+                <h2>{trip.tripName}</h2>
+              )}
+              <button
+                type="button"
+                className={styles.renameButton}
+                aria-label="编辑行程名称"
+                disabled={renaming}
+                onClick={() => {
+                  setDraftTripName(trip.tripName);
+                  setEditingName(true);
+                }}
+              >
+                <EditOutlined />
+              </button>
+            </div>
             <div className={styles.cardMeta}>
               <span>
                 <EnvironmentOutlined />

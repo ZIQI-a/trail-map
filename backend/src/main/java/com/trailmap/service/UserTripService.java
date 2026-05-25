@@ -39,6 +39,11 @@ public interface UserTripService {
     TripShareResponse updateTripShare(Long userId, Long tripId, boolean enabled);
 
     /**
+     * 更新行程名称。
+     */
+    void updateTripName(Long userId, Long tripId, String tripName);
+
+    /**
      * 删除行程。
      */
     void deleteTrip(Long userId, Long tripId);

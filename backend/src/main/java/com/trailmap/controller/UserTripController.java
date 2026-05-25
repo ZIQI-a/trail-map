@@ -3,6 +3,7 @@ package com.trailmap.controller;
 import com.trailmap.common.ApiResponse;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.SaveTripRequest;
+import com.trailmap.model.query.UpdateTripNameRequest;
 import com.trailmap.model.query.UserTripQuery;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.model.response.TripDetailResponse;
@@ -19,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -91,6 +93,19 @@ public class UserTripController {
             @PathVariable @Positive(message = "行程 ID 必须大于 0") Long id,
             @RequestParam Boolean enabled) {
         return ApiResponse.success(userTripService.updateTripShare(principal.userId(), id, Boolean.TRUE.equals(enabled)));
+    }
+
+    /**
+     * 更新指定行程的名称。
+     */
+    @PatchMapping("/{id}/name")
+    @Operation(summary = "更新行程名称")
+    public ApiResponse<Void> updateTripName(
+            @AuthenticationPrincipal AuthUserPrincipal principal,
+            @PathVariable @Positive(message = "行程 ID 必须大于 0") Long id,
+            @Valid @RequestBody UpdateTripNameRequest request) {
+        userTripService.updateTripName(principal.userId(), id, request.tripName());
+        return ApiResponse.success(null);
     }
 
     /**
