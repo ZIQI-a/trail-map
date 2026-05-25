@@ -100,6 +100,10 @@ export function CheckinsPage() {
   const uncheckinSpotMutation = useUncheckinSpotMutation();
   const currentPageCheckins = checkinSpotsQuery.data?.list ?? [];
   const totalCheckins = checkinSpotsQuery.data?.total ?? 0;
+  const displayedTotalCheckins =
+    cityFilter === "all"
+      ? (footprintQuery.data?.totalCheckinCount ?? totalCheckins)
+      : totalCheckins;
   const selectedCity = useMemo(
     () =>
       cityFilter === "all"
@@ -310,6 +314,7 @@ export function CheckinsPage() {
               <Empty
                 description={
                   totalCheckins === 0 &&
+                  displayedTotalCheckins === 0 &&
                   tagFilter === "all" &&
                   cityFilter === "all" &&
                   dateFilter === "all"
@@ -340,7 +345,7 @@ export function CheckinsPage() {
           )}
 
           <footer className={styles.paginationBar}>
-            <span>共 {totalCheckins} 条足迹</span>
+            <span>共 {displayedTotalCheckins} 条足迹</span>
             <Pagination
               current={pageNum}
               pageSize={pageSize}
