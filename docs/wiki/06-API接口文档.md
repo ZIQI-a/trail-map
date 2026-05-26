@@ -57,10 +57,12 @@
   "code": "SUCCESS",
   "message": "ok",
   "data": {
-    "records": [ ... ],
+    "list": [ ... ],
     "total": 100,
     "pageNum": 1,
-    "pageSize": 20
+    "pageSize": 20,
+    "totalPages": 5,
+    "paged": true
   }
 }
 ```
@@ -108,7 +110,7 @@
 ```json
 {
   "data": {
-    "records": [
+        "list": [
       {
         "id": 1,
         "cityName": "成都",
@@ -153,7 +155,7 @@
 ```json
 {
   "data": {
-    "records": [
+        "list": [
       {
         "id": 1,
         "spotName": "宽窄巷子",
