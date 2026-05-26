@@ -18,6 +18,7 @@ interface BMapGLMap {
   addControl(control: unknown): void;
   addOverlay(overlay: unknown): void;
   clearOverlays(): void;
+  removeOverlay(overlay: unknown): void;
   getZoom(): number;
   panTo(point: BMapGLPointLike): void;
   setViewport(points: BMapGLPointLike[]): void;

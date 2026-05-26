@@ -11,6 +11,8 @@ import {
   Tooltip,
 } from "antd";
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -19,16 +21,9 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AuthDialog } from "../../components/map-workbench/AuthDialog";
 import { fetchPoiCalibrationCandidates } from "../../api/mapWorkbench";
 import { BaiduMapStage } from "../../components/map-workbench/BaiduMapStage";
-import {
-  RoutePlanDrawer,
-  type RouteTimelineFocusTarget,
-} from "../../components/map-workbench/RoutePlanDrawer";
-import { SchedulePlanFormFields } from "../../components/map-workbench/SchedulePlanFormFields";
-import { ScheduleResultSettingsDrawer } from "../../components/map-workbench/ScheduleResultSettingsDrawer";
-import { SpotDetailPanel } from "../../components/map-workbench/SpotDetailPanel";
+import type { RouteTimelineFocusTarget } from "../../components/map-workbench/RoutePlanDrawer";
 import {
   SpotRecommendList,
   type RecommendTab,
@@ -97,6 +92,36 @@ import { getItineraryActivityColor } from "../../utils/map-workbench/routePalett
 import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
 import { buildSaveTripPayload } from "../../utils/map-workbench/tripPayload";
 import styles from "./MapWorkbenchPage.module.css";
+
+const AuthDialog = lazy(() =>
+  import("../../components/map-workbench/AuthDialog").then((module) => ({
+    default: module.AuthDialog,
+  })),
+);
+const RoutePlanDrawer = lazy(() =>
+  import("../../components/map-workbench/RoutePlanDrawer").then((module) => ({
+    default: module.RoutePlanDrawer,
+  })),
+);
+const SchedulePlanFormFields = lazy(() =>
+  import("../../components/map-workbench/SchedulePlanFormFields").then(
+    (module) => ({
+      default: module.SchedulePlanFormFields,
+    }),
+  ),
+);
+const ScheduleResultSettingsDrawer = lazy(() =>
+  import("../../components/map-workbench/ScheduleResultSettingsDrawer").then(
+    (module) => ({
+      default: module.ScheduleResultSettingsDrawer,
+    }),
+  ),
+);
+const SpotDetailPanel = lazy(() =>
+  import("../../components/map-workbench/SpotDetailPanel").then((module) => ({
+    default: module.SpotDetailPanel,
+  })),
+);
 
 const transportTypes = [
   { label: "公共交通", value: "transit" as const },
@@ -1297,68 +1322,73 @@ export function MapWorkbenchPage() {
 
         {selectedSpot && !routePlanResult ? (
           <div className={styles.detailFloatPanel}>
-            <SpotDetailPanel
-              favoriteLoading={
-                favoriteSpotMutation.isPending ||
-                unfavoriteSpotMutation.isPending
-              }
-              checkinLoading={
-                checkinSpotMutation.isPending || uncheckinSpotMutation.isPending
-              }
-              isCheckedIn={checkinSpotStatusQuery.data?.checkedIn ?? false}
-              isFavorite={favoriteSpotStatusQuery.data?.favorited ?? false}
-              isLoggedIn={Boolean(authToken)}
-              spot={selectedSpot}
-              tags={tags}
-              nearbySpots={nearbySpots}
-              isInTrip={tripSpotIds.includes(selectedSpot.id)}
-              onAddToTrip={handleAddToTrip}
-              onToggleCheckin={handleToggleCheckin}
-              onToggleFavorite={handleToggleFavorite}
-              onSelectSpot={(spotId) => {
-                setSelectedSpotId(spotId);
-                setSearchParams((currentParams) => {
-                  const nextParams = new URLSearchParams(currentParams);
-                  nextParams.set("spotId", String(spotId));
-                  return nextParams;
-                });
-              }}
-            />
+            <Suspense fallback={null}>
+              <SpotDetailPanel
+                favoriteLoading={
+                  favoriteSpotMutation.isPending ||
+                  unfavoriteSpotMutation.isPending
+                }
+                checkinLoading={
+                  checkinSpotMutation.isPending ||
+                  uncheckinSpotMutation.isPending
+                }
+                isCheckedIn={checkinSpotStatusQuery.data?.checkedIn ?? false}
+                isFavorite={favoriteSpotStatusQuery.data?.favorited ?? false}
+                isLoggedIn={Boolean(authToken)}
+                spot={selectedSpot}
+                tags={tags}
+                nearbySpots={nearbySpots}
+                isInTrip={tripSpotIds.includes(selectedSpot.id)}
+                onAddToTrip={handleAddToTrip}
+                onToggleCheckin={handleToggleCheckin}
+                onToggleFavorite={handleToggleFavorite}
+                onSelectSpot={(spotId) => {
+                  setSelectedSpotId(spotId);
+                  setSearchParams((currentParams) => {
+                    const nextParams = new URLSearchParams(currentParams);
+                    nextParams.set("spotId", String(spotId));
+                    return nextParams;
+                  });
+                }}
+              />
+            </Suspense>
           </div>
         ) : null}
 
         {routePlanResult ? (
           <div className={styles.routeDrawerPanel}>
-            <RoutePlanDrawer
-              cityName={city.name}
-              routePlan={routePlanResult}
-              tripSpots={tripSpots}
-              tags={tags}
-              startPoint={startPoint.trim() || `${city.name}市中心`}
-              startPosition={
-                visibleRouteSegments?.[0]?.fromPosition ??
-                startPointPosition ??
-                city.center
-              }
-              scheduleStartTime={
-                showingScheduleResult
-                  ? scheduleConfig.dailyStartTime
-                  : undefined
-              }
-              selectedDayIndex={activeScheduleDay?.dayIndex}
-              shareToken={activeShareToken}
-              saving={
-                saveUserTripMutation.isPending ||
-                updateUserTripShareMutation.isPending
-              }
-              onFocusLocation={handleFocusRouteTimelineLocation}
-              onCreateShareLink={handleCreatePublicShareLink}
-              onSaveTrip={() => handleSaveCurrentTrip()}
-              onClose={() => {
-                setRoutePlanResult(undefined);
-                clearSavedTripReplayParam();
-              }}
-            />
+            <Suspense fallback={null}>
+              <RoutePlanDrawer
+                cityName={city.name}
+                routePlan={routePlanResult}
+                tripSpots={tripSpots}
+                tags={tags}
+                startPoint={startPoint.trim() || `${city.name}市中心`}
+                startPosition={
+                  visibleRouteSegments?.[0]?.fromPosition ??
+                  startPointPosition ??
+                  city.center
+                }
+                scheduleStartTime={
+                  showingScheduleResult
+                    ? scheduleConfig.dailyStartTime
+                    : undefined
+                }
+                selectedDayIndex={activeScheduleDay?.dayIndex}
+                shareToken={activeShareToken}
+                saving={
+                  saveUserTripMutation.isPending ||
+                  updateUserTripShareMutation.isPending
+                }
+                onFocusLocation={handleFocusRouteTimelineLocation}
+                onCreateShareLink={handleCreatePublicShareLink}
+                onSaveTrip={() => handleSaveCurrentTrip()}
+                onClose={() => {
+                  setRoutePlanResult(undefined);
+                  clearSavedTripReplayParam();
+                }}
+              />
+            </Suspense>
           </div>
         ) : null}
 
@@ -1465,85 +1495,101 @@ export function MapWorkbenchPage() {
         <div className={styles.scheduleDialogIntro}>
           <span>按行程信息、偏好设置、生成确认三步完成配置。</span>
         </div>
-        <SchedulePlanFormFields
-          value={scheduleConfig}
-          cityName={city.name}
-          tripSpots={tripSpots}
-          currentStep={scheduleConfigStep}
-          onChange={setScheduleConfig}
-          onRemoveSpot={handleRemoveTripSpot}
-          hotelOptions={hotelOptions}
-          lunchOptions={lunchOptions}
-          restOptions={restOptions}
-          onHotelNameChange={(value) =>
-            handleManualScheduleFieldChange("hotelName", "hotelLocation", value)
-          }
-          onLunchPlaceNameChange={(value) =>
-            handleManualScheduleFieldChange(
-              "lunchPlaceName",
-              "lunchLocation",
-              value,
-            )
-          }
-          onRestPlaceNameChange={(value) =>
-            handleManualScheduleFieldChange(
-              "restPlaceName",
-              "restLocation",
-              value,
-            )
-          }
-          onHotelSelect={(location) =>
-            handleSelectManualScheduleLocation(
-              "hotelName",
-              "hotelLocation",
-              location,
-            )
-          }
-          onLunchSelect={(location) =>
-            handleSelectManualScheduleLocation(
-              "lunchPlaceName",
-              "lunchLocation",
-              location,
-            )
-          }
-          onRestSelect={(location) =>
-            handleSelectManualScheduleLocation(
-              "restPlaceName",
-              "restLocation",
-              location,
-            )
-          }
-        />
+        {scheduleConfigModalOpen ? (
+          <Suspense fallback={null}>
+            <SchedulePlanFormFields
+              value={scheduleConfig}
+              cityName={city.name}
+              tripSpots={tripSpots}
+              currentStep={scheduleConfigStep}
+              onChange={setScheduleConfig}
+              onRemoveSpot={handleRemoveTripSpot}
+              hotelOptions={hotelOptions}
+              lunchOptions={lunchOptions}
+              restOptions={restOptions}
+              onHotelNameChange={(value) =>
+                handleManualScheduleFieldChange(
+                  "hotelName",
+                  "hotelLocation",
+                  value,
+                )
+              }
+              onLunchPlaceNameChange={(value) =>
+                handleManualScheduleFieldChange(
+                  "lunchPlaceName",
+                  "lunchLocation",
+                  value,
+                )
+              }
+              onRestPlaceNameChange={(value) =>
+                handleManualScheduleFieldChange(
+                  "restPlaceName",
+                  "restLocation",
+                  value,
+                )
+              }
+              onHotelSelect={(location) =>
+                handleSelectManualScheduleLocation(
+                  "hotelName",
+                  "hotelLocation",
+                  location,
+                )
+              }
+              onLunchSelect={(location) =>
+                handleSelectManualScheduleLocation(
+                  "lunchPlaceName",
+                  "lunchLocation",
+                  location,
+                )
+              }
+              onRestSelect={(location) =>
+                handleSelectManualScheduleLocation(
+                  "restPlaceName",
+                  "restLocation",
+                  location,
+                )
+              }
+            />
+          </Suspense>
+        ) : null}
       </Modal>
 
-      <ScheduleResultSettingsDrawer
-        open={scheduleSettingsOpen}
-        loading={routePlanMutation.isPending}
-        savingTripName={updateUserTripNameMutation.isPending}
-        cityName={city.name}
-        value={scheduleConfig}
-        routePlan={routePlanResult}
-        tripSpots={tripSpots}
-        onChange={setScheduleConfig}
-        onClose={() => setScheduleSettingsOpen(false)}
-        onTripNameSave={handleSaveActiveTripName}
-        onRegenerate={async () => {
-          setScheduleSettingsOpen(false);
-          await submitRoutePlan(scheduleConfig);
-        }}
-      />
+      {(scheduleSettingsOpen || routePlanResult) ? (
+        <Suspense fallback={null}>
+          <ScheduleResultSettingsDrawer
+            open={scheduleSettingsOpen}
+            loading={routePlanMutation.isPending}
+            savingTripName={updateUserTripNameMutation.isPending}
+            cityName={city.name}
+            value={scheduleConfig}
+            routePlan={routePlanResult}
+            tripSpots={tripSpots}
+            onChange={setScheduleConfig}
+            onClose={() => setScheduleSettingsOpen(false)}
+            onTripNameSave={handleSaveActiveTripName}
+            onRegenerate={async () => {
+              setScheduleSettingsOpen(false);
+              await submitRoutePlan(scheduleConfig);
+            }}
+          />
+        </Suspense>
+      ) : null}
 
-      <AuthDialog
-        open={authDialogOpen}
-        loading={loginMutation.isPending || registerMutation.isPending}
-        error={authError}
-        onClose={() => {
-          setAuthDialogOpen(false);
-          setAuthError(undefined);
-        }}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-      />
+      {authDialogOpen ? (
+        <Suspense fallback={null}>
+          <AuthDialog
+            open={authDialogOpen}
+            loading={loginMutation.isPending || registerMutation.isPending}
+            error={authError}
+            onClose={() => {
+              setAuthDialogOpen(false);
+              setAuthError(undefined);
+            }}
+            onLogin={handleLogin}
+            onRegister={handleRegister}
+          />
+        </Suspense>
+      ) : null}
     </main>
   );
 }

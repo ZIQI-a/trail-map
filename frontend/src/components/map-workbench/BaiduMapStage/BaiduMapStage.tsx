@@ -74,6 +74,10 @@ export function BaiduMapStage({
 }: BaiduMapStageProps) {
   const containerId = useId().replace(/:/g, "-");
   const mapRef = useRef<BMapGLMap | null>(null);
+  const spotOverlayRef = useRef<unknown[]>([]);
+  const routeOverlayRef = useRef<unknown[]>([]);
+  const utilityOverlayRef = useRef<unknown[]>([]);
+  const boundaryOverlayRef = useRef<unknown[]>([]);
   const routeViewportSignatureRef = useRef<string | undefined>(undefined);
   const currentZoomRef = useRef(city.mapZoom);
   const [sdkError, setSdkError] = useState<string>();
@@ -137,9 +141,9 @@ export function BaiduMapStage({
     }
 
     const map = mapRef.current;
-    map.clearOverlays();
+    clearOverlayGroup(map, spotOverlayRef);
 
-    // 当前阶段景点数量有限，直接重绘 Marker、轮廓和路线线条可以保证联动逻辑简单可靠。
+    // 景点锚点与路线覆盖物解耦更新，避免选中景点或定位变化时整张图全量重绘。
     spots.forEach((spot) => {
       const marker = new window.BMapGL!.Marker(
         createBaiduPoint(spot.position),
@@ -156,24 +160,57 @@ export function BaiduMapStage({
         onSelectSpot(spot.id);
       });
       map.addOverlay(marker);
+      spotOverlayRef.current.push(marker);
     });
+  }, [
+    onPickStartPoint,
+    onSelectSpot,
+    sdkReady,
+    selectedSpotId,
+    spots,
+    startPointPicking,
+  ]);
+
+  useEffect(() => {
+    if (!mapRef.current || !sdkReady || !window.BMapGL) {
+      return;
+    }
+
+    const map = mapRef.current;
+    clearOverlayGroup(map, utilityOverlayRef);
+
     // 起点选点模式下，如果已有选定的起点位置，则在地图上展示一个特殊标识，提示用户当前选点状态和已选位置。
     if (startPointPosition) {
-      map.addOverlay(
-        new window.BMapGL!.Marker(createBaiduPoint(startPointPosition), {
+      const startMarker = new window.BMapGL!.Marker(
+        createBaiduPoint(startPointPosition),
+        {
           icon: createStartPointIcon(),
-        }),
+        },
       );
+      map.addOverlay(startMarker);
+      utilityOverlayRef.current.push(startMarker);
     }
 
     // 顶部“我的位置”定位成功后展示导航样式锚点，帮助用户在地图上识别当前位置。
     if (currentLocationPosition) {
-      map.addOverlay(
-        new window.BMapGL!.Marker(createBaiduPoint(currentLocationPosition), {
+      const currentLocationMarker = new window.BMapGL!.Marker(
+        createBaiduPoint(currentLocationPosition),
+        {
           icon: createCurrentLocationIcon(),
-        }),
+        },
       );
+      map.addOverlay(currentLocationMarker);
+      utilityOverlayRef.current.push(currentLocationMarker);
     }
+  }, [currentLocationPosition, sdkReady, startPointPosition]);
+
+  useEffect(() => {
+    if (!mapRef.current || !sdkReady || !window.BMapGL) {
+      return;
+    }
+
+    const map = mapRef.current;
+    clearOverlayGroup(map, routeOverlayRef);
 
     const activeRouteOverlays = routeOverlays?.length
       ? routeOverlays
@@ -221,36 +258,45 @@ export function BaiduMapStage({
       });
       map.addOverlay(casingLine);
       map.addOverlay(routeLine);
+      routeOverlayRef.current.push(casingLine, routeLine);
       // 沿着路线追加一组轻量箭头，帮助用户快速判断路线方向，而不改变主线本身的样式。
       const arrowMarkers = buildRouteArrowMarkers(
         displayPolyline,
         resolveRouteArrowIntervalMeters(currentZoomRef.current, overlay.kind),
       );
       arrowMarkers.forEach((arrowMarker, arrowIndex) => {
-        map.addOverlay(
-          new window.BMapGL!.Marker(createBaiduPoint(arrowMarker.position), {
+        const arrowOverlay = new window.BMapGL!.Marker(
+          createBaiduPoint(arrowMarker.position),
+          {
             icon: createRouteArrowIcon(
               arrowMarker.angleDeg,
               overlay.kind,
               `${overlay.key}-${arrowIndex}`,
             ),
-          }),
+          },
         );
+        map.addOverlay(arrowOverlay);
+        routeOverlayRef.current.push(arrowOverlay);
       });
 
       // 每条路线补充轻量端点标识，帮助用户区分当前路段从哪里出发、到哪里结束。
       const firstPoint = displayPolyline[0];
       const lastPoint = displayPolyline[displayPolyline.length - 1];
-      map.addOverlay(
-        new window.BMapGL!.Marker(createBaiduPoint(firstPoint), {
+      const startOverlay = new window.BMapGL!.Marker(
+        createBaiduPoint(firstPoint),
+        {
           icon: createRouteEndpointIcon("起", overlay.color, overlay.kind),
-        }),
+        },
       );
-      map.addOverlay(
-        new window.BMapGL!.Marker(createBaiduPoint(lastPoint), {
+      const endOverlay = new window.BMapGL!.Marker(
+        createBaiduPoint(lastPoint),
+        {
           icon: createRouteEndpointIcon("到", overlay.color, overlay.kind),
-        }),
+        },
       );
+      map.addOverlay(startOverlay);
+      map.addOverlay(endOverlay);
+      routeOverlayRef.current.push(startOverlay, endOverlay);
     });
 
     itineraryMarkers?.forEach((marker) => {
@@ -261,6 +307,7 @@ export function BaiduMapStage({
         },
       );
       map.addOverlay(overlay);
+      routeOverlayRef.current.push(overlay);
     });
 
     const routeViewportSignature = buildRouteViewportSignature(activeRouteOverlays);
@@ -279,9 +326,19 @@ export function BaiduMapStage({
     if (routeViewportPoints.length < 2) {
       routeViewportSignatureRef.current = undefined;
     }
+  }, [itineraryMarkers, routeOverlays, routeSegments, sdkReady]);
+
+  useEffect(() => {
+    if (!mapRef.current || !sdkReady || !window.BMapGL) {
+      return;
+    }
+
+    const map = mapRef.current;
+    clearOverlayGroup(map, boundaryOverlayRef);
+    const hasActiveRoute = routeViewportSignatureRef.current != null;
 
     // 选中景点如果带有轮廓，则优先画面并缩放到该区域；否则使用中等缩放聚焦主点位。
-    if (selectedSpot?.boundary && selectedSpot.boundary.length >= 3) {
+    if (!hasActiveRoute && selectedSpot?.boundary && selectedSpot.boundary.length >= 3) {
       const boundaryPoints = selectedSpot.boundary.map(createBaiduPoint);
       const polygon = new window.BMapGL!.Polygon(boundaryPoints, {
         strokeColor: "#1f6aff",
@@ -292,11 +349,12 @@ export function BaiduMapStage({
       });
       polygon.addEventListener("click", () => onSelectSpot(selectedSpot.id));
       map.addOverlay(polygon);
+      boundaryOverlayRef.current.push(polygon);
       map.setViewport(boundaryPoints);
       return;
     }
 
-    if (selectedSpotSummary) {
+    if (!hasActiveRoute && selectedSpotSummary) {
       // 城市默认保持全景视角，选中景点后适当放大，方便查看具体位置。
       map.centerAndZoom(
         createBaiduPoint(selectedSpotSummary.position),
@@ -304,20 +362,11 @@ export function BaiduMapStage({
       );
     }
   }, [
-    onSelectSpot,
     sdkReady,
     selectedSpot,
-    selectedSpotId,
     selectedSpotSummary,
     selectedSpotZoom,
-    routeSegments,
-    routeOverlays,
-    spots,
-    startPointPicking,
-    startPointPosition,
-    currentLocationPosition,
-    itineraryMarkers,
-    onPickStartPoint,
+    onSelectSpot,
   ]);
 
   useEffect(() => {
@@ -402,6 +451,16 @@ export function BaiduMapStage({
       ) : null}
     </section>
   );
+}
+
+/**
+ * 只清理指定分组的覆盖物，避免景点锚点和路线线条彼此干扰导致整图全量重绘。
+ */
+function clearOverlayGroup(map: BMapGLMap, overlayRef: { current: unknown[] }) {
+  overlayRef.current.forEach((overlay) => {
+    map.removeOverlay(overlay);
+  });
+  overlayRef.current = [];
 }
 
 // 用内联 SVG 生成景点锚点图标，避免额外引入静态图片资源。
