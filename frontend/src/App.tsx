@@ -1,13 +1,27 @@
 import { ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MapWorkbenchPage } from "./pages/map-workbench";
-import { FavoritesPage } from "./pages/favorites";
-import { MyTripsPage } from "./pages/trips";
 import { NotFoundPage } from "./pages/not-found";
-import { ProfileEditPage, ProfilePage } from "./pages/profile";
 
+// 非首页页面统一改为按路由懒加载，避免首页首包提前打入个人中心、收藏、行程等模块。
+const ProfilePage = lazy(() =>
+  import("./pages/profile").then((module) => ({ default: module.ProfilePage })),
+);
+const ProfileEditPage = lazy(() =>
+  import("./pages/profile").then((module) => ({
+    default: module.ProfileEditPage,
+  })),
+);
+const FavoritesPage = lazy(() =>
+  import("./pages/favorites").then((module) => ({
+    default: module.FavoritesPage,
+  })),
+);
+const MyTripsPage = lazy(() =>
+  import("./pages/trips").then((module) => ({ default: module.MyTripsPage })),
+);
 const AdminPage = lazy(() =>
   import("./pages/admin").then((module) => ({ default: module.AdminPage })),
 );
@@ -43,31 +57,36 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MapWorkbenchPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/profile/edit" element={<ProfileEditPage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/profile" element={renderLazyRoute(<ProfilePage />)} />
+          <Route
+            path="/profile/edit"
+            element={renderLazyRoute(<ProfileEditPage />)}
+          />
+          <Route
+            path="/favorites"
+            element={renderLazyRoute(<FavoritesPage />)}
+          />
           <Route
             path="/checkins"
-            element={
-              <Suspense fallback={null}>
-                <CheckinsPage />
-              </Suspense>
-            }
+            element={renderLazyRoute(<CheckinsPage />)}
           />
-          <Route path="/trips" element={<MyTripsPage />} />
+          <Route path="/trips" element={renderLazyRoute(<MyTripsPage />)} />
           <Route
             path="/admin"
-            element={
-              <Suspense fallback={null}>
-                <AdminPage />
-              </Suspense>
-            }
+            element={renderLazyRoute(<AdminPage />)}
           />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
   );
+}
+
+/**
+ * 统一包装路由级懒加载节点，避免各个 Route 重复书写 Suspense 结构。
+ */
+function renderLazyRoute(node: ReactNode) {
+  return <Suspense fallback={null}>{node}</Suspense>;
 }
 
 export default App;
