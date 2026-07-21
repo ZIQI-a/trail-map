@@ -52,7 +52,11 @@ interface RoutePlanDrawerProps {
   shareToken?: string | null;
   saving?: boolean;
   onFocusLocation: (target: RouteTimelineFocusTarget) => void;
-  onCreateShareLink: () => Promise<string | null | undefined> | string | null | undefined;
+  onCreateShareLink: () =>
+    | Promise<string | null | undefined>
+    | string
+    | null
+    | undefined;
   onSaveTrip: () => Promise<number | undefined> | number | undefined;
   onClose: () => void;
 }

@@ -177,6 +177,7 @@ export function MapWorkbenchPage() {
   const [activeFilter, setActiveFilter] = useState<ActiveSpotFilter>("all");
   const [activeRecommendTab, setActiveRecommendTab] =
     useState<RecommendTab>("recommend");
+  //
   const [selectedCityId, setSelectedCityId] = useState<number | undefined>(() =>
     parsePositiveNumber(searchParams.get("cityId")),
   );
@@ -1165,6 +1166,7 @@ export function MapWorkbenchPage() {
 
   // 右侧完整行程时间轴点击地点时，地图聚焦到该地点；景点同时同步左侧和地图选中态。
   function handleFocusRouteTimelineLocation(target: RouteTimelineFocusTarget) {
+    // 如果是景点，则同步选中态和URL参数。
     if (target.spotId) {
       setSelectedSpotId(target.spotId);
       setSearchParams((currentParams) => {
@@ -1554,7 +1556,7 @@ export function MapWorkbenchPage() {
         ) : null}
       </Modal>
 
-      {(scheduleSettingsOpen || routePlanResult) ? (
+      {scheduleSettingsOpen || routePlanResult ? (
         <Suspense fallback={null}>
           <ScheduleResultSettingsDrawer
             open={scheduleSettingsOpen}
@@ -2137,6 +2139,11 @@ function formatDistanceText(
   return `${distance.toFixed(1)}km`;
 }
 
+/**
+ * 格式化日期偏移量
+ * @param offsetDays
+ * @returns
+ */
 function formatDateOffset(offsetDays: number) {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
