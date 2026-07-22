@@ -36,7 +36,8 @@ import {
   useUpdateUserTripShareMutation,
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
-import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { clearAuthToken } from "../../lib/authToken";
 import type { UserTripSummaryDto } from "../../types/mapWorkbench";
 import {
   formatRouteDistance,
@@ -54,7 +55,7 @@ const EMPTY_TRIPS: UserTripSummaryDto[] = [];
 export function MyTripsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authToken = getAuthToken();
+  const authToken = useAuthToken();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [scope, setScope] = useState<TripScope>("all");

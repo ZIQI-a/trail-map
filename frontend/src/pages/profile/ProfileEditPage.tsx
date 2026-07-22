@@ -15,7 +15,8 @@ import {
   useCurrentUserQuery,
   useUpdateCurrentUserProfileMutation,
 } from "../../hooks/useMapWorkbenchData";
-import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { clearAuthToken } from "../../lib/authToken";
 import styles from "./ProfileEditPage.module.css";
 
 type ProfileEditFormValues = {
@@ -33,7 +34,7 @@ export function ProfileEditPage() {
   const [form] = Form.useForm<ProfileEditFormValues>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authToken = getAuthToken();
+  const authToken = useAuthToken();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const updateProfileMutation = useUpdateCurrentUserProfileMutation();
   const currentUser = currentUserQuery.data;

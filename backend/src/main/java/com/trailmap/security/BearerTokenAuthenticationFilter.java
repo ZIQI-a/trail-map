@@ -24,15 +24,12 @@ public class BearerTokenAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthTokenService authTokenService;
     private final AppUserServiceImpl appUserService;
-    private final SecurityExceptionHandlers securityExceptionHandlers;
 
     public BearerTokenAuthenticationFilter(
             AuthTokenService authTokenService,
-            AppUserServiceImpl appUserService,
-            SecurityExceptionHandlers securityExceptionHandlers) {
+            AppUserServiceImpl appUserService) {
         this.authTokenService = authTokenService;
         this.appUserService = appUserService;
-        this.securityExceptionHandlers = securityExceptionHandlers;
     }
 
     @Override
@@ -63,9 +60,10 @@ public class BearerTokenAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
-        } catch (UnauthorizedException exception) {
+        } catch (UnauthorizedException ignored) {
+            // Token 过期或无效时降级为匿名访问：公开地图接口继续执行，受保护接口由 Security 返回 401。
             SecurityContextHolder.clearContext();
-            securityExceptionHandlers.writeUnauthorized(response, exception.getMessage());
+            filterChain.doFilter(request, response);
         }
     }
 }

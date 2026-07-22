@@ -239,6 +239,24 @@ class TrailMapApplicationTests {
     }
 
     @Test
+    void shouldAllowPublicMapApiWithInvalidToken() throws Exception {
+        // 登录过期后公开地图数据仍应按匿名用户正常加载。
+        mockMvc.perform(get("/api/cities")
+                        .header("Authorization", "Bearer expired-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void shouldRejectProtectedApiWithInvalidToken() throws Exception {
+        // 同一个无效 Token 访问受保护接口时仍必须返回 401。
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer expired-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
     void shouldRejectUserManagementWithoutAdminRole() throws Exception {
         String normalUserToken = registerAndLogin("normal_only_user", "普通用户");
 

@@ -18,7 +18,8 @@ import {
   useAdminUserUpdateMutation,
 } from "../../hooks/useAdminData";
 import { useCurrentUserQuery } from "../../hooks/useMapWorkbenchData";
-import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { clearAuthToken } from "../../lib/authToken";
 import { queryClient } from "../../lib/queryClient";
 import type { AdminCityDto, AdminCityFormDto, AdminSpotDto, AdminSpotFormDto } from "../../types/admin";
 import type { AppUserDto } from "../../types/auth";
@@ -32,7 +33,7 @@ import styles from "./AdminPage.module.css";
 // AdminPage 是后台模块入口，仅负责鉴权、状态编排与页面切换。
 export function AdminPage() {
   const navigate = useNavigate();
-  const authToken = getAuthToken();
+  const authToken = useAuthToken();
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | AppUserDto["userType"]>("all");

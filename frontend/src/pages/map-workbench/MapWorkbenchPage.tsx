@@ -57,9 +57,9 @@ import {
   useUserTripDetailQuery,
 } from "../../hooks/useMapWorkbenchData";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useAuthToken } from "../../hooks/useAuthToken";
 import {
   clearAuthToken,
-  getAuthToken,
   setAuthToken,
 } from "../../lib/authToken";
 import { createBaiduPoint, loadBaiduMapGL } from "../../lib/baiduMap";
@@ -170,7 +170,7 @@ export function MapWorkbenchPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   const [notificationApi, notificationContextHolder] =
     notification.useNotification();
-  const [authToken, setAuthTokenState] = useState(() => getAuthToken());
+  const authToken = useAuthToken();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authError, setAuthError] = useState<string>();
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -566,7 +566,6 @@ export function MapWorkbenchPage() {
   // 登录成功后先保存 token，再刷新当前用户查询，让 header 展示真实用户资料。
   function handleAuthSuccess(token: string) {
     setAuthToken(token);
-    setAuthTokenState(token);
     setAuthDialogOpen(false);
     setAuthError(undefined);
     void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
@@ -574,7 +573,6 @@ export function MapWorkbenchPage() {
 
   function handleLogout() {
     clearAuthToken();
-    setAuthTokenState(null);
     setAuthError(undefined);
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
     queryClient.removeQueries({ queryKey: ["favorite-spot-status"] });

@@ -31,7 +31,8 @@ import {
   useCurrentUserQuery,
   useUncheckinSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
-import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { clearAuthToken } from "../../lib/authToken";
 import type { CheckinSpotItemDto, SpotTagCode } from "../../types/mapWorkbench";
 import {
   formatDateTime,
@@ -48,7 +49,7 @@ import type { CheckinDateFilter, CheckinViewMode } from "./types";
 export function CheckinsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authToken = getAuthToken();
+  const authToken = useAuthToken();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(4);
   const [viewMode, setViewMode] = useState<CheckinViewMode>("timeline");

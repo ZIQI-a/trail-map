@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types/mapWorkbench';
-import { getAuthToken } from './authToken';
+import { clearAuthToken, getAuthToken } from './authToken';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -16,6 +16,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   const payload = await parseApiPayload<T>(response);
+  if (response.status === 401) {
+    // 任一受保护接口确认登录失效后统一退出；公开地图请求随后不再携带过期 Token。
+    clearAuthToken();
+  }
   if (!response.ok || !payload?.success) {
     throw new Error(payload?.message || buildHttpErrorMessage(response.status));
   }

@@ -23,7 +23,8 @@ import {
   useUserProfileOverviewQuery,
   useUserTripsQuery,
 } from "../../hooks/useMapWorkbenchData";
-import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { clearAuthToken } from "../../lib/authToken";
 import type { UserProfileOverviewDto } from "../../types/mapWorkbench";
 import styles from "./ProfilePage.module.css";
 
@@ -42,7 +43,7 @@ type ProfileStatItem = {
 export function ProfilePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authToken = getAuthToken();
+  const authToken = useAuthToken();
   const currentUserQuery = useCurrentUserQuery(Boolean(authToken));
   const userProfileOverviewQuery = useUserProfileOverviewQuery(
     Boolean(authToken),

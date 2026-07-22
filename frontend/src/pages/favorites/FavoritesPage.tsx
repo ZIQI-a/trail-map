@@ -27,7 +27,8 @@ import {
   useFavoriteSpotsQuery,
   useUnfavoriteSpotMutation,
 } from "../../hooks/useMapWorkbenchData";
-import { clearAuthToken, getAuthToken } from "../../lib/authToken";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { clearAuthToken } from "../../lib/authToken";
 import type {
   FavoriteSpotItemDto,
   SpotTagCode,
@@ -49,7 +50,7 @@ type FavoriteDateFilter = "all" | "7d" | "30d" | "365d";
 export function FavoritesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authToken = getAuthToken();
+  const authToken = useAuthToken();
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [viewMode, setViewMode] = useState<FavoriteViewMode>("grid");
