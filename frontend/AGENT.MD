@@ -4,7 +4,7 @@
 
 ## 角色
 
-你负责 `frontend/` 内的 React + TypeScript + Vite 前端工程。开发时要兼顾 Web 端体验和后续 H5、多端扩展。
+负责 `frontend/` 内的 React + TypeScript + Vite 前端工程。开发时要兼顾 Web 端体验和后续 H5、多端扩展。
 
 ## 必查文档
 
