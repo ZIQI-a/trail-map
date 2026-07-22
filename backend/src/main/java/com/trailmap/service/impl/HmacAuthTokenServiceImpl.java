@@ -23,7 +23,7 @@ public class HmacAuthTokenServiceImpl implements AuthTokenService {
 
     private final String tokenSecret;
 
-    public HmacAuthTokenServiceImpl(@Value("${trailmap.auth.token-secret:trailmap-dev-secret}") String tokenSecret) {
+    public HmacAuthTokenServiceImpl(@Value("${trailmap.auth.token-secret}") String tokenSecret) {
         this.tokenSecret = tokenSecret;
     }
 

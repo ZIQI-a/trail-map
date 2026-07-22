@@ -60,6 +60,8 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/api/user-trips/**")
                         .authenticated()
+                        .requestMatchers("/api/profile/**")
+                        .authenticated()
                         .requestMatchers("/api/users/**")
                         .hasRole("ADMIN")
                         .anyRequest()

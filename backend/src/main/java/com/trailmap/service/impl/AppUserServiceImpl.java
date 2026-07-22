@@ -6,6 +6,7 @@ import com.trailmap.common.ErrorCode;
 import com.trailmap.entity.AppUser;
 import com.trailmap.enums.UserType;
 import com.trailmap.exception.BusinessException;
+import com.trailmap.exception.UnauthorizedException;
 import com.trailmap.mapper.AppUserMapper;
 import com.trailmap.model.query.PageQuery;
 import com.trailmap.model.query.UserCreateRequest;
@@ -75,7 +76,7 @@ public class AppUserServiceImpl implements AppUserService {
 
     @Override
     public AppUserResponse getUser(Long userId) {
-        return toResponse(loadActiveUser(userId));
+        return toResponse(loadExistingUser(userId));
     }
 
     @Override
@@ -101,7 +102,8 @@ public class AppUserServiceImpl implements AppUserService {
 
     @Override
     public AppUserResponse updateUser(Long userId, UserUpdateRequest request) {
-        AppUser user = loadActiveUser(userId);
+        // 管理员需要能够读取并重新启用停用账号，因此这里只排除已删除用户。
+        AppUser user = loadExistingUser(userId);
         validateUniqueFields(userId, null, request.phone(), request.email());
 
         if (StringUtils.hasText(request.nickname())) {
@@ -157,13 +159,30 @@ public class AppUserServiceImpl implements AppUserService {
 
     @Override
     public void deleteUser(Long userId) {
-        AppUser user = loadActiveUser(userId);
+        AppUser user = loadExistingUser(userId);
         user.setStatus(STATUS_DELETED);
         user.setUpdatedAt(LocalDateTime.now());
         appUserMapper.updateById(user);
     }
 
+    /**
+     * 认证链路只接受启用账号，确保后台停用后已有 Token 立即失效。
+     */
     public AppUser loadActiveUser(Long userId) {
+        AppUser user = appUserMapper.selectOne(new LambdaQueryWrapper<AppUser>()
+                .eq(AppUser::getId, userId)
+                .eq(AppUser::getStatus, STATUS_ENABLED)
+                .last("limit 1"));
+        if (user == null) {
+            throw new UnauthorizedException("账号不存在或已停用，请重新登录");
+        }
+        return user;
+    }
+
+    /**
+     * 后台管理链路允许访问启用或停用账号，但不允许操作已逻辑删除账号。
+     */
+    private AppUser loadExistingUser(Long userId) {
         AppUser user = appUserMapper.selectOne(new LambdaQueryWrapper<AppUser>()
                 .eq(AppUser::getId, userId)
                 .ne(AppUser::getStatus, STATUS_DELETED)
