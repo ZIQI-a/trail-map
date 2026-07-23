@@ -14,6 +14,12 @@ interface ExternalRouteMenuButtonProps {
   onError: (errorMessage: string) => void;
 }
 
+/** 地图平台官网图标；加载失败时由组件保留品牌首字作为托底。 */
+const MAP_PROVIDER_LOGOS: Record<ExternalMapProvider, string> = {
+  baidu: "https://map.baidu.com/favicon.ico",
+  amap: "https://ditu.amap.com/favicon.ico",
+};
+
 /**
  * 路线分段的外部地图入口，允许用户选择百度或高德查看实时详细路线。
  */
@@ -104,7 +110,7 @@ interface MapProviderOptionProps {
 }
 
 /**
- * 地图服务菜单项，用品牌色缩写和辅助说明强化跳转目标。
+ * 地图服务菜单项，优先展示平台官网图标，网络图片不可用时回退到品牌首字。
  */
 function MapProviderOption({
   mark,
@@ -118,7 +124,17 @@ function MapProviderOption({
         className={`${styles.providerMark} ${styles[provider]}`}
         aria-hidden="true"
       >
-        {mark}
+        <span className={styles.providerFallback}>{mark}</span>
+        <img
+          className={styles.providerLogo}
+          src={MAP_PROVIDER_LOGOS[provider]}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+          }}
+        />
       </span>
       <span className={styles.providerText}>
         <strong>{title}</strong>
