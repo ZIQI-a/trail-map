@@ -296,15 +296,21 @@ export function TripPlannerDock({
             <Input
               allowClear
               prefix={
-                <button
-                  className={styles.startDecorButton}
-                  type="button"
-                  title="使用当前位置"
-                  aria-label="使用当前位置"
-                  onClick={onUseCurrentLocation}
+                <Tooltip
+                  placement="top"
+                  title="点击使用当前位置作为路线起点"
                 >
-                  <AimOutlined className={styles.startDecorIcon} />
-                </button>
+                  <button
+                    className={styles.startDecorButton}
+                    type="button"
+                    aria-label="使用当前位置作为路线起点"
+                    disabled={locatingCurrentPosition}
+                    onClick={onUseCurrentLocation}
+                  >
+                    <AimOutlined className={styles.startDecorIcon} />
+                    <span className={styles.startDecorLabel}>定位</span>
+                  </button>
+                </Tooltip>
               }
               placeholder="输入起点或在地图上选点"
               disabled={locatingCurrentPosition}

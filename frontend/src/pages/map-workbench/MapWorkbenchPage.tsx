@@ -722,9 +722,13 @@ export function MapWorkbenchPage() {
     setPlannerAssistError(undefined);
   }
 
-  // 起点输入优先走百度地点检索拿候选坐标，失败或无结果时再回退到城市中心点。
+  // 起点是路线规划的必填项；缺失时只展示轻量提示，不再静默回退到城市中心点。
   async function handlePlanRoute() {
     if (!city || tripSpots.length === 0) {
+      return;
+    }
+
+    if (!validateStartPoint()) {
       return;
     }
 
@@ -749,11 +753,27 @@ export function MapWorkbenchPage() {
       return;
     }
 
+    if (!validateStartPoint()) {
+      return;
+    }
+
+    routePlanMutation.reset();
     setPlannerAssistError(undefined);
-    const startPointName = startPoint.trim() || `${city.name}市中心`;
-    const resolvedStartPosition =
-      startPointPosition ??
-      (await resolveStartPointPosition(city.name, startPointName, city.center));
+    const startPointName = startPoint.trim();
+    let resolvedStartPosition = startPointPosition;
+    if (!resolvedStartPosition) {
+      try {
+        resolvedStartPosition = await resolveStartPointPosition(
+          city.name,
+          startPointName,
+        );
+      } catch (error) {
+        messageApi.error(
+          error instanceof Error ? error.message : "起点解析失败，请重新选择",
+        );
+        return;
+      }
+    }
     const lunchLocation = config
       ? await resolveOptionalPlanLocation(
           city.name,
@@ -814,6 +834,20 @@ export function MapWorkbenchPage() {
     if (result.planMode === "schedule" && result.itineraryDays.length > 0) {
       setSelectedScheduleDay(result.itineraryDays[0].dayIndex);
     }
+  }
+
+  /**
+   * 起点为空属于表单校验问题，使用顶部消息提示，避免渲染“行程规划失败”结果组件。
+   */
+  function validateStartPoint() {
+    if (startPoint.trim()) {
+      return true;
+    }
+
+    routePlanMutation.reset();
+    setPlannerAssistError(undefined);
+    messageApi.error("请填写起点，或点击输入框左侧的“定位”使用当前位置");
+    return false;
   }
 
   /**
@@ -932,10 +966,9 @@ export function MapWorkbenchPage() {
   async function resolveStartPointPosition(
     cityName: string,
     keyword: string,
-    fallbackPosition: TravelCity["center"],
   ) {
     if (!keyword.trim()) {
-      return fallbackPosition;
+      throw new Error("请填写起点，或使用当前位置");
     }
 
     try {
@@ -947,19 +980,17 @@ export function MapWorkbenchPage() {
           );
       const firstCandidate = fallbackCandidates[0];
       if (firstCandidate) {
-        return (
-          firstCandidate.naviLocation ??
-          firstCandidate.location ??
-          fallbackPosition
-        );
+        const candidatePosition =
+          firstCandidate.naviLocation ?? firstCandidate.location;
+        if (candidatePosition) {
+          return candidatePosition;
+        }
       }
     } catch {
-      setPlannerAssistError("起点检索失败，当前已回退为城市中心点");
-      return fallbackPosition;
+      throw new Error("起点检索失败，请选择联想结果或在地图上选点");
     }
 
-    setPlannerAssistError("起点未命中候选地点，当前已回退为城市中心点");
-    return fallbackPosition;
+    throw new Error("未找到该起点，请输入更具体的地点名称");
   }
 
   // 完整行程的手动地点输入会在提交前统一解析，避免把“只写名称”的地点直接交给后端。

@@ -377,18 +377,40 @@
 }
 
 .startDecorButton {
-  width: 20px;
+  min-width: 42px;
   height: 20px;
-  display: grid;
-  place-items: center;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 5px;
   border: 0;
+  border-radius: 6px;
+  color: #607792;
   background: transparent;
   cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
 }
 
-.startDecorButton:hover .startDecorIcon {
+.startDecorButton:hover:not(:disabled) {
   color: #2d6bff;
+  background: #edf4ff;
+}
+
+.startDecorButton:disabled {
+  color: #a8b5c5;
+  cursor: wait;
+}
+
+.startDecorButton:hover:not(:disabled) .startDecorIcon {
+  color: #2d6bff;
+}
+
+.startDecorLabel {
+  color: inherit !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
 }
 
 .railCard :global(.ant-segmented) {
