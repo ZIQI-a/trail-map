@@ -12,7 +12,7 @@ import {
   NodeIndexOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
-import { Button, Tag, Timeline } from "antd";
+import { Button, message, Tag, Timeline } from "antd";
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
@@ -37,6 +37,7 @@ import {
   formatDuration,
   getSpotTagName,
 } from "../../../utils/map-workbench/spotDisplay";
+import { ExternalRouteMenuButton } from "./ExternalRouteMenuButton";
 import { RouteShareDialog } from "../RouteShareDialog";
 import styles from "./RoutePlanDrawer.module.css";
 
@@ -86,6 +87,7 @@ export function RoutePlanDrawer({
   onClose,
 }: RoutePlanDrawerProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [messageApi, messageContextHolder] = message.useMessage();
   const spotMapping = new Map(tripSpots.map((spot) => [spot.id, spot]));
   const activeDay =
     routePlan.planMode === "schedule"
@@ -115,6 +117,7 @@ export function RoutePlanDrawer({
 
   return (
     <aside className={styles.drawer} aria-label="路线规划详情">
+      {messageContextHolder}
       <div className={styles.header}>
         <div>
           <h2>
@@ -183,7 +186,14 @@ export function RoutePlanDrawer({
       <Timeline
         className={styles.timeline}
         items={timelineEntries.map((entry) =>
-          renderTimelineItem(entry, spotMapping, tags, onFocusLocation),
+          renderTimelineItem(
+            entry,
+            cityName,
+            spotMapping,
+            tags,
+            onFocusLocation,
+            (errorMessage) => messageApi.error(errorMessage),
+          ),
         )}
       />
       <RouteShareDialog
@@ -231,6 +241,7 @@ type TimelineEntry =
       color: string;
       icon: ReactNode;
       sequence: number;
+      segment: RouteSegmentDto;
       auxiliary?: boolean;
     }
   | {
@@ -298,6 +309,7 @@ function buildTimelineEntries(
         color: getRouteSegmentColor(localIndex),
         icon: getTransportIcon(segment.transportType),
         sequence: localIndex + 1,
+        segment,
         auxiliary: false,
       });
       currentMinutes += Math.ceil(segment.durationSeconds / 60);
@@ -397,6 +409,7 @@ function buildScheduleTimelineEntries(
         color: segmentColor,
         icon: getTransportIcon(segment.transportType),
         sequence,
+        segment,
         auxiliary: auxiliarySegment,
       });
       segmentCursor = matchedSegmentIndex + 1;
@@ -598,9 +611,11 @@ function getActivityTimelineColor(itemType: ItineraryItemDto["itemType"]) {
 
 function renderTimelineItem(
   entry: TimelineEntry,
+  cityName: string,
   spotMapping: Map<number, TravelSpot>,
   tags: SpotTag[],
   onFocusLocation: (target: RouteTimelineFocusTarget) => void,
+  onExternalRouteError: (errorMessage: string) => void,
 ) {
   // 将路线颜色写入时间轴节点，由 CSS 统一渲染左侧步骤线，避免卡片内再出现独立竖线。
   const timelineStyle = { "--route-accent": entry.color } as CSSProperties;
@@ -630,7 +645,11 @@ function renderTimelineItem(
             <span>{entry.subtitle}</span>
             <span>{entry.meta}</span>
           </div>
-          <ExportOutlined className={styles.segmentArrow} />
+          <ExternalRouteMenuButton
+            cityName={cityName}
+            segment={entry.segment}
+            onError={onExternalRouteError}
+          />
         </div>
       ),
     };

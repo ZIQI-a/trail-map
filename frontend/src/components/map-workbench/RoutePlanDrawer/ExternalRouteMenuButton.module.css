@@ -1,0 +1,74 @@
+.routeButton {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #8296b0;
+  font-size: 16px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.routeButton:hover,
+.routeButton:focus-visible {
+  border-color: #cbdcff;
+  color: #2d6bff;
+  background: #edf4ff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.providerOption {
+  min-width: 190px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.providerMark {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 5px 12px rgb(28 63 111 / 14%);
+}
+
+.baidu {
+  background: linear-gradient(145deg, #3978ff, #2458d7);
+}
+
+.amap {
+  background: linear-gradient(145deg, #18ad78, #07865b);
+}
+
+.providerText {
+  display: grid;
+  gap: 2px;
+}
+
+.providerText strong {
+  color: #263d5c;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.providerText small {
+  color: #8190a5;
+  font-size: 11px;
+  line-height: 1.25;
+}
