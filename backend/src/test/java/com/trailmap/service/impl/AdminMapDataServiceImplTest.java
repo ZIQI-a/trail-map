@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.trailmap.config.BaiduMapProperties;
+import com.trailmap.model.response.AdminCityLocationResponse;
 import com.trailmap.model.response.AdminCityOptionResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,27 @@ class AdminMapDataServiceImplTest {
         fixture.server().verify();
     }
 
+    @Test
+    void shouldRoundResolvedCityCoordinatesToSixDecimalPlaces() {
+        MockServiceFixture fixture = createFixture();
+        fixture.server().expect(request -> assertTrue(
+                        request.getURI().getRawQuery().contains("keyword=%E4%B8%AD%E5%9B%BD")))
+                .andRespond(withSuccess(CHINA_REGION_RESPONSE, MediaType.APPLICATION_JSON));
+        fixture.server().expect(request -> assertTrue(
+                        request.getURI().getRawQuery().contains("keyword=510000")))
+                .andRespond(withSuccess(SICHUAN_REGION_RESPONSE, MediaType.APPLICATION_JSON));
+        fixture.server().expect(request -> assertTrue(
+                        request.getURI().getPath().contains("/geocode")))
+                .andRespond(withSuccess(GEOCODING_RESPONSE, MediaType.APPLICATION_JSON));
+
+        AdminCityLocationResponse result =
+                fixture.service().resolveCity("510000", "510100");
+
+        assertEquals("106.665000", result.center().lng().toPlainString());
+        assertEquals("35.543001", result.center().lat().toPlainString());
+        fixture.server().verify();
+    }
+
     /**
      * 创建隔离的百度行政区 Mock 服务，避免单元测试依赖真实网络和 AK。
      */
@@ -72,10 +94,11 @@ class AdminMapDataServiceImplTest {
         BaiduMapProperties properties = new BaiduMapProperties();
         properties.setServerAk("test-ak");
         properties.setRegionSearchUrl("https://maps.test/regions");
+        properties.setGeocodingUrl("https://maps.test/geocode");
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         return new MockServiceFixture(
-                new AdminMapDataServiceImpl(properties, builder.build()),
+                new AdminMapDataServiceImpl(properties, builder),
                 server);
     }
 
@@ -108,6 +131,18 @@ class AdminMapDataServiceImplTest {
                   {"name": "自贡市", "code": "510300", "level": 2}
                 ]
               }]
+            }
+            """;
+
+    private static final String GEOCODING_RESPONSE = """
+            {
+              "status": 0,
+              "result": {
+                "location": {
+                  "lng": 106.6649997123,
+                  "lat": 35.5430014217
+                }
+              }
             }
             """;
 

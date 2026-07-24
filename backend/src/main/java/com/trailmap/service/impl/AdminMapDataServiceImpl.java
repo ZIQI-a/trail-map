@@ -11,6 +11,7 @@ import com.trailmap.model.response.AdminProvinceOptionResponse;
 import com.trailmap.model.response.CoordinateResponse;
 import com.trailmap.service.AdminMapDataService;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -19,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -40,19 +40,14 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
     private final RestClient restClient;
     private final ConcurrentHashMap<String, CachedRegionList> regionCache = new ConcurrentHashMap<>();
 
-    @Autowired
-    public AdminMapDataServiceImpl(BaiduMapProperties baiduMapProperties) {
-        this(baiduMapProperties, RestClient.builder().build());
-    }
-
     /**
-     * 测试可注入带 Mock 服务的客户端，生产环境仍使用默认 RestClient。
+     * 使用 Spring Boot 统一配置的客户端构建器创建百度地图请求客户端。
      */
-    AdminMapDataServiceImpl(
+    public AdminMapDataServiceImpl(
             BaiduMapProperties baiduMapProperties,
-            RestClient restClient) {
+            RestClient.Builder restClientBuilder) {
         this.baiduMapProperties = baiduMapProperties;
-        this.restClient = restClient;
+        this.restClient = restClientBuilder.build();
     }
 
     @Override
@@ -221,8 +216,8 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
                 throw new BusinessException(ErrorCode.BAD_REQUEST, "城市中心点解析失败，请重新选择城市");
             }
             return new CoordinateResponse(
-                    new BigDecimal(location.path("lng").asText()),
-                    new BigDecimal(location.path("lat").asText()));
+                    normalizeCoordinate(location.path("lng").asText()),
+                    normalizeCoordinate(location.path("lat").asText()));
         } catch (BusinessException exception) {
             throw exception;
         } catch (RestClientException exception) {
@@ -237,6 +232,13 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
                 node.path("code").asText(),
                 node.path("name").asText(),
                 node.path("level").asInt(-1));
+    }
+
+    /**
+     * 百度坐标统一四舍五入到数据库约定的 6 位小数，避免显示值与提交值精度不一致。
+     */
+    private BigDecimal normalizeCoordinate(String value) {
+        return new BigDecimal(value).setScale(6, RoundingMode.HALF_UP);
     }
 
     private RegionTreeNode toRegionTreeNode(JsonNode node) {
