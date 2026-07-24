@@ -10,6 +10,8 @@ public class BaiduMapProperties {
 
     private String serverAk;
     private String placeSearchUrl = "https://api.map.baidu.com/place/v2/search";
+    private String regionSearchUrl = "https://api.map.baidu.com/api_region_search/v1/";
+    private String geocodingUrl = "https://api.map.baidu.com/geocoding/v3/";
     private String routeDrivingUrl = "https://api.map.baidu.com/directionlite/v1/driving";
     private String routeWalkingUrl = "https://api.map.baidu.com/directionlite/v1/walking";
     private String routeRidingUrl = "https://api.map.baidu.com/directionlite/v1/riding";
@@ -29,6 +31,22 @@ public class BaiduMapProperties {
 
     public void setPlaceSearchUrl(String placeSearchUrl) {
         this.placeSearchUrl = placeSearchUrl;
+    }
+
+    public String getRegionSearchUrl() {
+        return regionSearchUrl;
+    }
+
+    public void setRegionSearchUrl(String regionSearchUrl) {
+        this.regionSearchUrl = regionSearchUrl;
+    }
+
+    public String getGeocodingUrl() {
+        return geocodingUrl;
+    }
+
+    public void setGeocodingUrl(String geocodingUrl) {
+        this.geocodingUrl = geocodingUrl;
     }
 
     public String getRouteDrivingUrl() {

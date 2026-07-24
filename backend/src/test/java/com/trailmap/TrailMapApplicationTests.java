@@ -268,6 +268,27 @@ class TrailMapApplicationTests {
     }
 
     @Test
+    void shouldProtectAllAdminEndpoints() throws Exception {
+        mockMvc.perform(get("/api/admin/cities"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+
+        String normalUserToken = registerAndLogin("normal_admin_guard_user", "后台权限测试用户");
+        mockMvc.perform(get("/api/admin/spots")
+                        .header("Authorization", "Bearer " + normalUserToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+
+        String adminToken = promoteRegisteredUserToAdminAndLogin(
+                "admin_guard_operator",
+                "后台权限测试管理员");
+        mockMvc.perform(get("/api/admin/cities")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
     void shouldCreateUpdateListAndDeleteUser() throws Exception {
         String adminToken = promoteRegisteredUserToAdminAndLogin(
                 "admin_operator",

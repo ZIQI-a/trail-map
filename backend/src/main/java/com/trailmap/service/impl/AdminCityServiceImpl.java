@@ -14,6 +14,7 @@ import com.trailmap.model.response.AdminCityResponse;
 import com.trailmap.model.response.CoordinateResponse;
 import com.trailmap.model.response.PageResponse;
 import com.trailmap.service.AdminCityService;
+import com.trailmap.service.AdminMapDataService;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import org.springframework.stereotype.Service;
@@ -27,10 +28,15 @@ public class AdminCityServiceImpl implements AdminCityService {
 
     private final CityMapper cityMapper;
     private final SpotMapper spotMapper;
+    private final AdminMapDataService adminMapDataService;
 
-    public AdminCityServiceImpl(CityMapper cityMapper, SpotMapper spotMapper) {
+    public AdminCityServiceImpl(
+            CityMapper cityMapper,
+            SpotMapper spotMapper,
+            AdminMapDataService adminMapDataService) {
         this.cityMapper = cityMapper;
         this.spotMapper = spotMapper;
+        this.adminMapDataService = adminMapDataService;
     }
 
     @Override
@@ -70,15 +76,18 @@ public class AdminCityServiceImpl implements AdminCityService {
     @Override
     public AdminCityResponse createCity(AdminCityCreateRequest request) {
         validateCityCodeUnique(null, request.cityCode());
+        var resolvedCity = adminMapDataService.resolveCity(
+                resolveProvinceCode(request.cityCode()),
+                request.cityCode().trim());
 
         LocalDateTime now = LocalDateTime.now();
         City city = new City();
         city.setId(nextCityId());
-        city.setCityName(request.cityName().trim());
-        city.setProvinceName(request.provinceName().trim());
-        city.setCityCode(request.cityCode().trim());
-        city.setCenterLng(request.centerLng());
-        city.setCenterLat(request.centerLat());
+        city.setCityName(resolvedCity.cityName());
+        city.setProvinceName(resolvedCity.provinceName());
+        city.setCityCode(resolvedCity.cityCode());
+        city.setCenterLng(resolvedCity.center().lng());
+        city.setCenterLat(resolvedCity.center().lat());
         city.setMapZoom(request.mapZoom());
         city.setCoverUrl(normalizeBlank(request.coverUrl()));
         city.setDescription(normalizeBlank(request.description()));
@@ -96,21 +105,29 @@ public class AdminCityServiceImpl implements AdminCityService {
     public AdminCityResponse updateCity(Long cityId, AdminCityUpdateRequest request) {
         City city = loadCity(cityId);
 
-        if (StringUtils.hasText(request.cityName())) {
-            city.setCityName(request.cityName().trim());
-        }
-        if (StringUtils.hasText(request.provinceName())) {
-            city.setProvinceName(request.provinceName().trim());
-        }
-        if (StringUtils.hasText(request.cityCode())) {
-            validateCityCodeUnique(cityId, request.cityCode());
-            city.setCityCode(request.cityCode().trim());
-        }
-        if (request.centerLng() != null) {
-            city.setCenterLng(request.centerLng());
-        }
-        if (request.centerLat() != null) {
-            city.setCenterLat(request.centerLat());
+        boolean regionChanged = StringUtils.hasText(request.cityName())
+                || StringUtils.hasText(request.provinceName())
+                || StringUtils.hasText(request.cityCode());
+        if (regionChanged) {
+            String nextCityCode = StringUtils.hasText(request.cityCode())
+                    ? request.cityCode().trim()
+                    : city.getCityCode();
+            validateCityCodeUnique(cityId, nextCityCode);
+            var resolvedCity = adminMapDataService.resolveCity(
+                    resolveProvinceCode(nextCityCode),
+                    nextCityCode);
+            city.setCityName(resolvedCity.cityName());
+            city.setProvinceName(resolvedCity.provinceName());
+            city.setCityCode(resolvedCity.cityCode());
+            city.setCenterLng(resolvedCity.center().lng());
+            city.setCenterLat(resolvedCity.center().lat());
+        } else {
+            if (request.centerLng() != null) {
+                city.setCenterLng(request.centerLng());
+            }
+            if (request.centerLat() != null) {
+                city.setCenterLat(request.centerLat());
+            }
         }
         if (request.mapZoom() != null) {
             city.setMapZoom(request.mapZoom());
@@ -167,6 +184,17 @@ public class AdminCityServiceImpl implements AdminCityService {
         if (cityMapper.selectCount(queryWrapper) > 0) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "城市编码已存在");
         }
+    }
+
+    /**
+     * 六位城市 adcode 的前两位对应省级区划，补零后用于校验省市归属。
+     */
+    private String resolveProvinceCode(String cityCode) {
+        String normalizedCode = cityCode.trim();
+        if (!normalizedCode.matches("\\d{6}")) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "城市编码必须为六位行政区划编码");
+        }
+        return normalizedCode.substring(0, 2) + "0000";
     }
 
     private Long nextCityId() {
