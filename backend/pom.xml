@@ -13,7 +13,7 @@
 
     <groupId>com.trailmap</groupId>
     <artifactId>trailmap-backend</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
     <name>trailmap-backend</name>
     <description>Backend service for TrailMap</description>
 
