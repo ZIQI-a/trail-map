@@ -1,9 +1,16 @@
-import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
+import { AimOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { Alert, AutoComplete, Button, Card, Collapse, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo } from "react";
+import type { DefaultOptionType } from "antd/es/select";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchAdminSpotCandidates } from "../../../api/admin";
 import type { AdminSpotDto, AdminSpotFormDto } from "../../../types/admin";
-import type { SpotType, TravelCityDto } from "../../../types/mapWorkbench";
+import type { PoiCalibrationCandidateDto, SpotType, TravelCityDto } from "../../../types/mapWorkbench";
+import { AdminLocationPickerModal } from "./AdminLocationPickerModal";
+import {
+  BOUNDARY_GEOJSON_EXAMPLE,
+  validateBoundaryGeoJson,
+} from "./adminMapFormUtils";
 import sectionStyles from "./AdminSections.module.css";
 
 type AdminSpotsSectionProps = {
@@ -63,6 +70,10 @@ const spotTypeOptions = [
   { label: "商圈街区", value: "business" },
 ] satisfies Array<{ label: string; value: SpotType }>;
 
+type SpotCandidateOption = DefaultOptionType & {
+  candidate: PoiCalibrationCandidateDto;
+};
+
 function AdminSpotEditModal({
   cities,
   editingSpot,
@@ -72,12 +83,141 @@ function AdminSpotEditModal({
   onSubmitEdit,
 }: AdminSpotEditModalProps) {
   const [form] = Form.useForm<AdminSpotFormValues>();
+  const [spotSearchText, setSpotSearchText] = useState("");
+  const [spotCandidates, setSpotCandidates] = useState<
+    PoiCalibrationCandidateDto[]
+  >([]);
+  const confirmedSpotNameRef = useRef("");
+  const [isCandidateLoading, setIsCandidateLoading] = useState(false);
+  const [candidateError, setCandidateError] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const selectedCityId = Form.useWatch("cityId", form);
+  const selectedLng = Form.useWatch("lng", form);
+  const selectedLat = Form.useWatch("lat", form);
+  const selectedAddress = Form.useWatch("address", form);
+  const selectedCity = cities.find((city) => city.id === selectedCityId);
+  const isCreateMode = editingSpot?.id === 0;
+
+  useEffect(() => {
+    const keyword = spotSearchText.trim();
+    if (!editingSpot || !selectedCity || keyword.length < 2) {
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setIsCandidateLoading(true);
+      setCandidateError("");
+      fetchAdminSpotCandidates(selectedCity.name, keyword)
+        .then((candidates) => {
+          if (active) {
+            setSpotCandidates(candidates);
+          }
+        })
+        .catch((error) => {
+          if (active) {
+            setSpotCandidates([]);
+            setCandidateError(
+              error instanceof Error ? error.message : "景点候选查询失败",
+            );
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setIsCandidateLoading(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [editingSpot, selectedCity, spotSearchText]);
+
+  /**
+   * 景点名称发生自由输入时清除旧点位，避免名称和坐标继续指向不同景点。
+   */
+  function handleSpotSearch(value: string) {
+    setSpotSearchText(value);
+    if (value.trim().length < 2) {
+      setSpotCandidates([]);
+      setCandidateError("");
+    }
+    form.setFieldValue("spotName", value);
+    if (value !== confirmedSpotNameRef.current) {
+      form.setFieldsValue({
+        address: "",
+        lng: undefined,
+        lat: undefined,
+      });
+    }
+  }
+
+  /**
+   * 管理员确认百度候选后，一次性回填主点位、标准地址和名称。
+   */
+  function handleCandidateSelect(
+    _value: string,
+    option: DefaultOptionType,
+  ) {
+    const candidate = (option as SpotCandidateOption).candidate;
+    if (!candidate.location) {
+      setCandidateError("该候选项没有有效坐标，请改用地图选点");
+      return;
+    }
+    form.setFieldsValue({
+      spotName: candidate.name,
+      address: candidate.address,
+      lng: roundCoordinate(candidate.location.lng),
+      lat: roundCoordinate(candidate.location.lat),
+    });
+    setSpotSearchText(candidate.name);
+    confirmedSpotNameRef.current = candidate.name;
+    setCandidateError("");
+  }
+
+  /**
+   * 切换所属城市后清空原点位，防止跨城市候选被直接提交。
+   */
+  function handleCityChange(cityId: number) {
+    form.setFieldsValue({
+      cityId,
+      spotName: "",
+      address: "",
+      lng: undefined,
+      lat: undefined,
+    });
+    setSpotSearchText("");
+    confirmedSpotNameRef.current = "";
+    setSpotCandidates([]);
+    setCandidateError("");
+  }
 
   if (!editingSpot) {
     return null;
   }
 
-  const isCreateMode = editingSpot.id === 0;
+  const candidateOptions: SpotCandidateOption[] = spotCandidates.map(
+    (candidate) => ({
+      key: candidate.uid,
+      value: candidate.name,
+      candidate,
+      label: (
+        <div className={sectionStyles.poiOption}>
+          <span className={sectionStyles.poiOptionIcon}>
+            <EnvironmentOutlined />
+          </span>
+          <div>
+            <strong>{candidate.name}</strong>
+            <span>
+              {[candidate.area, candidate.address].filter(Boolean).join(" · ")}
+            </span>
+          </div>
+        </div>
+      ),
+    }),
+  );
 
   return (
     <Modal
@@ -90,14 +230,17 @@ function AdminSpotEditModal({
       width={860}
       afterOpenChange={(opened) => {
         if (opened) {
+          setSpotSearchText(editingSpot.name);
+          confirmedSpotNameRef.current = editingSpot.name;
+          setSpotCandidates([]);
+          setCandidateError("");
           form.setFieldsValue({
             cityId: editingSpot.cityId,
             spotName: editingSpot.name,
             spotType: editingSpot.type,
-            lng: editingSpot.position.lng,
-            lat: editingSpot.position.lat,
+            lng: isCreateMode ? undefined : editingSpot.position.lng,
+            lat: isCreateMode ? undefined : editingSpot.position.lat,
             address: editingSpot.address,
-            amapPoiId: editingSpot.amapPoiId ?? undefined,
             boundaryGeojson: editingSpot.boundaryGeojson ?? undefined,
             coverUrl: editingSpot.coverUrl ?? undefined,
             summary: editingSpot.summary ?? undefined,
@@ -128,6 +271,10 @@ function AdminSpotEditModal({
         void form.validateFields().then((values) => {
           const payload: AdminSpotFormDto = {
             ...values,
+            // 平台 POI ID 本期不使用，编辑时只原样保留已有数据。
+            amapPoiId: isCreateMode
+              ? undefined
+              : editingSpot.amapPoiId ?? undefined,
             isFree: values.isFree ? 1 : 0,
             isIndoor: values.isIndoor ? 1 : 0,
             isNight: values.isNight ? 1 : 0,
@@ -144,12 +291,52 @@ function AdminSpotEditModal({
       }}
     >
       <Form form={form} layout="vertical">
+        <div className={sectionStyles.mapAssistBanner}>
+          <span className={sectionStyles.mapAssistIcon}>
+            <AimOutlined />
+          </span>
+          <div>
+            <strong>先确认地图位置，再维护旅游信息</strong>
+            <p>选择百度候选可自动填充地址和坐标；没有准确结果时使用地图选点。</p>
+          </div>
+        </div>
+        {candidateError ? (
+          <Alert
+            className={sectionStyles.formAlert}
+            type="warning"
+            showIcon
+            message={candidateError}
+          />
+        ) : null}
         <div className={sectionStyles.formGridTwo}>
           <Form.Item label="景点名称" name="spotName" rules={[{ required: true, message: "请输入景点名称" }]}>
-            <Input placeholder="请输入景点名称" />
+            <AutoComplete
+              value={spotSearchText}
+              options={candidateOptions}
+              filterOption={false}
+              notFoundContent={
+                spotSearchText.trim().length < 2
+                  ? "请输入至少两个字符"
+                  : isCandidateLoading
+                    ? "正在查询百度地图"
+                    : "暂无匹配地点，可使用地图选点"
+              }
+              placeholder="输入景点名称并选择候选"
+              onSearch={handleSpotSearch}
+              onChange={handleSpotSearch}
+              onSelect={handleCandidateSelect}
+            />
           </Form.Item>
           <Form.Item label="所属城市" name="cityId" rules={[{ required: true, message: "请选择所属城市" }]}>
-            <Select options={cities.map((city) => ({ label: city.name, value: city.id }))} />
+            <Select
+              showSearch
+              optionFilterProp="label"
+              options={cities.map((city) => ({
+                label: `${city.name} · ${city.provinceName}`,
+                value: city.id,
+              }))}
+              onChange={handleCityChange}
+            />
           </Form.Item>
           <Form.Item label="景点类型" name="spotType" rules={[{ required: true, message: "请选择景点类型" }]}>
             <Select options={spotTypeOptions} />
@@ -157,11 +344,11 @@ function AdminSpotEditModal({
           <Form.Item label="状态" name="status" rules={[{ required: true, message: "请选择状态" }]}>
             <Select options={[{ label: "启用", value: 1 }, { label: "停用", value: 0 }]} />
           </Form.Item>
-          <Form.Item label="经度" name="lng" rules={[{ required: true, message: "请输入经度" }]}>
-            <InputNumber style={{ width: "100%" }} precision={6} />
+          <Form.Item label="经度" name="lng" rules={[{ required: true, message: "请选择景点候选或在地图上选点" }]}>
+            <InputNumber readOnly controls={false} style={{ width: "100%" }} precision={6} placeholder="自动获取" />
           </Form.Item>
-          <Form.Item label="纬度" name="lat" rules={[{ required: true, message: "请输入纬度" }]}>
-            <InputNumber style={{ width: "100%" }} precision={6} />
+          <Form.Item label="纬度" name="lat" rules={[{ required: true, message: "请选择景点候选或在地图上选点" }]}>
+            <InputNumber readOnly controls={false} style={{ width: "100%" }} precision={6} placeholder="自动获取" />
           </Form.Item>
           <Form.Item label="评分" name="recommendScore">
             <InputNumber style={{ width: "100%" }} min={0.1} max={9.9} precision={1} />
@@ -177,8 +364,16 @@ function AdminSpotEditModal({
           </Form.Item>
         </div>
         <Form.Item label="景点地址" name="address" rules={[{ required: true, message: "请输入景点地址" }]}>
-          <Input placeholder="请输入景点地址" />
+          <Input placeholder="选择候选或地图选点后自动填充，也可补充门牌信息" />
         </Form.Item>
+        <Button
+          className={sectionStyles.mapPickButton}
+          icon={<EnvironmentOutlined />}
+          disabled={!selectedCity}
+          onClick={() => setPickerOpen(true)}
+        >
+          {selectedLng && selectedLat ? "在地图上重新确认位置" : "在地图上选择位置"}
+        </Button>
         <Form.Item label="封面图地址" name="coverUrl">
           <Input placeholder="请输入封面图地址" />
         </Form.Item>
@@ -206,12 +401,33 @@ function AdminSpotEditModal({
         <Form.Item label="适合人群" name="suitableCrowd">
           <Input placeholder="请输入适合人群" />
         </Form.Item>
-        <Form.Item label="高德 POI ID" name="amapPoiId">
-          <Input placeholder="请输入高德 POI ID" />
-        </Form.Item>
-        <Form.Item label="边界 GeoJSON" name="boundaryGeojson">
-          <Input.TextArea rows={3} placeholder="如有需要可输入区域边界 GeoJSON" />
-        </Form.Item>
+        <Collapse
+          className={sectionStyles.advancedCollapse}
+          ghost
+          items={[
+            {
+              key: "map-data",
+              label: "高级地图数据（可选）",
+              children: (
+                <Form.Item
+                  label="边界 GeoJSON"
+                  name="boundaryGeojson"
+                  rules={[{ validator: validateBoundaryGeoJson }]}
+                  extra={
+                    <span>
+                      仅区域型景点需要。坐标使用 GCJ-02，顺序为 [经度, 纬度]，首尾点必须闭合。
+                    </span>
+                  }
+                >
+                  <Input.TextArea
+                    rows={5}
+                    placeholder={BOUNDARY_GEOJSON_EXAMPLE}
+                  />
+                </Form.Item>
+              ),
+            },
+          ]}
+        />
         <div className={sectionStyles.switchGrid}>
           <Form.Item label="免费景点" name="isFree" valuePropName="checked">
             <Switch />
@@ -233,8 +449,36 @@ function AdminSpotEditModal({
           </Form.Item>
         </div>
       </Form>
+      {pickerOpen && selectedCity ? (
+        <AdminLocationPickerModal
+          open
+          fallbackPosition={selectedCity.center}
+          initialAddress={selectedAddress}
+          initialPosition={
+            typeof selectedLng === "number" && typeof selectedLat === "number"
+              ? { lng: selectedLng, lat: selectedLat }
+              : undefined
+          }
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={(location) => {
+            form.setFieldsValue({
+              address: location.address,
+              lng: location.position.lng,
+              lat: location.position.lat,
+            });
+            setPickerOpen(false);
+          }}
+        />
+      ) : null}
     </Modal>
   );
+}
+
+/**
+ * POI 接口可能返回较长小数，写入表单前统一为数据库支持的六位精度。
+ */
+function roundCoordinate(value: number) {
+  return Number(value.toFixed(6));
 }
 
 // 景点管理模块提供景点基础资料的筛选、编辑、新增和删除。

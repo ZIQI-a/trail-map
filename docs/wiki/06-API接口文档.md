@@ -476,6 +476,28 @@
 
 ### 城市管理
 
+#### 获取省份候选
+
+| 项目 | 说明 |
+| --- | --- |
+| 路径 | `GET /api/admin/map-data/provinces` |
+| 查询参数 | `keyword`（可选） |
+
+#### 获取省份下的城市候选
+
+| 项目 | 说明 |
+| --- | --- |
+| 路径 | `GET /api/admin/map-data/cities` |
+| 查询参数 | `provinceCode`, `keyword`（可选） |
+
+#### 解析城市编码与中心点
+
+| 项目 | 说明 |
+| --- | --- |
+| 路径 | `GET /api/admin/map-data/city-location` |
+| 查询参数 | `provinceCode`, `cityCode` |
+| 说明 | 校验省市归属，返回标准名称、六位 adcode 和 GCJ-02 中心点 |
+
 #### 获取城市列表（管理端）
 
 | 项目 | 说明 |
@@ -502,6 +524,14 @@
 | 路径 | `DELETE /api/admin/cities/{cityId}` |
 
 ### 景点管理
+
+#### 查询百度景点候选
+
+| 项目 | 说明 |
+| --- | --- |
+| 路径 | `GET /api/admin/map-data/spot-candidates` |
+| 查询参数 | `cityName`, `keyword`（至少 2 个字符） |
+| 说明 | 返回名称、地址、省市区和 GCJ-02 主点位，不持久化平台 POI ID |
 
 #### 获取景点列表（管理端）
 

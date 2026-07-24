@@ -1,0 +1,97 @@
+.pickerShell {
+  display: grid;
+  gap: 14px;
+}
+
+.guideStrip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border: 1px solid #dce9ff;
+  border-radius: 12px;
+  color: #315a91;
+  background: #f4f8ff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.guideStrip :global(.anticon) {
+  color: #2d6bff;
+  font-size: 16px;
+}
+
+.mapFrame {
+  position: relative;
+  min-height: 400px;
+  overflow: hidden;
+  border: 1px solid #dbe4f0;
+  border-radius: 16px;
+  background: #edf3f8;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%);
+}
+
+.mapCanvas {
+  position: absolute;
+  inset: 0;
+}
+
+.mapState {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: #6f8199;
+  background: rgb(245 248 252 / 88%);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.locationSummary {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid #dce7f4;
+  border-radius: 14px;
+  background: #fbfdff;
+}
+
+.summaryIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #ffffff;
+  background: #2d6bff;
+  box-shadow: 0 8px 18px rgb(45 107 255 / 24%);
+}
+
+.locationSummary strong,
+.locationSummary small {
+  display: block;
+}
+
+.locationSummary strong {
+  overflow: hidden;
+  color: #263d5c;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locationSummary small {
+  margin-top: 4px;
+  color: #7d8da3;
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  .mapFrame {
+    min-height: 330px;
+  }
+}

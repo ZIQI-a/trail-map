@@ -59,7 +59,7 @@ export function AdminPage() {
   const adminDataEnabled = Boolean(authToken) && currentUserQuery.data?.userType === "admin";
   const overviewQuery = useAdminOverviewQuery(adminDataEnabled);
   const usersQueryEnabled = adminDataEnabled && activeSection === "users";
-  const citiesQueryEnabled = adminDataEnabled && (activeSection === "cities" || activeSection === "spots");
+  const citiesQueryEnabled = adminDataEnabled && activeSection === "cities";
   const spotsQueryEnabled = adminDataEnabled && activeSection === "spots";
   const usersQuery = useAdminUsersQuery(
     userPageNum,
@@ -78,6 +78,12 @@ export function AdminPage() {
       keyword: cityKeyword || undefined,
     },
     citiesQueryEnabled,
+  );
+  const spotCityOptionsQuery = useAdminCitiesQuery(
+    undefined,
+    undefined,
+    undefined,
+    spotsQueryEnabled,
   );
   const spotsQuery = useAdminSpotsQuery(
     spotPageNum,
@@ -101,6 +107,10 @@ export function AdminPage() {
   const currentUser = currentUserQuery.data;
   const users = useMemo(() => usersQuery.data?.list ?? [], [usersQuery.data?.list]);
   const cities = useMemo(() => citiesQuery.data?.list ?? [], [citiesQuery.data?.list]);
+  const spotCityOptions = useMemo(
+    () => spotCityOptionsQuery.data?.list ?? [],
+    [spotCityOptionsQuery.data?.list],
+  );
   const spots = useMemo(() => spotsQuery.data?.list ?? [], [spotsQuery.data?.list]);
   const activeSearchKeyword =
     activeSection === "users"
@@ -422,9 +432,9 @@ export function AdminPage() {
           />
         ) : (
           <AdminSpotsSection
-            cities={cities}
+            cities={spotCityOptions}
             editingSpot={editingSpot}
-            isLoading={spotsQuery.isLoading}
+            isLoading={spotsQuery.isLoading || spotCityOptionsQuery.isLoading}
             isSubmitting={spotCreateMutation.isPending || spotUpdateMutation.isPending || spotDeleteMutation.isPending}
             keyword={spotKeyword}
             pageNum={spotsQuery.data?.pageNum ?? spotPageNum}
@@ -448,8 +458,8 @@ export function AdminPage() {
             onOpenCreateModal={() =>
               setEditingSpot({
                 id: 0,
-                cityId: cities[0]?.id ?? 0,
-                cityName: cities[0]?.name ?? "",
+                cityId: spotCityOptions[0]?.id ?? 0,
+                cityName: spotCityOptions[0]?.name ?? "",
                 name: "",
                 type: "history",
                 position: { lng: 0, lat: 0 },

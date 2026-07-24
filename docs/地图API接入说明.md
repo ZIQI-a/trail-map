@@ -145,6 +145,25 @@ GET /api/poi-calibration/candidates?cityName=西安市&keyword=大唐不夜城&a
 
 当前精选景点已继续按百度地点检索主 POI 结果完成一轮全量坐标校准，现阶段统一采用“景点主点位”展示策略，不再展示不可靠轮廓。
 
+## 管理端地图资料维护
+
+城市和景点新增表单已接入百度地图服务，服务端 AK 始终由后端持有：
+
+```plain
+GET /api/admin/map-data/provinces
+GET /api/admin/map-data/cities?provinceCode=320000
+GET /api/admin/map-data/city-location?provinceCode=320000&cityCode=320100
+GET /api/admin/map-data/spot-candidates?cityName=南京市&keyword=南京博物院
+```
+
+- 以上接口和其他 `/api/admin/**` 接口一样仅允许 `ADMIN` 角色访问。
+- 城市编码统一使用六位行政区划 `adcode`，不是拼音编码；省市关系由后端再次校验。
+- 城市中心点和景点主点位统一返回 GCJ-02，写入数据库前保留六位小数。
+- 景点联想需要先选择所属城市，并由管理员确认具体候选项，不自动采用第一条结果。
+- 百度候选不准确时，可以在管理端百度地图上点击选点；浏览器返回的 BD-09 会转换成 GCJ-02 后提交。
+- 本期不使用百度 UID 或高德 POI ID 作为业务关联字段，平台 POI ID 不参与地图展示和路线规划。
+- `boundary_geojson` 仍是可选高级字段，当前只支持 GCJ-02 `Polygon` 的第一条闭合外环，不支持运行时自动获取 AOI 边界。
+
 ## 下一步规划
 
 5. 在完整行程模式中补充“吃饭 / 休息 / 住宿”这类实时地点能力，优先采用运行时地点检索，不做全量自建库。

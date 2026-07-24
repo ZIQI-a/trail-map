@@ -416,6 +416,121 @@
   gap: 0 16px;
 }
 
+.formAlert {
+  margin-bottom: 16px;
+  border-radius: 12px;
+}
+
+.locationRefreshButton,
+.mapPickButton {
+  width: 100%;
+  margin: -4px 0 18px;
+  border-color: #cdddf2;
+  color: #315a91;
+  background: #f8fbff;
+  font-weight: 700;
+}
+
+.locationRefreshButton:hover,
+.mapPickButton:hover {
+  border-color: #86afff !important;
+  color: #245fd3 !important;
+  background: #f1f6ff !important;
+}
+
+.mapAssistBanner {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid #dce8fb;
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 100% 0, rgb(86 139 255 / 12%), transparent 38%),
+    #f7faff;
+}
+
+.mapAssistIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #3978ff, #2458d7);
+  box-shadow: 0 8px 18px rgb(45 107 255 / 23%);
+  font-size: 18px;
+}
+
+.mapAssistBanner strong {
+  display: block;
+  color: #263d5c;
+  font-size: 14px;
+}
+
+.mapAssistBanner p {
+  margin: 4px 0 0;
+  color: #71839c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.poiOption {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.poiOptionIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #2d6bff;
+  background: #edf4ff;
+}
+
+.poiOption strong,
+.poiOption span {
+  display: block;
+}
+
+.poiOption strong {
+  color: #2b3e58;
+  font-size: 13px;
+}
+
+.poiOption div > span {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #8090a7;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.advancedCollapse {
+  margin: 4px 0 16px;
+  border: 1px solid #e3eaf3;
+  border-radius: 14px;
+  background: #fafcff;
+}
+
+.advancedCollapse :global(.ant-collapse-header) {
+  color: #536984 !important;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.advancedCollapse :global(.ant-collapse-content-box) {
+  padding-top: 0 !important;
+}
+
 .switchGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

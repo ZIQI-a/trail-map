@@ -1,8 +1,18 @@
-import { DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { AimOutlined, DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo } from "react";
-import type { AdminCityDto, AdminCityFormDto } from "../../../types/admin";
+import { useEffect, useMemo, useState } from "react";
+import {
+  fetchAdminCityOptions,
+  fetchAdminProvinceOptions,
+  resolveAdminCityLocation,
+} from "../../../api/admin";
+import type {
+  AdminCityDto,
+  AdminCityFormDto,
+  AdminCityOptionDto,
+  AdminProvinceOptionDto,
+} from "../../../types/admin";
 import sectionStyles from "./AdminSections.module.css";
 
 type AdminCitiesSectionProps = {
@@ -26,7 +36,9 @@ type AdminCitiesSectionProps = {
   onSubmitEdit: (city: AdminCityDto, payload: Partial<AdminCityFormDto>) => void;
 };
 
-type AdminCityFormValues = AdminCityFormDto;
+type AdminCityFormValues = AdminCityFormDto & {
+  provinceCode?: string;
+};
 
 type AdminCityEditModalProps = {
   editingCity: AdminCityDto | null;
@@ -44,12 +56,136 @@ function AdminCityEditModal({
   onSubmitEdit,
 }: AdminCityEditModalProps) {
   const [form] = Form.useForm<AdminCityFormValues>();
+  const [provinceOptions, setProvinceOptions] = useState<
+    AdminProvinceOptionDto[]
+  >([]);
+  const [cityOptions, setCityOptions] = useState<AdminCityOptionDto[]>([]);
+  const [isRegionLoading, setIsRegionLoading] = useState(true);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [regionError, setRegionError] = useState("");
+  const provinceCodeValue = Form.useWatch("provinceCode", form);
+  const cityCodeValue = Form.useWatch("cityCode", form);
+  const isCreateMode = editingCity?.id === 0;
+  const initialProvinceCode = resolveProvinceCode(editingCity?.cityCode ?? "");
+
+  useEffect(() => {
+    let active = true;
+    fetchAdminProvinceOptions()
+      .then((options) => {
+        if (active) {
+          setProvinceOptions(options);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setRegionError(
+            error instanceof Error ? error.message : "省份候选加载失败",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsRegionLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!initialProvinceCode) {
+      return;
+    }
+    let active = true;
+    fetchAdminCityOptions(initialProvinceCode)
+      .then((options) => {
+        if (active) {
+          setCityOptions(options);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setRegionError(
+            error instanceof Error ? error.message : "城市候选加载失败",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsRegionLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [initialProvinceCode]);
+
+  /**
+   * 切换省份后清空原城市资料，只展示该省份真实包含的城市候选。
+   */
+  async function handleProvinceChange(provinceCode: string) {
+    const province = provinceOptions.find(
+      (option) => option.code === provinceCode,
+    );
+    form.setFieldsValue({
+      provinceCode,
+      provinceName: province?.name ?? "",
+      cityName: "",
+      cityCode: "",
+      centerLng: undefined,
+      centerLat: undefined,
+    });
+    setRegionError("");
+    setIsRegionLoading(true);
+    try {
+      setCityOptions(await fetchAdminCityOptions(provinceCode));
+    } catch (error) {
+      setCityOptions([]);
+      setRegionError(
+        error instanceof Error ? error.message : "城市候选加载失败",
+      );
+    } finally {
+      setIsRegionLoading(false);
+    }
+  }
+
+  /**
+   * 选中城市后由后端校验省市关系，并回填标准名称、adcode 和中心坐标。
+   */
+  async function handleCityChange(cityCode: string) {
+    const provinceCode = form.getFieldValue("provinceCode");
+    if (!provinceCode) {
+      return;
+    }
+    setRegionError("");
+    setIsLocationLoading(true);
+    try {
+      const resolved = await resolveAdminCityLocation(
+        provinceCode,
+        cityCode,
+      );
+      form.setFieldsValue({
+        cityName: resolved.cityName,
+        provinceName: resolved.provinceName,
+        cityCode: resolved.cityCode,
+        centerLng: resolved.center.lng,
+        centerLat: resolved.center.lat,
+      });
+    } catch (error) {
+      setRegionError(
+        error instanceof Error ? error.message : "城市中心点查询失败",
+      );
+    } finally {
+      setIsLocationLoading(false);
+    }
+  }
 
   if (!editingCity) {
     return null;
   }
-
-  const isCreateMode = editingCity.id === 0;
 
   return (
     <Modal
@@ -62,12 +198,16 @@ function AdminCityEditModal({
       width={720}
       afterOpenChange={(opened) => {
         if (opened) {
+          if (!initialProvinceCode) {
+            setCityOptions([]);
+          }
           form.setFieldsValue({
+            provinceCode: initialProvinceCode,
             cityName: editingCity.name,
             provinceName: editingCity.provinceName,
             cityCode: editingCity.cityCode,
-            centerLng: editingCity.center.lng,
-            centerLat: editingCity.center.lat,
+            centerLng: isCreateMode ? undefined : editingCity.center.lng,
+            centerLat: isCreateMode ? undefined : editingCity.center.lat,
             mapZoom: editingCity.mapZoom,
             coverUrl: editingCity.coverUrl,
             description: editingCity.description,
@@ -82,33 +222,86 @@ function AdminCityEditModal({
       afterClose={() => form.resetFields()}
       onOk={() => {
         void form.validateFields().then((values) => {
+          const payload = { ...values };
+          delete payload.provinceCode;
           if (isCreateMode) {
-            onSubmitCreate(values);
+            onSubmitCreate(payload);
             return;
           }
-          onSubmitEdit(editingCity, values);
+          onSubmitEdit(editingCity, payload);
         });
       }}
     >
       <Form form={form} layout="vertical">
+        {regionError ? (
+          <Alert
+            className={sectionStyles.formAlert}
+            type="error"
+            showIcon
+            message="地图资料查询失败"
+            description={regionError}
+          />
+        ) : null}
+        <Form.Item name="cityName" hidden>
+          <Input />
+        </Form.Item>
+        <Form.Item name="provinceName" hidden>
+          <Input />
+        </Form.Item>
         <div className={sectionStyles.formGridTwo}>
-          <Form.Item label="城市名称" name="cityName" rules={[{ required: true, message: "请输入城市名称" }]}>
-            <Input placeholder="例如：南京市" />
+          <Form.Item
+            label="所属省份"
+            name="provinceCode"
+            rules={[{ required: true, message: "请选择所属省份" }]}
+            extra="省市采用官方行政区划关系，不能自由组合。"
+          >
+            <Select
+              showSearch
+              loading={isRegionLoading}
+              placeholder="输入名称或编码搜索省份"
+              optionFilterProp="label"
+              options={provinceOptions.map((option) => ({
+                label: `${option.name} · ${option.code}`,
+                value: option.code,
+              }))}
+              onChange={(value) => void handleProvinceChange(value)}
+            />
           </Form.Item>
-          <Form.Item label="所属省份" name="provinceName" rules={[{ required: true, message: "请输入所属省份" }]}>
-            <Input placeholder="例如：江苏省" />
+          <Form.Item
+            label="城市名称"
+            name="cityCode"
+            rules={[{ required: true, message: "请选择城市" }]}
+            extra="选择后自动获取城市编码和中心坐标。"
+          >
+            <Select
+              showSearch
+              loading={isRegionLoading || isLocationLoading}
+              disabled={!provinceCodeValue}
+              placeholder="请从所属省份内选择城市"
+              optionFilterProp="label"
+              options={cityOptions.map((option) => ({
+                label: `${option.name} · ${option.code}`,
+                value: option.code,
+              }))}
+              onChange={(value) => void handleCityChange(value)}
+            />
           </Form.Item>
-          <Form.Item label="城市编码" name="cityCode" rules={[{ required: true, message: "请输入城市编码" }]}>
-            <Input placeholder="例如：nanjing" />
+          <Form.Item label="城市编码">
+            <Input
+              value={cityCodeValue}
+              readOnly
+              prefix={<AimOutlined />}
+              placeholder="选择城市后自动生成"
+            />
           </Form.Item>
           <Form.Item label="地图缩放" name="mapZoom" rules={[{ required: true, message: "请输入地图缩放" }]}>
             <InputNumber min={1} max={20} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item label="中心经度" name="centerLng" rules={[{ required: true, message: "请输入中心经度" }]}>
-            <InputNumber style={{ width: "100%" }} precision={6} />
+          <Form.Item label="中心经度" name="centerLng" rules={[{ required: true, message: "请先查询城市中心点" }]}>
+            <InputNumber readOnly controls={false} style={{ width: "100%" }} precision={6} placeholder="自动获取" />
           </Form.Item>
-          <Form.Item label="中心纬度" name="centerLat" rules={[{ required: true, message: "请输入中心纬度" }]}>
-            <InputNumber style={{ width: "100%" }} precision={6} />
+          <Form.Item label="中心纬度" name="centerLat" rules={[{ required: true, message: "请先查询城市中心点" }]}>
+            <InputNumber readOnly controls={false} style={{ width: "100%" }} precision={6} placeholder="自动获取" />
           </Form.Item>
           <Form.Item label="推荐天数" name="recommendDays">
             <InputNumber min={0.5} max={30} style={{ width: "100%" }} precision={1} />
@@ -123,6 +316,20 @@ function AdminCityEditModal({
             <Select options={[{ label: "启用", value: 1 }, { label: "停用", value: 0 }]} />
           </Form.Item>
         </div>
+        <Button
+          className={sectionStyles.locationRefreshButton}
+          icon={<ReloadOutlined />}
+          loading={isLocationLoading}
+          disabled={!cityCodeValue}
+          onClick={() => {
+            const cityCode = form.getFieldValue("cityCode");
+            if (cityCode) {
+              void handleCityChange(cityCode);
+            }
+          }}
+        >
+          重新查询城市中心点
+        </Button>
         <Form.Item label="封面图地址" name="coverUrl">
           <Input placeholder="请输入封面图地址" />
         </Form.Item>
@@ -132,6 +339,13 @@ function AdminCityEditModal({
       </Form>
     </Modal>
   );
+}
+
+/**
+ * 根据六位城市 adcode 推导省级编码，编辑已有城市时用于恢复级联选择。
+ */
+function resolveProvinceCode(cityCode: string) {
+  return /^\d{6}$/.test(cityCode) ? `${cityCode.slice(0, 2)}0000` : undefined;
 }
 
 // 城市管理模块提供城市基础资料的列表查看、创建、编辑和删除。

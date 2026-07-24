@@ -1,7 +1,17 @@
 import { request } from "../lib/http";
 import type { AppUserDto, UserUpdateRequestDto } from "../types/auth";
 import type { PageResponse } from "../types/mapWorkbench";
-import type { AdminCityDto, AdminCityFormDto, AdminOverviewDto, AdminSpotDto, AdminSpotFormDto } from "../types/admin";
+import type {
+  AdminCityDto,
+  AdminCityFormDto,
+  AdminCityLocationDto,
+  AdminCityOptionDto,
+  AdminOverviewDto,
+  AdminProvinceOptionDto,
+  AdminSpotDto,
+  AdminSpotFormDto,
+} from "../types/admin";
+import type { PoiCalibrationCandidateDto } from "../types/mapWorkbench";
 
 // 管理端数据概览：由后端聚合用户、城市和景点统计，避免首页拉全量数据自行计算。
 export function fetchAdminOverview() {
@@ -83,6 +93,48 @@ export function deleteAdminCity(cityId: number) {
   return request<void>(`/api/admin/cities/${cityId}`, {
     method: "DELETE",
   });
+}
+
+// 查询百度行政区划候选，城市表单不再接受任意省市组合。
+export function fetchAdminProvinceOptions(keyword?: string) {
+  const searchParams = new URLSearchParams();
+  if (keyword) {
+    searchParams.set("keyword", keyword);
+  }
+  const queryString = searchParams.toString();
+  return request<AdminProvinceOptionDto[]>(
+    `/api/admin/map-data/provinces${queryString ? `?${queryString}` : ""}`,
+  );
+}
+
+// 查询指定省份的城市列表，后端负责处理直辖市和行政区划层级。
+export function fetchAdminCityOptions(provinceCode: string, keyword?: string) {
+  const searchParams = new URLSearchParams({ provinceCode });
+  if (keyword) {
+    searchParams.set("keyword", keyword);
+  }
+  return request<AdminCityOptionDto[]>(
+    `/api/admin/map-data/cities?${searchParams.toString()}`,
+  );
+}
+
+// 确认城市候选后获取标准名称、adcode 和 GCJ-02 中心点。
+export function resolveAdminCityLocation(
+  provinceCode: string,
+  cityCode: string,
+) {
+  const searchParams = new URLSearchParams({ provinceCode, cityCode });
+  return request<AdminCityLocationDto>(
+    `/api/admin/map-data/city-location?${searchParams.toString()}`,
+  );
+}
+
+// 管理端景点联想通过后端调用百度服务端接口，避免浏览器暴露服务端 AK。
+export function fetchAdminSpotCandidates(cityName: string, keyword: string) {
+  const searchParams = new URLSearchParams({ cityName, keyword });
+  return request<PoiCalibrationCandidateDto[]>(
+    `/api/admin/map-data/spot-candidates?${searchParams.toString()}`,
+  );
 }
 
 // 管理员景点列表查询：支持后台城市、关键词、类型和状态筛选。

@@ -17,6 +17,26 @@ export interface AdminCityFormDto {
   status?: number | null;
 }
 
+// 管理端行政区候选：名称和六位 adcode 必须成对使用。
+export interface AdminProvinceOptionDto {
+  code: string;
+  name: string;
+}
+
+export interface AdminCityOptionDto {
+  code: string;
+  name: string;
+  provinceCode: string;
+  provinceName: string;
+}
+
+export interface AdminCityLocationDto {
+  cityName: string;
+  provinceName: string;
+  cityCode: string;
+  center: GeoPoint;
+}
+
 // 管理端城市详情：在工作台城市字段基础上补齐后台编辑需要的排序和状态。
 export interface AdminCityDto extends TravelCityDto {
   sortOrder?: number | null;
