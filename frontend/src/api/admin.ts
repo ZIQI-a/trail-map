@@ -7,7 +7,6 @@ import type {
   AdminCityLocationDto,
   AdminCityOptionDto,
   AdminOverviewDto,
-  AdminProvinceOptionDto,
   AdminSpotDto,
   AdminSpotFormDto,
 } from "../types/admin";
@@ -95,26 +94,11 @@ export function deleteAdminCity(cityId: number) {
   });
 }
 
-// 查询百度行政区划候选，城市表单不再接受任意省市组合。
-export function fetchAdminProvinceOptions(keyword?: string) {
-  const searchParams = new URLSearchParams();
-  if (keyword) {
-    searchParams.set("keyword", keyword);
-  }
-  const queryString = searchParams.toString();
-  return request<AdminProvinceOptionDto[]>(
-    `/api/admin/map-data/provinces${queryString ? `?${queryString}` : ""}`,
-  );
-}
-
-// 查询指定省份的城市列表，后端负责处理直辖市和行政区划层级。
-export function fetchAdminCityOptions(provinceCode: string, keyword?: string) {
-  const searchParams = new URLSearchParams({ provinceCode });
-  if (keyword) {
-    searchParams.set("keyword", keyword);
-  }
+// 按城市或省份名称远程搜索城市候选，候选同时携带可信的省市归属。
+export function searchAdminCityOptions(keyword: string) {
+  const searchParams = new URLSearchParams({ keyword });
   return request<AdminCityOptionDto[]>(
-    `/api/admin/map-data/cities?${searchParams.toString()}`,
+    `/api/admin/map-data/city-suggestions?${searchParams.toString()}`,
   );
 }
 

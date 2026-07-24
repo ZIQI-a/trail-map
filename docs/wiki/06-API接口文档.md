@@ -476,6 +476,14 @@
 
 ### 城市管理
 
+#### 按省份或城市名称搜索城市
+
+| 项目 | 说明 |
+| --- | --- |
+| 路径 | `GET /api/admin/map-data/city-suggestions` |
+| 查询参数 | `keyword`（必填，1～20 个字符） |
+| 说明 | 输入省份时返回其下城市，输入城市时返回匹配城市；候选包含标准省市名称和六位 adcode |
+
 #### 获取省份候选
 
 | 项目 | 说明 |
@@ -489,6 +497,8 @@
 | --- | --- |
 | 路径 | `GET /api/admin/map-data/cities` |
 | 查询参数 | `provinceCode`, `keyword`（可选） |
+
+> `provinces` 和 `cities` 保留为行政区级联兼容接口，当前管理端城市表单使用 `city-suggestions` 单字段搜索。
 
 #### 解析城市编码与中心点
 

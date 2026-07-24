@@ -60,6 +60,16 @@ public class AdminMapDataController {
         return ApiResponse.success(adminMapDataService.listCities(provinceCode, keyword));
     }
 
+    @GetMapping("/city-suggestions")
+    @Operation(summary = "按省份或城市名称搜索城市候选")
+    public ApiResponse<List<AdminCityOptionResponse>> searchCities(
+            @RequestParam
+            @NotBlank(message = "搜索关键词不能为空")
+            @Size(min = 1, max = 20, message = "搜索关键词需要 1 到 20 个字符")
+            String keyword) {
+        return ApiResponse.success(adminMapDataService.searchCities(keyword));
+    }
+
     @GetMapping("/city-location")
     @Operation(summary = "解析城市编码和中心点")
     public ApiResponse<AdminCityLocationResponse> resolveCity(

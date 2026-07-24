@@ -16,6 +16,9 @@ public interface AdminMapDataService {
     /** 查询省份对应的城市 */
     List<AdminCityOptionResponse> listCities(String provinceCode, String keyword);
 
+    /** 按省份或城市关键词搜索可选择的城市 */
+    List<AdminCityOptionResponse> searchCities(String keyword);
+
     /** 解析城市中心点 */
     AdminCityLocationResponse resolveCity(String provinceCode, String cityCode);
 }

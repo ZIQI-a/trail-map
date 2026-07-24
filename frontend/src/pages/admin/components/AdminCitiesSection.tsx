@@ -1,17 +1,15 @@
 import { AimOutlined, DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
+import { Alert, Button, Card, Form, Input, InputNumber, message, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import {
-  fetchAdminCityOptions,
-  fetchAdminProvinceOptions,
   resolveAdminCityLocation,
+  searchAdminCityOptions,
 } from "../../../api/admin";
 import type {
   AdminCityDto,
   AdminCityFormDto,
   AdminCityOptionDto,
-  AdminProvinceOptionDto,
 } from "../../../types/admin";
 import sectionStyles from "./AdminSections.module.css";
 
@@ -56,157 +54,88 @@ function AdminCityEditModal({
   onSubmitEdit,
 }: AdminCityEditModalProps) {
   const [form] = Form.useForm<AdminCityFormValues>();
-  const [provinceOptions, setProvinceOptions] = useState<
-    AdminProvinceOptionDto[]
-  >([]);
   const [cityOptions, setCityOptions] = useState<AdminCityOptionDto[]>([]);
-  const [isRegionLoading, setIsRegionLoading] = useState(true);
+  const [citySearchKeyword, setCitySearchKeyword] = useState("");
+  const [isRegionLoading, setIsRegionLoading] = useState(false);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
-  const [regionError, setRegionError] = useState("");
-  const provinceCodeValue = Form.useWatch("provinceCode", form);
+  const [messageApi, messageContextHolder] = message.useMessage();
   const cityCodeValue = Form.useWatch("cityCode", form);
   const isCreateMode = editingCity?.id === 0;
   const initialProvinceCode = resolveProvinceCode(editingCity?.cityCode ?? "");
-  const displayedProvinceOptions = useMemo(
+  const displayedCityOptions = useMemo(
     () =>
       editingCity && !isCreateMode && initialProvinceCode
-        ? mergeOptionByCode(provinceOptions, {
-            code: initialProvinceCode,
-            name: editingCity.provinceName,
+        ? mergeOptionByCode(cityOptions, {
+            code: editingCity.cityCode,
+            name: editingCity.name,
+            provinceCode: initialProvinceCode,
+            provinceName: editingCity.provinceName,
           })
-        : provinceOptions,
-    [
-      editingCity,
-      initialProvinceCode,
-      isCreateMode,
-      provinceOptions,
-    ],
+        : cityOptions,
+    [cityOptions, editingCity, initialProvinceCode, isCreateMode],
   );
-  const displayedCityOptions = useMemo(() => {
-    const provinceCities = cityOptions.filter(
-      (option) => option.provinceCode === provinceCodeValue,
-    );
-    if (
-      !editingCity ||
-      isCreateMode ||
-      !initialProvinceCode ||
-      provinceCodeValue !== initialProvinceCode
-    ) {
-      return provinceCities;
-    }
-    // 编辑时用数据库已有名称兜底，接口加载或失败期间不直接展示 adcode。
-    return mergeOptionByCode(provinceCities, {
-      code: editingCity.cityCode,
-      name: editingCity.name,
-      provinceCode: initialProvinceCode,
-      provinceName: editingCity.provinceName,
-    });
-  }, [
-    cityOptions,
-    editingCity,
-    initialProvinceCode,
-    isCreateMode,
-    provinceCodeValue,
-  ]);
 
   useEffect(() => {
-    let active = true;
-    fetchAdminProvinceOptions()
-      .then((options) => {
-        if (active) {
-          setProvinceOptions(options);
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setRegionError(
-            error instanceof Error ? error.message : "省份候选加载失败",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setIsRegionLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!initialProvinceCode) {
+    const keyword = citySearchKeyword.trim();
+    if (!editingCity || !keyword) {
       return;
     }
+
     let active = true;
-    fetchAdminCityOptions(initialProvinceCode)
-      .then((options) => {
-        if (active) {
-          setCityOptions(options);
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setRegionError(
-            error instanceof Error ? error.message : "城市候选加载失败",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setIsRegionLoading(false);
-        }
-      });
+    const timer = window.setTimeout(() => {
+      setIsRegionLoading(true);
+      searchAdminCityOptions(keyword)
+        .then((options) => {
+          if (active) {
+            setCityOptions(options);
+          }
+        })
+        .catch((error) => {
+          if (active) {
+            setCityOptions([]);
+            messageApi.error(
+              error instanceof Error ? error.message : "城市候选查询失败",
+            );
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setIsRegionLoading(false);
+          }
+        });
+    }, 300);
 
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
-  }, [initialProvinceCode]);
+  }, [citySearchKeyword, editingCity, messageApi]);
 
   /**
-   * 切换省份后清空原城市资料，只展示该省份真实包含的城市候选。
+   * 选中组合候选后校验省市关系，并回填标准名称、adcode 和中心坐标。
    */
-  async function handleProvinceChange(provinceCode: string) {
-    const province = displayedProvinceOptions.find(
-      (option) => option.code === provinceCode,
+  async function handleCitySelect(cityCode: string) {
+    const selectedCity = displayedCityOptions.find(
+      (option) => option.code === cityCode,
     );
+    if (!selectedCity) {
+      form.setFields([{ name: "cityCode", errors: ["请重新选择城市"] }]);
+      return;
+    }
     form.setFieldsValue({
-      provinceCode,
-      provinceName: province?.name ?? "",
-      cityName: "",
-      cityCode: "",
+      provinceCode: selectedCity.provinceCode,
+      provinceName: selectedCity.provinceName,
+      cityName: selectedCity.name,
+      cityCode: selectedCity.code,
       centerLng: undefined,
       centerLat: undefined,
     });
-    setRegionError("");
-    setIsRegionLoading(true);
-    try {
-      setCityOptions(await fetchAdminCityOptions(provinceCode));
-    } catch (error) {
-      setCityOptions([]);
-      setRegionError(
-        error instanceof Error ? error.message : "城市候选加载失败",
-      );
-    } finally {
-      setIsRegionLoading(false);
-    }
-  }
-
-  /**
-   * 选中城市后由后端校验省市关系，并回填标准名称、adcode 和中心坐标。
-   */
-  async function handleCityChange(cityCode: string) {
-    const provinceCode = form.getFieldValue("provinceCode");
-    if (!provinceCode) {
-      return;
-    }
-    setRegionError("");
+    form.setFields([{ name: "cityCode", errors: [] }]);
     setIsLocationLoading(true);
     try {
       const resolved = await resolveAdminCityLocation(
-        provinceCode,
-        cityCode,
+        selectedCity.provinceCode,
+        selectedCity.code,
       );
       form.setFieldsValue({
         cityName: resolved.cityName,
@@ -216,11 +145,27 @@ function AdminCityEditModal({
         centerLat: resolved.center.lat,
       });
     } catch (error) {
-      setRegionError(
-        error instanceof Error ? error.message : "城市中心点查询失败",
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : "城市中心点查询失败";
+      form.setFields([
+        {
+          name: "cityCode",
+          errors: [errorMessage],
+        },
+      ]);
     } finally {
       setIsLocationLoading(false);
+    }
+  }
+
+  /**
+   * 输入城市或省份时触发远程联想，并清除上一次字段校验错误。
+   */
+  function handleCitySearch(value: string) {
+    setCitySearchKeyword(value);
+    form.setFields([{ name: "cityCode", errors: [] }]);
+    if (!value.trim()) {
+      setIsRegionLoading(false);
     }
   }
 
@@ -235,13 +180,24 @@ function AdminCityEditModal({
       okText={isCreateMode ? "创建" : "保存"}
       cancelText="取消"
       confirmLoading={isSubmitting}
+      okButtonProps={{ disabled: isLocationLoading }}
       destroyOnHidden
       width={720}
       afterOpenChange={(opened) => {
         if (opened) {
-          if (!initialProvinceCode) {
-            setCityOptions([]);
-          }
+          setCitySearchKeyword("");
+          setCityOptions(
+            !isCreateMode && initialProvinceCode
+              ? [
+                  {
+                    code: editingCity.cityCode,
+                    name: editingCity.name,
+                    provinceCode: initialProvinceCode,
+                    provinceName: editingCity.provinceName,
+                  },
+                ]
+              : [],
+          );
           form.setFieldsValue({
             provinceCode: initialProvinceCode,
             cityName: editingCity.name,
@@ -260,7 +216,12 @@ function AdminCityEditModal({
         }
       }}
       onCancel={onCancel}
-      afterClose={() => form.resetFields()}
+      afterClose={() => {
+        form.resetFields();
+        setCityOptions([]);
+        setCitySearchKeyword("");
+        setIsRegionLoading(false);
+      }}
       onOk={() => {
         void form.validateFields().then((values) => {
           const payload = { ...values };
@@ -273,58 +234,43 @@ function AdminCityEditModal({
         });
       }}
     >
+      {messageContextHolder}
       <Form form={form} layout="vertical">
-        {regionError ? (
-          <Alert
-            className={sectionStyles.formAlert}
-            type="error"
-            showIcon
-            message="地图资料查询失败"
-            description={regionError}
-          />
-        ) : null}
         <Form.Item name="cityName" hidden>
           <Input />
         </Form.Item>
         <Form.Item name="provinceName" hidden>
           <Input />
         </Form.Item>
+        <Form.Item name="provinceCode" hidden>
+          <Input />
+        </Form.Item>
         <div className={sectionStyles.formGridTwo}>
           <Form.Item
-            label="所属省份"
-            name="provinceCode"
-            rules={[{ required: true, message: "请选择所属省份" }]}
-            extra="省市采用官方行政区划关系，不能自由组合。"
-          >
-            <Select
-              showSearch
-              loading={isRegionLoading}
-              placeholder="输入名称或编码搜索省份"
-              optionFilterProp="label"
-              options={displayedProvinceOptions.map((option) => ({
-                label: `${option.name} · ${option.code}`,
-                value: option.code,
-              }))}
-              onChange={(value) => void handleProvinceChange(value)}
-            />
-          </Form.Item>
-          <Form.Item
-            label="城市名称"
+            className={sectionStyles.formGridFull}
+            label="城市"
             name="cityCode"
-            rules={[{ required: true, message: "请选择城市" }]}
-            extra="选择后自动获取城市编码和中心坐标。"
+            rules={[{ required: true, message: "请输入并选择城市" }]}
+            extra="输入城市或省份名称搜索，选择后自动填写所属省份、城市编码和中心坐标。"
           >
             <Select
               showSearch
               loading={isRegionLoading || isLocationLoading}
-              disabled={!provinceCodeValue}
-              placeholder="请从所属省份内选择城市"
-              optionFilterProp="label"
+              filterOption={false}
+              placeholder="输入城市或省份名称，例如：成都、四川"
+              notFoundContent={
+                !citySearchKeyword.trim()
+                  ? "请输入城市或省份名称"
+                  : isRegionLoading
+                    ? "正在查询百度地图"
+                    : "未找到相关城市"
+              }
               options={displayedCityOptions.map((option) => ({
-                label: `${option.name} · ${option.code}`,
+                label: `${option.name} · ${option.provinceName}`,
                 value: option.code,
               }))}
-              onChange={(value) => void handleCityChange(value)}
+              onSearch={handleCitySearch}
+              onSelect={(value) => void handleCitySelect(value)}
             />
           </Form.Item>
           <Form.Item label="城市编码">
@@ -365,7 +311,7 @@ function AdminCityEditModal({
           onClick={() => {
             const cityCode = form.getFieldValue("cityCode");
             if (cityCode) {
-              void handleCityChange(cityCode);
+              void handleCitySelect(cityCode);
             }
           }}
         >

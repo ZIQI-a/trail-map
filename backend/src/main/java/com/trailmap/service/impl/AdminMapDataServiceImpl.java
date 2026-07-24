@@ -13,10 +13,13 @@ import com.trailmap.service.AdminMapDataService;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -37,9 +40,19 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
     private final RestClient restClient;
     private final ConcurrentHashMap<String, CachedRegionList> regionCache = new ConcurrentHashMap<>();
 
+    @Autowired
     public AdminMapDataServiceImpl(BaiduMapProperties baiduMapProperties) {
+        this(baiduMapProperties, RestClient.builder().build());
+    }
+
+    /**
+     * 测试可注入带 Mock 服务的客户端，生产环境仍使用默认 RestClient。
+     */
+    AdminMapDataServiceImpl(
+            BaiduMapProperties baiduMapProperties,
+            RestClient restClient) {
         this.baiduMapProperties = baiduMapProperties;
-        this.restClient = RestClient.builder().build();
+        this.restClient = restClient;
     }
 
     @Override
@@ -83,6 +96,37 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
     }
 
     @Override
+    public List<AdminCityOptionResponse> searchCities(String keyword) {
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (!StringUtils.hasText(normalizedKeyword)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "请输入城市或省份名称");
+        }
+
+        Map<String, AdminCityOptionResponse> suggestions = new LinkedHashMap<>();
+        for (RegionTreeNode match : requestRegionMatches(normalizedKeyword, 1)) {
+            if (match.level() == 1 && isStandardProvinceCode(match.code())) {
+                AdminProvinceOptionResponse province =
+                        new AdminProvinceOptionResponse(match.code(), match.name());
+                if (MUNICIPALITY_CODES.contains(province.code())) {
+                    addCitySuggestion(suggestions, province, province.code(), province.name());
+                    continue;
+                }
+                match.children().stream()
+                        .filter(city -> city.level() == 2)
+                        .forEach(city ->
+                                addCitySuggestion(suggestions, province, city.code(), city.name()));
+                continue;
+            }
+            if (match.level() == 2 && isStandardRegionCode(match.code())) {
+                AdminProvinceOptionResponse province =
+                        findProvince(resolveProvinceCode(match.code()));
+                addCitySuggestion(suggestions, province, match.code(), match.name());
+            }
+        }
+        return suggestions.values().stream().limit(50).toList();
+    }
+
+    @Override
     public AdminCityLocationResponse resolveCity(String provinceCode, String cityCode) {
         AdminCityOptionResponse city = listCities(provinceCode, null).stream()
                 .filter(candidate -> candidate.code().equals(cityCode))
@@ -111,6 +155,17 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
      * 调用百度行政区划接口并提取查询区域的直接下级节点。
      */
     private List<RegionNode> requestRegionTree(String keyword, int subAdmin) {
+        return requestRegionMatches(keyword, subAdmin).stream()
+                .findFirst()
+                .map(RegionTreeNode::children)
+                .orElseGet(List::of);
+    }
+
+    /**
+     * 调用百度行政区划接口，保留命中的区域及其直接下级，供组合搜索复用。
+     */
+    private List<RegionTreeNode> requestRegionMatches(String keyword, int subAdmin) {
+        ensureServerAk();
         try {
             String responseText = restClient.get()
                     .uri(UriComponentsBuilder.fromHttpUrl(baiduMapProperties.getRegionSearchUrl())
@@ -127,13 +182,9 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
             if (root.path("status").asInt(-1) != 0) {
                 throw new BusinessException(ErrorCode.BAD_REQUEST, "百度行政区划查询失败，请稍后重试");
             }
-            JsonNode firstDistrict = root.path("districts").path(0);
-            if (!firstDistrict.isObject()) {
-                return List.of();
-            }
-            return StreamSupport.stream(firstDistrict.path("districts").spliterator(), false)
+            return StreamSupport.stream(root.path("districts").spliterator(), false)
                     .filter(JsonNode::isObject)
-                    .map(this::toRegionNode)
+                    .map(this::toRegionTreeNode)
                     .toList();
         } catch (BusinessException exception) {
             throw exception;
@@ -188,14 +239,66 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
                 node.path("level").asInt(-1));
     }
 
+    private RegionTreeNode toRegionTreeNode(JsonNode node) {
+        List<RegionNode> children = StreamSupport.stream(
+                        node.path("districts").spliterator(),
+                        false)
+                .filter(JsonNode::isObject)
+                .map(this::toRegionNode)
+                .toList();
+        return new RegionTreeNode(
+                node.path("code").asText(),
+                node.path("name").asText(),
+                node.path("level").asInt(-1),
+                children);
+    }
+
+    /**
+     * 写入去重后的城市候选；直辖市统一沿用项目现有的省级 adcode。
+     */
+    private void addCitySuggestion(
+            Map<String, AdminCityOptionResponse> suggestions,
+            AdminProvinceOptionResponse province,
+            String cityCode,
+            String cityName) {
+        if (!isStandardRegionCode(cityCode)) {
+            return;
+        }
+        String normalizedCityCode =
+                MUNICIPALITY_CODES.contains(province.code()) ? province.code() : cityCode;
+        String normalizedCityName =
+                MUNICIPALITY_CODES.contains(province.code()) ? province.name() : cityName;
+        suggestions.putIfAbsent(
+                normalizedCityCode,
+                new AdminCityOptionResponse(
+                        normalizedCityCode,
+                        normalizedCityName,
+                        province.code(),
+                        province.name()));
+    }
+
     private AdminProvinceOptionResponse findProvince(String provinceCode) {
         if (!StringUtils.hasText(provinceCode)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "请先选择所属省份");
         }
-        return listProvinces(null).stream()
+        String normalizedProvinceCode = provinceCode.trim();
+        AdminProvinceOptionResponse cachedProvince = listProvinces(null).stream()
                 .filter(province -> province.code().equals(provinceCode.trim()))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.BAD_REQUEST, "所属省份不存在，请重新选择"));
+                .orElse(null);
+        if (cachedProvince != null) {
+            return cachedProvince;
+        }
+
+        // 全量行政区列表异常缺项时，再按编码精确查询，避免合法省份被误判为不存在。
+        return requestRegionMatches(normalizedProvinceCode, 0).stream()
+                .filter(region -> region.level() == 1)
+                .filter(region -> normalizedProvinceCode.equals(region.code()))
+                .map(region -> new AdminProvinceOptionResponse(region.code(), region.name()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.BAD_REQUEST,
+                        "所属省份不存在，请重新选择"));
     }
 
     private boolean matchesKeyword(RegionNode region, String keyword) {
@@ -215,6 +318,14 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
         return code != null && code.matches("[1-8]\\d{5}");
     }
 
+    private static boolean isStandardRegionCode(String code) {
+        return code != null && code.matches("[1-8]\\d{5}");
+    }
+
+    private static String resolveProvinceCode(String cityCode) {
+        return cityCode.substring(0, 2) + "0000";
+    }
+
     private void ensureServerAk() {
         if (!StringUtils.hasText(baiduMapProperties.getServerAk())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "未配置百度地图服务端 AK，无法查询行政区划");
@@ -222,6 +333,13 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
     }
 
     private record RegionNode(String code, String name, int level) {
+    }
+
+    private record RegionTreeNode(
+            String code,
+            String name,
+            int level,
+            List<RegionNode> children) {
     }
 
     private record CachedRegionList(List<RegionNode> regions, Instant expiresAt) {

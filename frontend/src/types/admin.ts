@@ -17,12 +17,7 @@ export interface AdminCityFormDto {
   status?: number | null;
 }
 
-// 管理端行政区候选：名称和六位 adcode 必须成对使用。
-export interface AdminProvinceOptionDto {
-  code: string;
-  name: string;
-}
-
+// 管理端城市候选同时携带省市归属，表单只需要一个组合搜索字段。
 export interface AdminCityOptionDto {
   code: string;
   name: string;

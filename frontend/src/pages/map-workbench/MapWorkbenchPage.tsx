@@ -1,13 +1,11 @@
 import { SettingOutlined } from "@ant-design/icons";
 import {
-  Alert,
   Button,
   Empty,
   message,
   Modal,
   notification,
   Segmented,
-  Spin,
   Tooltip,
 } from "antd";
 import {
@@ -92,6 +90,7 @@ import { getItineraryActivityColor } from "../../utils/map-workbench/routePalett
 import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
 import { buildSaveTripPayload } from "../../utils/map-workbench/tripPayload";
 import styles from "./MapWorkbenchPage.module.css";
+import { DEFAULT_MAP_CITY } from "./mapWorkbenchFallback";
 
 const AuthDialog = lazy(() =>
   import("../../components/map-workbench/AuthDialog").then((module) => ({
@@ -236,13 +235,13 @@ export function MapWorkbenchPage() {
     Boolean(publicShareToken),
   );
 
-  const cities = useMemo(
-    () =>
-      (citiesQuery.data?.list ?? [])
+  const cities = useMemo(() => {
+    const remoteCities = (citiesQuery.data?.list ?? [])
         .map(mapCity)
-        .filter((city): city is TravelCity => Boolean(city)),
-    [citiesQuery.data?.list],
-  );
+        .filter((city): city is TravelCity => Boolean(city));
+    // 数据服务失败或尚未返回时仍提供默认地图中心，避免整页被错误状态替换。
+    return remoteCities.length > 0 ? remoteCities : [DEFAULT_MAP_CITY];
+  }, [citiesQuery.data?.list]);
 
   // 用户未主动切换时默认使用第一个城市；如果当前选择不在列表中，也回退到第一个城市。
   const activeCityId = cities.some((city) => city.id === selectedCityId)
@@ -272,7 +271,7 @@ export function MapWorkbenchPage() {
     () =>
       mapCity(
         cityDetailQuery.data ?? cities.find((item) => item.id === activeCityId),
-      ),
+      ) ?? DEFAULT_MAP_CITY,
     [activeCityId, cities, cityDetailQuery.data],
   );
   const tags = useMemo(
@@ -328,17 +327,21 @@ export function MapWorkbenchPage() {
     () => resolveTripCenterPoint(tripSpots, city?.center),
     [city?.center, tripSpots],
   );
-  const isInitialLoading =
-    citiesQuery.isLoading ||
-    (activeCityId != null &&
-      (cityDetailQuery.isLoading ||
-        tagsQuery.isLoading ||
-        (!spotsQuery.data && spotsQuery.isLoading)));
   const pageError =
     citiesQuery.error ??
     cityDetailQuery.error ??
     tagsQuery.error ??
     spotsQuery.error;
+  useEffect(() => {
+    if (!pageError) {
+      return;
+    }
+    messageApi.warning({
+      key: "map-workbench-data-error",
+      content: "部分旅游数据暂时无法获取，已为你保留基础地图和规划功能",
+      duration: 4,
+    });
+  }, [messageApi, pageError]);
   const startPointOptions = useMemo(
     () =>
       (poiCandidatesQuery.data ?? []).map((candidate) => ({
@@ -1212,32 +1215,6 @@ export function MapWorkbenchPage() {
     });
   }
 
-  if (isInitialLoading) {
-    return (
-      <main className={styles.workbenchStateShell}>
-        <Spin size="large" />
-        <p>正在加载数据...</p>
-      </main>
-    );
-  }
-
-  if (pageError || !city) {
-    return (
-      <main className={styles.workbenchStateShell}>
-        <Alert
-          type="error"
-          showIcon
-          message="地图加载失败"
-          description={
-            pageError instanceof Error
-              ? pageError.message
-              : "暂时无法获取城市和景点数据，请稍后再试~"
-          }
-        />
-      </main>
-    );
-  }
-
   return (
     <main className={styles.workbenchShell}>
       {messageContextHolder}
@@ -1326,7 +1303,11 @@ export function MapWorkbenchPage() {
               <aside className={styles.inlineStatePanel}>
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="当前城市暂无景点数据"
+                  description={
+                    pageError
+                      ? "景点数据暂不可用，可继续浏览地图"
+                      : "当前城市暂无景点数据"
+                  }
                 />
               </aside>
             ) : (

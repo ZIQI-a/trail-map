@@ -122,6 +122,7 @@ POST /api/routes/plan
 6. 地图默认保持城市全景，选中景点后使用中等缩放聚焦具体位置，便于看清景点落点。
 7. 工作台默认不选中任何景点；筛选、搜索只更新点位和列表，不自动重置为首个景点，地图视角只在切换城市或主动选点时变化。
 8. 顶部筛选、搜索和推荐排序切换时不重新初始化地图实例，只保留当前底图并更新 Marker 数据。
+9. 后端城市或景点接口暂时不可用时，工作台使用默认城市中心继续加载百度底图并保留页面结构；数据错误通过轻提示反馈，不再用整页错误卡片替换地图。
 
 ## 精准点位接入
 
@@ -152,11 +153,13 @@ GET /api/poi-calibration/candidates?cityName=西安市&keyword=大唐不夜城&a
 ```plain
 GET /api/admin/map-data/provinces
 GET /api/admin/map-data/cities?provinceCode=320000
+GET /api/admin/map-data/city-suggestions?keyword=南京
 GET /api/admin/map-data/city-location?provinceCode=320000&cityCode=320100
 GET /api/admin/map-data/spot-candidates?cityName=南京市&keyword=南京博物院
 ```
 
 - 以上接口和其他 `/api/admin/**` 接口一样仅允许 `ADMIN` 角色访问。
+- 城市表单使用单一组合搜索框，输入城市或省份名称后调用 `city-suggestions`；候选只展示“城市 · 省份”，不展示行政区编码。
 - 城市编码统一使用六位行政区划 `adcode`，不是拼音编码；省市关系由后端再次校验。
 - 城市中心点和景点主点位统一返回 GCJ-02，写入数据库前保留六位小数。
 - 景点联想需要先选择所属城市，并由管理员确认具体候选项，不自动采用第一条结果。

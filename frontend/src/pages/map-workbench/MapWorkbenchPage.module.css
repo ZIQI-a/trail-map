@@ -8,18 +8,6 @@
     #edf4fb;
 }
 
-.workbenchStateShell {
-  height: 100vh;
-  display: grid;
-  place-items: center;
-  gap: 12px;
-  padding: 24px;
-  background:
-    linear-gradient(120deg, rgb(255 255 255 / 82%), rgb(238 246 255 / 84%)),
-    #edf4fb;
-  color: #355070;
-}
-
 .mapWorkspace {
   position: relative;
   min-height: 0;

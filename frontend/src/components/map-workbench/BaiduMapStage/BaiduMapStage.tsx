@@ -1,4 +1,5 @@
-import { Alert, Spin } from "antd";
+import { WarningOutlined } from "@ant-design/icons";
+import { Spin } from "antd";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createBaiduPoint, loadBaiduMapGL } from "../../../lib/baiduMap";
 import type {
@@ -414,27 +415,16 @@ export function BaiduMapStage({
     return () => map.removeEventListener("click", handlePickStartPoint);
   }, [onPickStartPoint, sdkReady, startPointPicking]);
 
-  if (sdkError) {
-    return (
-      <section
-        className={styles.mapStage}
-        aria-label={`${city.name} 百度地图加载失败`}
-      >
-        <div className={styles.overlayShell}>
-          <Alert
-            type="error"
-            showIcon
-            message="百度地图加载失败"
-            description={sdkError}
-          />
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className={styles.mapStage} aria-label={`${city.name} 百度地图`}>
       <div className={styles.mapContainer} id={containerId} />
+
+      {sdkError ? (
+        <div className={styles.mapErrorBadge} role="status" title={sdkError}>
+          <WarningOutlined />
+          <span>地图服务暂时不可用，请稍后重试</span>
+        </div>
+      ) : null}
 
       {startPointPicking ? (
         <div className={styles.pickHint}>
@@ -443,7 +433,7 @@ export function BaiduMapStage({
         </div>
       ) : null}
 
-      {!sdkReady ? (
+      {!sdkReady && !sdkError ? (
         <div className={styles.loadingMask}>
           <Spin size="large" />
           <p>正在加载百度地图...</p>

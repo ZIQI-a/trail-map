@@ -416,6 +416,10 @@
   gap: 0 16px;
 }
 
+.formGridFull {
+  grid-column: 1 / -1;
+}
+
 .formAlert {
   margin-bottom: 16px;
   border-radius: 12px;
