@@ -10,6 +10,10 @@ export function useCitiesQuery() {
   return useQuery({
     queryKey: ['cities'],
     queryFn: fetchCities,
+    // 城市基础数据在单次应用会话内共享；仅管理端主动失效缓存时重新请求。
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnReconnect: false,
   });
 }
 

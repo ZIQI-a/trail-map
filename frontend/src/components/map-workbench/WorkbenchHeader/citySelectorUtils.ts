@@ -16,7 +16,27 @@ export interface CityGroup {
 }
 
 const INITIAL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const QUICK_CITY_LIMIT = 18;
+const QUICK_CITY_NAMES = [
+  "北京",
+  "天津",
+  "沈阳",
+  "大连",
+  "上海",
+  "南京",
+  "苏州",
+  "杭州",
+  "青岛",
+  "郑州",
+  "武汉",
+  "长沙",
+  "广州",
+  "深圳",
+  "重庆",
+  "成都",
+  "西安",
+  "香港",
+  "澳门",
+];
 const AUTONOMOUS_REGION_SHORT_NAMES: Record<string, string> = {
   内蒙古自治区: "内蒙古",
   广西壮族自治区: "广西",
@@ -60,39 +80,22 @@ const ETHNIC_GROUP_SUFFIXES = [
 ];
 
 /**
- * 使用后端热度生成快捷城市，并确保直辖市、特别行政区和当前城市始终可见。
+ * 快捷区保留固定产品名单，但只展示后端当前返回的已启用城市。
  */
 export function buildQuickCities(
   cities: TravelCity[],
   selectedCityId?: number,
 ) {
-  const directAdminCities = cities.filter(isDirectAdminRegion);
-  const popularCities = cities
-    .filter((city) => !isDirectAdminRegion(city))
-    .slice()
-    .sort(
-      (left, right) =>
-        right.hotScore - left.hotScore ||
-        compareByChineseInitial(left.name, right.name),
-    );
-  const quickCityMap = new Map<number, TravelCity>();
-
-  [...directAdminCities, ...popularCities].forEach((city) => {
-    if (quickCityMap.size < QUICK_CITY_LIMIT || isDirectAdminRegion(city)) {
-      quickCityMap.set(city.id, city);
-    }
-  });
-
-  const currentCity = cities.find((city) => city.id === selectedCityId);
-  if (currentCity) {
-    quickCityMap.set(currentCity.id, currentCity);
-  }
-
-  return [...quickCityMap.values()].map((city) => ({
-    id: city.id,
-    name: getShortRegionName(city.name),
-    active: city.id === selectedCityId,
-  }));
+  const cityMap = new Map(
+    cities.map((city) => [getShortRegionName(city.name), city]),
+  );
+  return QUICK_CITY_NAMES.map((name) => cityMap.get(name))
+    .filter((city): city is TravelCity => Boolean(city))
+    .map((city) => ({
+      id: city.id,
+      name: getShortRegionName(city.name),
+      active: city.id === selectedCityId,
+    }));
 }
 
 /**

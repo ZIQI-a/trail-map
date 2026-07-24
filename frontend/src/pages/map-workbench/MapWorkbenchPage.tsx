@@ -2065,7 +2065,6 @@ function mapCity(city?: TravelCity | TravelCityDto) {
     mapZoom: city.mapZoom,
     description: city.description,
     recommendDays: city.recommendDays,
-    hotScore: city.hotScore,
   } satisfies TravelCity;
 }
 
