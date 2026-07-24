@@ -2,7 +2,7 @@ import { AimOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, EyeInvi
 import { Alert, AutoComplete, Button, Card, Collapse, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { DefaultOptionType } from "antd/es/select";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { fetchAdminSpotCandidates } from "../../../api/admin";
 import type { AdminSpotDto, AdminSpotFormDto } from "../../../types/admin";
 import type { PoiCalibrationCandidateDto, SpotType, TravelCityDto } from "../../../types/mapWorkbench";
@@ -30,7 +30,7 @@ type AdminSpotsSectionProps = {
   onCityFilterChange: (value?: number) => void;
   onCloseEditModal: () => void;
   onDeleteSpot: (spot: AdminSpotDto) => void;
-  onKeywordChange: (value: string) => void;
+  onKeywordSearch: (value: string) => void;
   onOpenCreateModal: () => void;
   onOpenEditModal: (spot: AdminSpotDto) => void;
   onPageChange: (pageNum: number, pageSize: number) => void;
@@ -89,7 +89,9 @@ function AdminSpotEditModal({
   >([]);
   const confirmedSpotNameRef = useRef("");
   const [isCandidateLoading, setIsCandidateLoading] = useState(false);
-  const [candidateError, setCandidateError] = useState("");
+  const [candidateOpen, setCandidateOpen] = useState(false);
+  const [candidateSearchSubmitted, setCandidateSearchSubmitted] =
+    useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedCityId = Form.useWatch("cityId", form);
   const selectedLng = Form.useWatch("lng", form);
@@ -98,52 +100,54 @@ function AdminSpotEditModal({
   const selectedCity = cities.find((city) => city.id === selectedCityId);
   const isCreateMode = editingSpot?.id === 0;
 
-  useEffect(() => {
+  /**
+   * 仅在点击搜索按钮或按回车时查询百度景点候选。
+   */
+  async function handleSpotCandidateSearch() {
     const keyword = spotSearchText.trim();
-    if (!editingSpot || !selectedCity || keyword.length < 2) {
+    if (!editingSpot || !selectedCity) {
+      form.setFields([{ name: "cityId", errors: ["请先选择所属城市"] }]);
+      return;
+    }
+    if (keyword.length < 2) {
+      form.setFields([{ name: "spotName", errors: ["请输入至少两个字符后搜索"] }]);
       return;
     }
 
-    let active = true;
-    const timer = window.setTimeout(() => {
-      setIsCandidateLoading(true);
-      setCandidateError("");
-      fetchAdminSpotCandidates(selectedCity.name, keyword)
-        .then((candidates) => {
-          if (active) {
-            setSpotCandidates(candidates);
-          }
-        })
-        .catch((error) => {
-          if (active) {
-            setSpotCandidates([]);
-            setCandidateError(
-              error instanceof Error ? error.message : "景点候选查询失败",
-            );
-          }
-        })
-        .finally(() => {
-          if (active) {
-            setIsCandidateLoading(false);
-          }
-        });
-    }, 350);
-
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [editingSpot, selectedCity, spotSearchText]);
+    setIsCandidateLoading(true);
+    setCandidateSearchSubmitted(false);
+    form.setFields([{ name: "spotName", errors: [] }]);
+    try {
+      setSpotCandidates(
+        await fetchAdminSpotCandidates(selectedCity.name, keyword),
+      );
+      setCandidateOpen(true);
+      setCandidateSearchSubmitted(true);
+    } catch (error) {
+      setSpotCandidates([]);
+      setCandidateOpen(false);
+      form.setFields([
+        {
+          name: "spotName",
+          errors: [
+            error instanceof Error ? error.message : "景点候选查询失败",
+          ],
+        },
+      ]);
+    } finally {
+      setIsCandidateLoading(false);
+    }
+  }
 
   /**
    * 景点名称发生自由输入时清除旧点位，避免名称和坐标继续指向不同景点。
    */
   function handleSpotSearch(value: string) {
     setSpotSearchText(value);
-    if (value.trim().length < 2) {
-      setSpotCandidates([]);
-      setCandidateError("");
-    }
+    setSpotCandidates([]);
+    setCandidateOpen(Boolean(value.trim()));
+    setCandidateSearchSubmitted(false);
+    form.setFields([{ name: "spotName", errors: [] }]);
     form.setFieldValue("spotName", value);
     if (value !== confirmedSpotNameRef.current) {
       form.setFieldsValue({
@@ -163,7 +167,12 @@ function AdminSpotEditModal({
   ) {
     const candidate = (option as SpotCandidateOption).candidate;
     if (!candidate.location) {
-      setCandidateError("该候选项没有有效坐标，请改用地图选点");
+      form.setFields([
+        {
+          name: "spotName",
+          errors: ["该候选项没有有效坐标，请改用地图选点"],
+        },
+      ]);
       return;
     }
     form.setFieldsValue({
@@ -173,8 +182,10 @@ function AdminSpotEditModal({
       lat: roundCoordinate(candidate.location.lat),
     });
     setSpotSearchText(candidate.name);
+    setCandidateOpen(false);
+    setCandidateSearchSubmitted(false);
     confirmedSpotNameRef.current = candidate.name;
-    setCandidateError("");
+    form.setFields([{ name: "spotName", errors: [] }]);
   }
 
   /**
@@ -191,7 +202,12 @@ function AdminSpotEditModal({
     setSpotSearchText("");
     confirmedSpotNameRef.current = "";
     setSpotCandidates([]);
-    setCandidateError("");
+    setCandidateOpen(false);
+    setCandidateSearchSubmitted(false);
+    form.setFields([
+      { name: "cityId", errors: [] },
+      { name: "spotName", errors: [] },
+    ]);
   }
 
   if (!editingSpot) {
@@ -233,7 +249,8 @@ function AdminSpotEditModal({
           setSpotSearchText(editingSpot.name);
           confirmedSpotNameRef.current = editingSpot.name;
           setSpotCandidates([]);
-          setCandidateError("");
+          setCandidateOpen(false);
+          setCandidateSearchSubmitted(false);
           form.setFieldsValue({
             cityId: editingSpot.cityId,
             spotName: editingSpot.name,
@@ -300,33 +317,50 @@ function AdminSpotEditModal({
             <p>选择百度候选可自动填充地址和坐标；没有准确结果时使用地图选点。</p>
           </div>
         </div>
-        {candidateError ? (
-          <Alert
-            className={sectionStyles.formAlert}
-            type="warning"
-            showIcon
-            message={candidateError}
-          />
-        ) : null}
         <div className={sectionStyles.formGridTwo}>
-          <Form.Item label="景点名称" name="spotName" rules={[{ required: true, message: "请输入景点名称" }]}>
-            <AutoComplete
-              value={spotSearchText}
-              options={candidateOptions}
-              filterOption={false}
-              notFoundContent={
-                spotSearchText.trim().length < 2
-                  ? "请输入至少两个字符"
-                  : isCandidateLoading
-                    ? "正在查询百度地图"
-                    : "暂无匹配地点，可使用地图选点"
-              }
-              placeholder="输入景点名称并选择候选"
-              onSearch={handleSpotSearch}
-              onChange={handleSpotSearch}
-              onSelect={handleCandidateSelect}
-            />
-          </Form.Item>
+          <div className={sectionStyles.remoteSearchRow}>
+            <Form.Item label="景点名称" name="spotName" rules={[{ required: true, message: "请输入景点名称" }]}>
+              <AutoComplete
+                value={spotSearchText}
+                open={candidateOpen}
+                options={candidateOptions}
+                filterOption={false}
+                notFoundContent={
+                  spotSearchText.trim().length < 2
+                    ? "请输入至少两个字符"
+                    : isCandidateLoading
+                      ? "正在查询百度地图"
+                      : candidateSearchSubmitted
+                        ? "暂无匹配地点，可使用地图选点"
+                        : "点击搜索或按回车查询景点"
+                }
+                placeholder="输入景点名称并选择候选"
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.nativeEvent.isComposing &&
+                    (!candidateSearchSubmitted || candidateOptions.length === 0)
+                  ) {
+                    event.preventDefault();
+                    void handleSpotCandidateSearch();
+                  }
+                }}
+                onOpenChange={setCandidateOpen}
+                onSearch={handleSpotSearch}
+                onChange={handleSpotSearch}
+                onSelect={handleCandidateSelect}
+              />
+            </Form.Item>
+            <Button
+              className={sectionStyles.remoteSearchButton}
+              type="primary"
+              icon={<SearchOutlined />}
+              loading={isCandidateLoading}
+              onClick={() => void handleSpotCandidateSearch()}
+            >
+              搜索
+            </Button>
+          </div>
           <Form.Item label="所属城市" name="cityId" rules={[{ required: true, message: "请选择所属城市" }]}>
             <Select
               showSearch
@@ -499,7 +533,7 @@ export function AdminSpotsSection({
   onCityFilterChange,
   onCloseEditModal,
   onDeleteSpot,
-  onKeywordChange,
+  onKeywordSearch,
   onOpenCreateModal,
   onOpenEditModal,
   onPageChange,
@@ -598,12 +632,15 @@ export function AdminSpotsSection({
 
         <div className={sectionStyles.filterToolbar}>
           <div className={sectionStyles.filterGroup}>
-            <Input
+            <Input.Search
+              key={keyword}
               className={sectionStyles.filterInput}
               prefix={<SearchOutlined />}
+              enterButton="搜索"
+              allowClear
               placeholder="搜索景点名称 / 摘要 / 地址"
-              value={keyword}
-              onChange={(event) => onKeywordChange(event.target.value)}
+              defaultValue={keyword}
+              onSearch={(value) => onKeywordSearch(value.trim())}
             />
             <Select
               className={sectionStyles.filterSelect}

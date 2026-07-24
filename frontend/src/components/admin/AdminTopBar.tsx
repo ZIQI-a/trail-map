@@ -20,7 +20,7 @@ type AdminTopBarProps = {
   searchKeyword: string;
   onLogout: () => void;
   onRefresh: () => void;
-  onSearchChange: (value: string) => void;
+  onSearch: (value: string) => void;
 };
 
 // 顶部工具栏统一收口搜索、刷新和当前管理员信息。
@@ -31,7 +31,7 @@ export function AdminTopBar({
   searchKeyword,
   onLogout,
   onRefresh,
-  onSearchChange,
+  onSearch,
 }: AdminTopBarProps) {
   const activeSectionLabel =
     activeSection === "overview"
@@ -71,12 +71,15 @@ export function AdminTopBar({
       </div>
 
       <div className={styles.topBarActions}>
-        <Input
+        <Input.Search
+          key={`${activeSection}-${searchKeyword}`}
           className={styles.searchInput}
           prefix={<SearchOutlined />}
+          enterButton="搜索"
+          allowClear
           placeholder={searchPlaceholder}
-          value={searchKeyword}
-          onChange={(event) => onSearchChange(event.target.value)}
+          defaultValue={searchKeyword}
+          onSearch={(value) => onSearch(value.trim())}
         />
         <Button className={styles.iconButton} icon={<BellOutlined />} />
         <Button

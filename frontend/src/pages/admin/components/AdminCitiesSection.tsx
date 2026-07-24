@@ -1,7 +1,7 @@
 import { AimOutlined, DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, InputNumber, message, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   resolveAdminCityLocation,
   searchAdminCityOptions,
@@ -28,7 +28,7 @@ type AdminCitiesSectionProps = {
   onOpenCreateModal: () => void;
   onOpenEditModal: (city: AdminCityDto) => void;
   onPageChange: (pageNum: number, pageSize: number) => void;
-  onSearchChange: (value: string) => void;
+  onSearch: (value: string) => void;
   onToggleStatus: (city: AdminCityDto) => void;
   onSubmitCreate: (payload: AdminCityFormDto) => void;
   onSubmitEdit: (city: AdminCityDto, payload: Partial<AdminCityFormDto>) => void;
@@ -56,6 +56,8 @@ function AdminCityEditModal({
   const [form] = Form.useForm<AdminCityFormValues>();
   const [cityOptions, setCityOptions] = useState<AdminCityOptionDto[]>([]);
   const [citySearchKeyword, setCitySearchKeyword] = useState("");
+  const [cityCandidateOpen, setCityCandidateOpen] = useState(false);
+  const [citySearchSubmitted, setCitySearchSubmitted] = useState(false);
   const [isRegionLoading, setIsRegionLoading] = useState(false);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [messageApi, messageContextHolder] = message.useMessage();
@@ -75,41 +77,33 @@ function AdminCityEditModal({
     [cityOptions, editingCity, initialProvinceCode, isCreateMode],
   );
 
-  useEffect(() => {
+  /**
+   * 仅在点击搜索按钮或按回车时查询城市候选，避免输入过程中重复请求。
+   */
+  async function handleCityCandidateSearch() {
     const keyword = citySearchKeyword.trim();
     if (!editingCity || !keyword) {
+      form.setFields([{ name: "cityCode", errors: ["请输入城市或省份名称后搜索"] }]);
       return;
     }
 
-    let active = true;
-    const timer = window.setTimeout(() => {
-      setIsRegionLoading(true);
-      searchAdminCityOptions(keyword)
-        .then((options) => {
-          if (active) {
-            setCityOptions(options);
-          }
-        })
-        .catch((error) => {
-          if (active) {
-            setCityOptions([]);
-            messageApi.error(
-              error instanceof Error ? error.message : "城市候选查询失败",
-            );
-          }
-        })
-        .finally(() => {
-          if (active) {
-            setIsRegionLoading(false);
-          }
-        });
-    }, 300);
-
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [citySearchKeyword, editingCity, messageApi]);
+    setIsRegionLoading(true);
+    setCitySearchSubmitted(false);
+    form.setFields([{ name: "cityCode", errors: [] }]);
+    try {
+      setCityOptions(await searchAdminCityOptions(keyword));
+      setCityCandidateOpen(true);
+      setCitySearchSubmitted(true);
+    } catch (error) {
+      setCityOptions([]);
+      setCityCandidateOpen(false);
+      messageApi.error(
+        error instanceof Error ? error.message : "城市候选查询失败",
+      );
+    } finally {
+      setIsRegionLoading(false);
+    }
+  }
 
   /**
    * 选中组合候选后校验省市关系，并回填标准名称、adcode 和中心坐标。
@@ -131,6 +125,7 @@ function AdminCityEditModal({
       centerLat: undefined,
     });
     form.setFields([{ name: "cityCode", errors: [] }]);
+    setCityCandidateOpen(false);
     setIsLocationLoading(true);
     try {
       const resolved = await resolveAdminCityLocation(
@@ -159,10 +154,13 @@ function AdminCityEditModal({
   }
 
   /**
-   * 输入城市或省份时触发远程联想，并清除上一次字段校验错误。
+   * 输入城市或省份时只更新草稿并清除旧结果，不直接触发远程请求。
    */
   function handleCitySearch(value: string) {
     setCitySearchKeyword(value);
+    setCityOptions([]);
+    setCityCandidateOpen(Boolean(value.trim()));
+    setCitySearchSubmitted(false);
     form.setFields([{ name: "cityCode", errors: [] }]);
     if (!value.trim()) {
       setIsRegionLoading(false);
@@ -186,6 +184,8 @@ function AdminCityEditModal({
       afterOpenChange={(opened) => {
         if (opened) {
           setCitySearchKeyword("");
+          setCityCandidateOpen(false);
+          setCitySearchSubmitted(false);
           setCityOptions(
             !isCreateMode && initialProvinceCode
               ? [
@@ -220,6 +220,8 @@ function AdminCityEditModal({
         form.resetFields();
         setCityOptions([]);
         setCitySearchKeyword("");
+        setCityCandidateOpen(false);
+        setCitySearchSubmitted(false);
         setIsRegionLoading(false);
       }}
       onOk={() => {
@@ -246,33 +248,59 @@ function AdminCityEditModal({
           <Input />
         </Form.Item>
         <div className={sectionStyles.formGridTwo}>
-          <Form.Item
-            className={sectionStyles.formGridFull}
-            label="城市"
-            name="cityCode"
-            rules={[{ required: true, message: "请输入并选择城市" }]}
-            extra="输入城市或省份名称搜索，选择后自动填写所属省份、城市编码和中心坐标。"
+          <div
+            className={`${sectionStyles.formGridFull} ${sectionStyles.remoteSearchRow}`}
           >
-            <Select
-              showSearch
-              loading={isRegionLoading || isLocationLoading}
-              filterOption={false}
-              placeholder="输入城市或省份名称，例如：成都、四川"
-              notFoundContent={
-                !citySearchKeyword.trim()
-                  ? "请输入城市或省份名称"
-                  : isRegionLoading
-                    ? "正在查询百度地图"
-                    : "未找到相关城市"
-              }
-              options={displayedCityOptions.map((option) => ({
-                label: `${option.name} · ${option.provinceName}`,
-                value: option.code,
-              }))}
-              onSearch={handleCitySearch}
-              onSelect={(value) => void handleCitySelect(value)}
-            />
-          </Form.Item>
+            <Form.Item
+              label="城市"
+              name="cityCode"
+              rules={[{ required: true, message: "请输入并选择城市" }]}
+              extra="输入城市或省份名称，点击搜索或按回车后选择候选。"
+            >
+              <Select
+                showSearch
+                open={cityCandidateOpen}
+                loading={isRegionLoading || isLocationLoading}
+                filterOption={false}
+                placeholder="输入城市或省份名称，例如：成都、四川"
+                notFoundContent={
+                  !citySearchKeyword.trim()
+                    ? "请输入城市或省份名称"
+                    : isRegionLoading
+                      ? "正在查询百度地图"
+                      : citySearchSubmitted
+                        ? "未找到相关城市"
+                        : "点击搜索或按回车查询城市"
+                }
+                options={displayedCityOptions.map((option) => ({
+                  label: `${option.name} · ${option.provinceName}`,
+                  value: option.code,
+                }))}
+                onInputKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.nativeEvent.isComposing &&
+                    (!citySearchSubmitted || displayedCityOptions.length === 0)
+                  ) {
+                    event.preventDefault();
+                    void handleCityCandidateSearch();
+                  }
+                }}
+                onOpenChange={setCityCandidateOpen}
+                onSearch={handleCitySearch}
+                onSelect={(value) => void handleCitySelect(value)}
+              />
+            </Form.Item>
+            <Button
+              className={sectionStyles.remoteSearchButton}
+              type="primary"
+              icon={<SearchOutlined />}
+              loading={isRegionLoading}
+              onClick={() => void handleCityCandidateSearch()}
+            >
+              搜索
+            </Button>
+          </div>
           <Form.Item label="城市编码">
             <Input
               value={cityCodeValue}
@@ -363,7 +391,7 @@ export function AdminCitiesSection({
   onOpenCreateModal,
   onOpenEditModal,
   onPageChange,
-  onSearchChange,
+  onSearch,
   onToggleStatus,
   onSubmitCreate,
   onSubmitEdit,
@@ -462,12 +490,15 @@ export function AdminCitiesSection({
 
         <div className={sectionStyles.filterToolbar}>
           <div className={sectionStyles.filterGroup}>
-            <Input
+            <Input.Search
+              key={keyword}
               className={sectionStyles.filterInput}
               prefix={<SearchOutlined />}
+              enterButton="搜索"
+              allowClear
               placeholder="搜索城市名称 / 省份 / 城市编码"
-              value={keyword}
-              onChange={(event) => onSearchChange(event.target.value)}
+              defaultValue={keyword}
+              onSearch={(value) => onSearch(value.trim())}
             />
           </div>
           <div className={sectionStyles.filterActions}>

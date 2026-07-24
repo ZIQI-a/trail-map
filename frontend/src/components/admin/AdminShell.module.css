@@ -190,8 +190,14 @@
 }
 
 .searchInput :global(.ant-input-affix-wrapper) {
-  border-radius: 12px;
+  border-radius: 12px 0 0 12px;
   min-height: 40px;
+}
+
+.searchInput :global(.ant-input-search-button) {
+  height: 40px;
+  border-radius: 0 12px 12px 0 !important;
+  font-weight: 700;
 }
 
 .iconButton {

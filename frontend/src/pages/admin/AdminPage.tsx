@@ -316,7 +316,7 @@ export function AdminPage() {
           searchKeyword={activeSearchKeyword}
           onLogout={handleLogout}
           onRefresh={handleRefreshCurrentSection}
-          onSearchChange={(value) => {
+          onSearch={(value) => {
             if (activeSection === "users") {
               setSearchKeyword(value);
               setUserPageNum(1);
@@ -373,7 +373,7 @@ export function AdminPage() {
               setRoleFilter(value);
               setUserPageNum(1);
             }}
-            onSearchChange={(value) => {
+            onSearch={(value) => {
               setSearchKeyword(value);
               setUserPageNum(1);
             }}
@@ -422,7 +422,7 @@ export function AdminPage() {
               })
             }
             onOpenEditModal={setEditingCity}
-            onSearchChange={(value) => {
+            onSearch={(value) => {
               setCityKeyword(value);
               setCityPageNum(1);
             }}
@@ -451,7 +451,7 @@ export function AdminPage() {
             }}
             onCloseEditModal={() => setEditingSpot(null)}
             onDeleteSpot={(spot) => void handleDeleteSpot(spot.id)}
-            onKeywordChange={(value) => {
+            onKeywordSearch={(value) => {
               setSpotKeyword(value);
               setSpotPageNum(1);
             }}

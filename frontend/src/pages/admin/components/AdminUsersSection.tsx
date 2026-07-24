@@ -49,7 +49,7 @@ type AdminUsersSectionProps = {
   onPageChange: (pageNum: number, pageSize: number) => void;
   onResetFilters: () => void;
   onRoleFilterChange: (value: "all" | AppUserDto["userType"]) => void;
-  onSearchChange: (value: string) => void;
+  onSearch: (value: string) => void;
   onStatusFilterChange: (value: AdminStatusFilter) => void;
   onToggleStatus: (user: AppUserDto) => void;
   onSubmitEdit: (user: AppUserDto, payload: UserUpdateRequestDto) => void;
@@ -175,7 +175,7 @@ export function AdminUsersSection({
   onPageChange,
   onResetFilters,
   onRoleFilterChange,
-  onSearchChange,
+  onSearch,
   onStatusFilterChange,
   onToggleStatus,
   onSubmitEdit,
@@ -318,12 +318,15 @@ export function AdminUsersSection({
 
         <div className={sectionStyles.filterToolbar}>
           <div className={sectionStyles.filterGroup}>
-            <Input
+            <Input.Search
+              key={searchKeyword}
               className={sectionStyles.filterInput}
               prefix={<SearchOutlined />}
+              enterButton="搜索"
+              allowClear
               placeholder="昵称 / 用户名 / 手机号 / 邮箱"
-              value={searchKeyword}
-              onChange={(event) => onSearchChange(event.target.value)}
+              defaultValue={searchKeyword}
+              onSearch={(value) => onSearch(value.trim())}
             />
             <Select
               className={sectionStyles.filterSelect}
