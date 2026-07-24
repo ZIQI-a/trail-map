@@ -68,6 +68,13 @@
   backdrop-filter: blur(12px);
 }
 
+.dataErrorBadge {
+  border-color: rgb(224 82 82 / 42%);
+  color: #a62d2d;
+  background: rgb(255 245 245 / 96%);
+  box-shadow: 0 10px 28px rgb(136 33 33 / 14%);
+}
+
 .loadingMask {
   gap: 12px;
   color: #355070;

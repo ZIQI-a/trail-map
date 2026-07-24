@@ -50,6 +50,9 @@ export function loadBaiduMapGL() {
     document.head.appendChild(script);
   }).catch((error) => {
     baiduMapPromise = undefined;
+    // 脚本请求失败后移除失效节点，允许后续重试重新发起真实请求。
+    document.getElementById(BAIDU_MAP_SCRIPT_ID)?.remove();
+    delete window.__trailMapBaiduMapInit__;
     throw error;
   });
 

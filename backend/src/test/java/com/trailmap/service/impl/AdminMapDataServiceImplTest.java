@@ -67,7 +67,7 @@ class AdminMapDataServiceImplTest {
     }
 
     @Test
-    void shouldRoundResolvedCityCoordinatesToSixDecimalPlaces() {
+    void shouldPreserveResolvedCityCoordinatePrecision() {
         MockServiceFixture fixture = createFixture();
         fixture.server().expect(request -> assertTrue(
                         request.getURI().getRawQuery().contains("keyword=%E4%B8%AD%E5%9B%BD")))
@@ -82,8 +82,8 @@ class AdminMapDataServiceImplTest {
         AdminCityLocationResponse result =
                 fixture.service().resolveCity("510000", "510100");
 
-        assertEquals("106.665000", result.center().lng().toPlainString());
-        assertEquals("35.543001", result.center().lat().toPlainString());
+        assertEquals("106.6649997123", result.center().lng().toPlainString());
+        assertEquals("35.5430014217", result.center().lat().toPlainString());
         fixture.server().verify();
     }
 

@@ -25,12 +25,10 @@ public record AdminCityCreateRequest(
         @NotNull(message = "城市中心经度不能为空")
         @DecimalMin(value = "-180.000000", message = "城市中心经度超出范围")
         @DecimalMax(value = "180.000000", message = "城市中心经度超出范围")
-        @Digits(integer = 3, fraction = 6, message = "城市中心经度最多保留 6 位小数")
         BigDecimal centerLng,
         @NotNull(message = "城市中心纬度不能为空")
         @DecimalMin(value = "-90.000000", message = "城市中心纬度超出范围")
         @DecimalMax(value = "90.000000", message = "城市中心纬度超出范围")
-        @Digits(integer = 2, fraction = 6, message = "城市中心纬度最多保留 6 位小数")
         BigDecimal centerLat,
         @NotNull(message = "默认缩放级别不能为空")
         @PositiveOrZero(message = "默认缩放级别不能小于 0")

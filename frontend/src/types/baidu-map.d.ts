@@ -13,7 +13,7 @@ interface BMapGLMapClickEvent {
 }
 
 interface BMapGLMap {
-  centerAndZoom(point: BMapGLPointLike, zoom: number): void;
+  centerAndZoom(point: BMapGLPointLike | string, zoom: number): void;
   enableScrollWheelZoom(enable: boolean): void;
   addControl(control: unknown): void;
   addOverlay(overlay: unknown): void;
@@ -60,6 +60,12 @@ interface BMapGLSizeLike {
   height: number;
 }
 
+interface BMapGLLocalCityResult {
+  center?: BMapGLPointLike;
+  level?: number;
+  name?: string;
+}
+
 interface BMapGLNamespace {
   Map: new (container: string | HTMLElement) => BMapGLMap;
   Point: new (lng: number, lat: number) => BMapGLPointLike;
@@ -86,6 +92,9 @@ interface BMapGLNamespace {
   ) => BMapGLPolyline;
   ScaleControl: new () => unknown;
   NavigationControl: new () => unknown;
+  LocalCity: new () => {
+    get(callback: (result?: BMapGLLocalCityResult) => void): void;
+  };
   Geocoder: new () => {
     getLocation(point: BMapGLPointLike, callback: (result?: BMapGLGeocoderResult) => void): void;
   };

@@ -16,7 +16,8 @@ import {
 import styles from "./BaiduMapStage.module.css";
 
 interface BaiduMapStageProps {
-  city: TravelCity;
+  city?: TravelCity;
+  dataUnavailable?: boolean;
   spots: TravelSpot[];
   selectedSpot?: TravelSpot;
   selectedSpotId?: number;
@@ -60,6 +61,7 @@ interface MapPickedStartPoint {
 // BaiduMapStage 负责真实地图底图、城市定位和景点 Marker 展示。
 export function BaiduMapStage({
   city,
+  dataUnavailable = false,
   spots,
   selectedSpot,
   selectedSpotId,
@@ -80,7 +82,7 @@ export function BaiduMapStage({
   const utilityOverlayRef = useRef<unknown[]>([]);
   const boundaryOverlayRef = useRef<unknown[]>([]);
   const routeViewportSignatureRef = useRef<string | undefined>(undefined);
-  const currentZoomRef = useRef(city.mapZoom);
+  const currentZoomRef = useRef(3);
   const [sdkError, setSdkError] = useState<string>();
   const [sdkReady, setSdkReady] = useState(false);
   const selectedSpotSummary = useMemo(
@@ -89,52 +91,85 @@ export function BaiduMapStage({
   );
   // 计算选中景点时的缩放级别, 保持在 15-16 之间，兼顾城市默认视角和景点位置细节。
   const selectedSpotZoom = useMemo(
-    () => Math.min(Math.max(city.mapZoom + 4, 15), 16),
-    [city.mapZoom],
+    () => Math.min(Math.max((city?.mapZoom ?? 11) + 4, 15), 16),
+    [city?.mapZoom],
   );
   useEffect(() => {
     let cancelled = false;
+    let retryTimer: number | undefined;
 
-    // 地图只初始化一次，后续城市切换和点位刷新走单独 effect 同步。
-    loadBaiduMapGL()
-      .then((BMapGL) => {
-        if (cancelled || mapRef.current) {
-          return;
-        }
+    /**
+     * 初始化百度地图；短暂网络或脚本加载异常时自动重试，避免残留误报。
+     */
+    function initializeMap(attempt: number) {
+      setSdkError(undefined);
+      loadBaiduMapGL()
+        .then((BMapGL) => {
+          if (cancelled || mapRef.current) {
+            return;
+          }
 
-        const map = new BMapGL.Map(containerId);
-        map.centerAndZoom(createBaiduPoint(city.center), city.mapZoom);
-        map.enableScrollWheelZoom(true);
-        map.addControl(new BMapGL.NavigationControl());
-        map.addControl(new BMapGL.ScaleControl());
-        map.addEventListener("zoomend", () => {
-          currentZoomRef.current = map.getZoom();
-        });
-        mapRef.current = map;
-        currentZoomRef.current = city.mapZoom;
-        setSdkReady(true);
-      })
-      .catch((error) => {
-        if (!cancelled) {
+          const map = new BMapGL.Map(containerId);
+          // 未取得城市业务数据时先展示全国视图，再由百度本地城市能力自动定位。
+          if (city) {
+            map.centerAndZoom(createBaiduPoint(city.center), city.mapZoom);
+          } else {
+            map.centerAndZoom("中国", 5);
+            const localCity = new BMapGL.LocalCity();
+            localCity.get((result) => {
+              if (cancelled || !result?.center) {
+                return;
+              }
+              map.centerAndZoom(result.center, result.level ?? 11);
+              currentZoomRef.current = map.getZoom();
+            });
+          }
+          map.enableScrollWheelZoom(true);
+          map.addControl(new BMapGL.NavigationControl());
+          map.addControl(new BMapGL.ScaleControl());
+          map.addEventListener("zoomend", () => {
+            currentZoomRef.current = map.getZoom();
+          });
+          mapRef.current = map;
+          currentZoomRef.current = city?.mapZoom ?? map.getZoom();
+          setSdkReady(true);
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+          if (attempt < 2) {
+            retryTimer = window.setTimeout(
+              () => initializeMap(attempt + 1),
+              600 * (attempt + 1),
+            );
+            return;
+          }
           setSdkError(
             error instanceof Error ? error.message : "百度地图加载失败",
           );
-        }
-      });
+        });
+    }
+
+    // 地图只初始化一次，后续城市切换和点位刷新走单独 effect 同步。
+    initializeMap(0);
 
     return () => {
       cancelled = true;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
     };
-  }, [city.center, city.mapZoom, containerId]);
+  }, [city, containerId]);
 
   useEffect(() => {
-    if (!mapRef.current || !sdkReady) {
+    if (!mapRef.current || !sdkReady || !city) {
       return;
     }
 
     // 城市切换时回到后端提供的城市中心点和默认缩放级别。
     mapRef.current.centerAndZoom(createBaiduPoint(city.center), city.mapZoom);
-  }, [city.center, city.mapZoom, sdkReady]);
+  }, [city, sdkReady]);
 
   useEffect(() => {
     if (!mapRef.current || !sdkReady || !window.BMapGL) {
@@ -416,13 +451,26 @@ export function BaiduMapStage({
   }, [onPickStartPoint, sdkReady, startPointPicking]);
 
   return (
-    <section className={styles.mapStage} aria-label={`${city.name} 百度地图`}>
+    <section
+      className={styles.mapStage}
+      aria-label={city ? `${city.name} 百度地图` : "百度地图"}
+    >
       <div className={styles.mapContainer} id={containerId} />
 
       {sdkError ? (
         <div className={styles.mapErrorBadge} role="status" title={sdkError}>
           <WarningOutlined />
           <span>地图服务暂时不可用，请稍后重试</span>
+        </div>
+      ) : null}
+
+      {dataUnavailable && !sdkError ? (
+        <div
+          className={`${styles.mapErrorBadge} ${styles.dataErrorBadge}`}
+          role="alert"
+        >
+          <WarningOutlined />
+          <span>旅游数据暂时不可用，当前仅展示基础地图</span>
         </div>
       ) : null}
 

@@ -11,7 +11,6 @@ import com.trailmap.model.response.AdminProvinceOptionResponse;
 import com.trailmap.model.response.CoordinateResponse;
 import com.trailmap.service.AdminMapDataService;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -216,8 +215,8 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
                 throw new BusinessException(ErrorCode.BAD_REQUEST, "城市中心点解析失败，请重新选择城市");
             }
             return new CoordinateResponse(
-                    normalizeCoordinate(location.path("lng").asText()),
-                    normalizeCoordinate(location.path("lat").asText()));
+                    new BigDecimal(location.path("lng").asText()),
+                    new BigDecimal(location.path("lat").asText()));
         } catch (BusinessException exception) {
             throw exception;
         } catch (RestClientException exception) {
@@ -232,13 +231,6 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
                 node.path("code").asText(),
                 node.path("name").asText(),
                 node.path("level").asInt(-1));
-    }
-
-    /**
-     * 百度坐标统一四舍五入到数据库约定的 6 位小数，避免显示值与提交值精度不一致。
-     */
-    private BigDecimal normalizeCoordinate(String value) {
-        return new BigDecimal(value).setScale(6, RoundingMode.HALF_UP);
     }
 
     private RegionTreeNode toRegionTreeNode(JsonNode node) {

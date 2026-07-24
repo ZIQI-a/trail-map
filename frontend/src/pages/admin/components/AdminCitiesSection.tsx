@@ -285,10 +285,10 @@ function AdminCityEditModal({
             <InputNumber min={1} max={20} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item label="中心经度" name="centerLng" rules={[{ required: true, message: "请先查询城市中心点" }]}>
-            <InputNumber readOnly controls={false} style={{ width: "100%" }} precision={6} placeholder="自动获取" />
+            <InputNumber readOnly controls={false} style={{ width: "100%" }} placeholder="自动获取" />
           </Form.Item>
           <Form.Item label="中心纬度" name="centerLat" rules={[{ required: true, message: "请先查询城市中心点" }]}>
-            <InputNumber readOnly controls={false} style={{ width: "100%" }} precision={6} placeholder="自动获取" />
+            <InputNumber readOnly controls={false} style={{ width: "100%" }} placeholder="自动获取" />
           </Form.Item>
           <Form.Item label="推荐天数" name="recommendDays">
             <InputNumber min={0.5} max={30} style={{ width: "100%" }} precision={1} />

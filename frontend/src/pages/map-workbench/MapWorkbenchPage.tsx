@@ -90,7 +90,6 @@ import { getItineraryActivityColor } from "../../utils/map-workbench/routePalett
 import { getVisibleSpots } from "../../utils/map-workbench/spotFilters";
 import { buildSaveTripPayload } from "../../utils/map-workbench/tripPayload";
 import styles from "./MapWorkbenchPage.module.css";
-import { DEFAULT_MAP_CITY } from "./mapWorkbenchFallback";
 
 const AuthDialog = lazy(() =>
   import("../../components/map-workbench/AuthDialog").then((module) => ({
@@ -235,13 +234,13 @@ export function MapWorkbenchPage() {
     Boolean(publicShareToken),
   );
 
-  const cities = useMemo(() => {
-    const remoteCities = (citiesQuery.data?.list ?? [])
+  const cities = useMemo(
+    () =>
+      (citiesQuery.data?.list ?? [])
         .map(mapCity)
-        .filter((city): city is TravelCity => Boolean(city));
-    // 数据服务失败或尚未返回时仍提供默认地图中心，避免整页被错误状态替换。
-    return remoteCities.length > 0 ? remoteCities : [DEFAULT_MAP_CITY];
-  }, [citiesQuery.data?.list]);
+        .filter((city): city is TravelCity => Boolean(city)),
+    [citiesQuery.data?.list],
+  );
 
   // 用户未主动切换时默认使用第一个城市；如果当前选择不在列表中，也回退到第一个城市。
   const activeCityId = cities.some((city) => city.id === selectedCityId)
@@ -271,7 +270,7 @@ export function MapWorkbenchPage() {
     () =>
       mapCity(
         cityDetailQuery.data ?? cities.find((item) => item.id === activeCityId),
-      ) ?? DEFAULT_MAP_CITY,
+      ),
     [activeCityId, cities, cityDetailQuery.data],
   );
   const tags = useMemo(
@@ -336,10 +335,10 @@ export function MapWorkbenchPage() {
     if (!pageError) {
       return;
     }
-    messageApi.warning({
+    messageApi.error({
       key: "map-workbench-data-error",
-      content: "部分旅游数据暂时无法获取，已为你保留基础地图和规划功能",
-      duration: 4,
+      content: "旅游数据服务暂时不可用，地图仍可继续浏览",
+      duration: 5,
     });
   }, [messageApi, pageError]);
   const startPointOptions = useMemo(
@@ -1222,7 +1221,7 @@ export function MapWorkbenchPage() {
       <WorkbenchHeader
         cities={cities}
         selectedCityId={activeCityId}
-        cityName={city.name}
+        cityName={city?.name ?? "城市数据不可用"}
         tags={tags}
         searchKeyword={searchKeyword}
         activeFilter={activeFilter}
@@ -1258,6 +1257,7 @@ export function MapWorkbenchPage() {
       <section className={styles.mapWorkspace} aria-label="地图工作台主体">
         <BaiduMapStage
           city={city}
+          dataUnavailable={Boolean(pageError)}
           spots={visibleSpots}
           selectedSpot={selectedSpot}
           selectedSpotId={effectiveSelectedSpotId}
@@ -1299,7 +1299,7 @@ export function MapWorkbenchPage() {
 
         {!showingScheduleResult ? (
           <div className={styles.leftFloatPanel}>
-            {spots.length === 0 ? (
+            {spots.length === 0 || !city ? (
               <aside className={styles.inlineStatePanel}>
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -1367,7 +1367,7 @@ export function MapWorkbenchPage() {
           </div>
         ) : null}
 
-        {routePlanResult ? (
+        {routePlanResult && city ? (
           <div className={styles.routeDrawerPanel}>
             <Suspense fallback={null}>
               <RoutePlanDrawer
@@ -1507,7 +1507,7 @@ export function MapWorkbenchPage() {
         <div className={styles.scheduleDialogIntro}>
           <span>按行程信息、偏好设置、生成确认三步完成配置。</span>
         </div>
-        {scheduleConfigModalOpen ? (
+        {scheduleConfigModalOpen && city ? (
           <Suspense fallback={null}>
             <SchedulePlanFormFields
               value={scheduleConfig}
@@ -1566,7 +1566,7 @@ export function MapWorkbenchPage() {
         ) : null}
       </Modal>
 
-      {scheduleSettingsOpen || routePlanResult ? (
+      {city && (scheduleSettingsOpen || routePlanResult) ? (
         <Suspense fallback={null}>
           <ScheduleResultSettingsDrawer
             open={scheduleSettingsOpen}
