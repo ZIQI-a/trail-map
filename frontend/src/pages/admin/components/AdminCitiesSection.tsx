@@ -67,6 +67,47 @@ function AdminCityEditModal({
   const cityCodeValue = Form.useWatch("cityCode", form);
   const isCreateMode = editingCity?.id === 0;
   const initialProvinceCode = resolveProvinceCode(editingCity?.cityCode ?? "");
+  const displayedProvinceOptions = useMemo(
+    () =>
+      editingCity && !isCreateMode && initialProvinceCode
+        ? mergeOptionByCode(provinceOptions, {
+            code: initialProvinceCode,
+            name: editingCity.provinceName,
+          })
+        : provinceOptions,
+    [
+      editingCity,
+      initialProvinceCode,
+      isCreateMode,
+      provinceOptions,
+    ],
+  );
+  const displayedCityOptions = useMemo(() => {
+    const provinceCities = cityOptions.filter(
+      (option) => option.provinceCode === provinceCodeValue,
+    );
+    if (
+      !editingCity ||
+      isCreateMode ||
+      !initialProvinceCode ||
+      provinceCodeValue !== initialProvinceCode
+    ) {
+      return provinceCities;
+    }
+    // 编辑时用数据库已有名称兜底，接口加载或失败期间不直接展示 adcode。
+    return mergeOptionByCode(provinceCities, {
+      code: editingCity.cityCode,
+      name: editingCity.name,
+      provinceCode: initialProvinceCode,
+      provinceName: editingCity.provinceName,
+    });
+  }, [
+    cityOptions,
+    editingCity,
+    initialProvinceCode,
+    isCreateMode,
+    provinceCodeValue,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -127,7 +168,7 @@ function AdminCityEditModal({
    * 切换省份后清空原城市资料，只展示该省份真实包含的城市候选。
    */
   async function handleProvinceChange(provinceCode: string) {
-    const province = provinceOptions.find(
+    const province = displayedProvinceOptions.find(
       (option) => option.code === provinceCode,
     );
     form.setFieldsValue({
@@ -260,7 +301,7 @@ function AdminCityEditModal({
               loading={isRegionLoading}
               placeholder="输入名称或编码搜索省份"
               optionFilterProp="label"
-              options={provinceOptions.map((option) => ({
+              options={displayedProvinceOptions.map((option) => ({
                 label: `${option.name} · ${option.code}`,
                 value: option.code,
               }))}
@@ -279,7 +320,7 @@ function AdminCityEditModal({
               disabled={!provinceCodeValue}
               placeholder="请从所属省份内选择城市"
               optionFilterProp="label"
-              options={cityOptions.map((option) => ({
+              options={displayedCityOptions.map((option) => ({
                 label: `${option.name} · ${option.code}`,
                 value: option.code,
               }))}
@@ -346,6 +387,18 @@ function AdminCityEditModal({
  */
 function resolveProvinceCode(cityCode: string) {
   return /^\d{6}$/.test(cityCode) ? `${cityCode.slice(0, 2)}0000` : undefined;
+}
+
+/**
+ * 将编辑数据合并进百度候选，接口暂不可用时仍能正确展示已有名称。
+ */
+function mergeOptionByCode<T extends { code: string }>(
+  options: T[],
+  fallback: T,
+) {
+  return options.some((option) => option.code === fallback.code)
+    ? options
+    : [fallback, ...options];
 }
 
 // 城市管理模块提供城市基础资料的列表查看、创建、编辑和删除。

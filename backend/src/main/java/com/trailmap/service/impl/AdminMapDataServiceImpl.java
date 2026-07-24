@@ -46,7 +46,7 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
     public List<AdminProvinceOptionResponse> listProvinces(String keyword) {
         List<RegionNode> provinces = loadRegions("provinces", "中国", 1).stream()
                 // 百度当前会返回“苏鲁交界”等非标准实验区域，管理端只接受常规六位省级 adcode。
-                .filter(region -> region.level() == 1 && region.code().matches("[1-8]\\d{4}"))
+                .filter(region -> region.level() == 1 && isStandardProvinceCode(region.code()))
                 .toList();
         String normalizedKeyword = normalizeKeyword(keyword);
         return provinces.stream()
@@ -206,6 +206,13 @@ public class AdminMapDataServiceImpl implements AdminMapDataService {
 
     private String normalizeKeyword(String keyword) {
         return StringUtils.hasText(keyword) ? keyword.trim() : null;
+    }
+
+    /**
+     * 省级行政区划编码固定为六位，首位 1～8；排除百度返回的 99 开头实验区域。
+     */
+    static boolean isStandardProvinceCode(String code) {
+        return code != null && code.matches("[1-8]\\d{5}");
     }
 
     private void ensureServerAk() {
