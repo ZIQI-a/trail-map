@@ -361,6 +361,30 @@
   word-break: break-word;
 }
 
+.compactDataTable :global(.ant-table-thead > tr > th) {
+  padding: 10px 12px;
+}
+
+.compactDataTable :global(.ant-table-tbody > tr > td) {
+  padding: 9px 12px;
+  line-height: 1.35;
+}
+
+/* 操作项始终保持单行，避免按钮换行后额外撑高数据行。 */
+.tableActionGroup {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.tableActionButton {
+  flex: 0 0 auto;
+  height: 30px;
+  padding-inline: 6px;
+}
+
 .userTable :global(.ant-table-tbody > tr:hover > td) {
   background: #fbfdff !important;
 }
@@ -652,5 +676,18 @@
     width: 100%;
     margin-top: -12px;
     margin-bottom: 18px;
+  }
+}
+
+/* 窄屏仅保留操作图标，并通过按钮 title 与 aria-label 保持语义清晰。 */
+@media (max-width: 1200px) {
+  .tableActionLabel {
+    display: none;
+  }
+
+  .tableActionButton {
+    width: 32px;
+    min-width: 32px;
+    padding-inline: 0;
   }
 }

@@ -1,5 +1,5 @@
 import { AimOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, AutoComplete, Button, Card, Collapse, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Space, Switch, Table, Tag } from "antd";
+import { Alert, AutoComplete, Button, Card, Collapse, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Select, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { DefaultOptionType } from "antd/es/select";
 import { useMemo, useRef, useState } from "react";
@@ -591,18 +591,30 @@ export function AdminSpotsSection({
       {
         title: "操作",
         key: "actions",
-        width: 220,
+        width: 196,
         render: (_, spot) => (
-          <Space size="small" wrap>
-            <Button type="link" icon={<EditOutlined />} onClick={() => onOpenEditModal(spot)}>
-              编辑
+          <div className={sectionStyles.tableActionGroup}>
+            <Button
+              className={sectionStyles.tableActionButton}
+              type="link"
+              icon={<EditOutlined />}
+              aria-label={`编辑${spot.name}`}
+              title="编辑"
+              onClick={() => onOpenEditModal(spot)}
+            >
+              <span className={sectionStyles.tableActionLabel}>编辑</span>
             </Button>
             <Button
+              className={sectionStyles.tableActionButton}
               type="link"
               icon={spot.status === 1 ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+              aria-label={`${spot.status === 1 ? "停用" : "启用"}${spot.name}`}
+              title={spot.status === 1 ? "停用" : "启用"}
               onClick={() => onToggleStatus(spot)}
             >
-              {spot.status === 1 ? "停用" : "启用"}
+              <span className={sectionStyles.tableActionLabel}>
+                {spot.status === 1 ? "停用" : "启用"}
+              </span>
             </Button>
             <Popconfirm
               title="确定删除该景点吗？"
@@ -611,11 +623,18 @@ export function AdminSpotsSection({
               cancelText="取消"
               onConfirm={() => onDeleteSpot(spot)}
             >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                删除
+              <Button
+                className={sectionStyles.tableActionButton}
+                type="link"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label={`删除${spot.name}`}
+                title="删除"
+              >
+                <span className={sectionStyles.tableActionLabel}>删除</span>
               </Button>
             </Popconfirm>
-          </Space>
+          </div>
         ),
       },
     ],
@@ -701,7 +720,7 @@ export function AdminSpotsSection({
           ) : (
             <Table
               rowKey="id"
-              className={sectionStyles.userTable}
+              className={`${sectionStyles.userTable} ${sectionStyles.compactDataTable}`}
               loading={isLoading || isSubmitting}
               columns={columns}
               dataSource={spots}

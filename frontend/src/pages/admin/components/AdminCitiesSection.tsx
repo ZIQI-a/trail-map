@@ -1,5 +1,5 @@
 import { AimOutlined, DeleteOutlined, EditOutlined, EyeInvisibleOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Form, Input, InputNumber, message, Modal, Pagination, Popconfirm, Select, Space, Table, Tag } from "antd";
+import { Alert, Button, Card, Form, Input, InputNumber, message, Modal, Pagination, Popconfirm, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import {
@@ -449,18 +449,30 @@ export function AdminCitiesSection({
       {
         title: "操作",
         key: "actions",
-        width: 220,
+        width: 196,
         render: (_, city) => (
-          <Space size="small" wrap>
-            <Button type="link" icon={<EditOutlined />} onClick={() => onOpenEditModal(city)}>
-              编辑
+          <div className={sectionStyles.tableActionGroup}>
+            <Button
+              className={sectionStyles.tableActionButton}
+              type="link"
+              icon={<EditOutlined />}
+              aria-label={`编辑${city.name}`}
+              title="编辑"
+              onClick={() => onOpenEditModal(city)}
+            >
+              <span className={sectionStyles.tableActionLabel}>编辑</span>
             </Button>
             <Button
+              className={sectionStyles.tableActionButton}
               type="link"
               icon={city.status === 1 ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+              aria-label={`${city.status === 1 ? "停用" : "启用"}${city.name}`}
+              title={city.status === 1 ? "停用" : "启用"}
               onClick={() => onToggleStatus(city)}
             >
-              {city.status === 1 ? "停用" : "启用"}
+              <span className={sectionStyles.tableActionLabel}>
+                {city.status === 1 ? "停用" : "启用"}
+              </span>
             </Button>
             <Popconfirm
               title="确定删除该城市吗？"
@@ -469,11 +481,18 @@ export function AdminCitiesSection({
               cancelText="取消"
               onConfirm={() => onDeleteCity(city)}
             >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                删除
+              <Button
+                className={sectionStyles.tableActionButton}
+                type="link"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label={`删除${city.name}`}
+                title="删除"
+              >
+                <span className={sectionStyles.tableActionLabel}>删除</span>
               </Button>
             </Popconfirm>
-          </Space>
+          </div>
         ),
       },
     ],
@@ -525,7 +544,7 @@ export function AdminCitiesSection({
           ) : (
             <Table
               rowKey="id"
-              className={sectionStyles.userTable}
+              className={`${sectionStyles.userTable} ${sectionStyles.compactDataTable}`}
               loading={isLoading || isSubmitting}
               columns={columns}
               dataSource={cities}
