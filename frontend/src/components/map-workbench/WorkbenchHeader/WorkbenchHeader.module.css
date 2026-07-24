@@ -92,13 +92,20 @@
 }
 
 .cityPopover {
-  width: min(680px, calc(100vw - 32px));
+  width: clamp(420px, 33vw, 620px);
+  max-width: calc(100vw - 24px);
+}
+
+.cityPopover :global(.ant-popover-arrow) {
+  display: none;
 }
 
 .cityPopover :global(.ant-popover-inner) {
   padding: 0;
-  border-radius: 18px;
-  box-shadow: 0 20px 44px rgb(24 58 102 / 18%);
+  overflow: hidden;
+  border: 1px solid rgb(216 226 239 / 82%);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgb(31 55 88 / 16%);
 }
 
 .cityPopover :global(.ant-popover-inner-content) {
@@ -106,7 +113,12 @@
 }
 
 .cityPanel {
-  padding: 16px 16px 18px;
+  box-sizing: border-box;
+  max-height: min(66vh, 600px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px 14px 14px;
   background: #ffffff;
 }
 
@@ -114,19 +126,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .cityPanelTitle {
   color: #2f3742;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
 }
 
 .cityPanelClose {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -145,33 +157,33 @@
 .hotCityRow {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin-bottom: 9px;
 }
 
 .hotCityLabel {
   flex: 0 0 auto;
   color: #2b6dff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
-  line-height: 26px;
+  line-height: 23px;
 }
 
 .hotCityList {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 6px;
+  gap: 2px 3px;
 }
 
 .hotCityButton {
-  min-height: 26px;
-  padding: 0 6px;
+  min-height: 23px;
+  padding: 0 4px;
   border: 0;
   border-radius: 7px;
   color: #2b6dff;
   background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   transition: background 150ms ease, color 150ms ease;
@@ -190,21 +202,21 @@
 .cityPanelToolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 9px;
 }
 
 .cityPanelTabs {
   flex: 0 0 auto;
   display: inline-flex;
-  gap: 8px;
+  gap: 5px;
 }
 
 .cityPanelTab {
-  min-width: 78px;
-  height: 40px;
+  min-width: 68px;
+  height: 34px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 8px;
   color: #2f3742;
   background: #f4f5f7;
   cursor: pointer;
@@ -220,22 +232,22 @@
 
 .cityPanelSearch {
   flex: 1 1 auto;
-  min-width: 180px;
-  height: 40px;
+  min-width: 160px;
+  height: 34px;
 }
 
 .cityPanelSearch :global(.ant-input-affix-wrapper) {
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 11px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
   border-color: #d8e0ec;
   box-shadow: none;
 }
 
 .cityPanelSearch :global(.ant-input-prefix) {
   color: #2f3742;
-  font-size: 15px;
-  margin-inline-end: 7px;
+  font-size: 14px;
+  margin-inline-end: 6px;
 }
 
 .cityPanelSearch :global(.ant-input) {
@@ -243,26 +255,23 @@
 }
 
 .letterRail {
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 14px;
-  padding: 8px;
-  border: 1px solid #e4ecf7;
-  border-radius: 11px;
-  background: #f8fbff;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
 .letterButton {
-  width: 25px;
-  height: 25px;
+  width: 23px;
+  height: 23px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 4px;
   color: #434c57;
-  background: #ffffff;
+  background: #f4f5f7;
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -274,7 +283,8 @@
 }
 
 .cityGroupList {
-  max-height: min(50vh, 360px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
   scrollbar-width: none;
@@ -289,23 +299,18 @@
 
 .cityGroupSection {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: 58px minmax(0, 1fr);
   align-items: start;
-  gap: 10px;
-  padding: 8px 6px;
-  border-radius: 9px;
-  scroll-margin-top: 8px;
-}
-
-.cityGroupSection:nth-child(odd) {
-  background: #fbfcff;
+  gap: 8px;
+  padding: 5px 2px;
+  scroll-margin-top: 6px;
 }
 
 .cityGroupTitle {
   color: #233c5c;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .cityGroupTitle::after {
@@ -316,7 +321,7 @@
 .cityGroupItems {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px 12px;
+  gap: 2px 10px;
   padding-top: 0;
 }
 
@@ -328,7 +333,7 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.75;
+  line-height: 1.65;
   text-align: left;
 }
 
@@ -444,7 +449,11 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 520px) {
+  .cityPopover {
+    width: calc(100vw - 24px);
+  }
+
   .cityPanelToolbar {
     flex-direction: column;
     align-items: stretch;
@@ -487,17 +496,16 @@
   }
 
   .hotCityRow {
-    flex-direction: column;
-    gap: 2px;
+    gap: 4px;
   }
 
   .cityPanel {
-    padding: 16px 14px 18px;
+    max-height: min(66vh, 560px);
+    padding: 12px;
   }
 
   .cityGroupSection {
-    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-columns: 50px minmax(0, 1fr);
     gap: 6px;
-    padding-inline: 4px;
   }
 }
