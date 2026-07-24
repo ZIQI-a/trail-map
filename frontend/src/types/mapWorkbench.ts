@@ -59,6 +59,7 @@ export interface TravelCity {
   mapZoom: number;
   description: string;
   recommendDays: number;
+  hotScore: number;
 }
 
 // 景点标签：用于分类筛选和景点卡片标签。

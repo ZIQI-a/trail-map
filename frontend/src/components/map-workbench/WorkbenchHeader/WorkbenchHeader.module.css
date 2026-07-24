@@ -92,7 +92,7 @@
 }
 
 .cityPopover {
-  width: min(552px, calc(100vw - 32px));
+  width: min(680px, calc(100vw - 32px));
 }
 
 .cityPopover :global(.ant-popover-inner) {
@@ -160,22 +160,31 @@
 .hotCityList {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 7px;
+  gap: 4px 6px;
 }
 
 .hotCityButton {
-  padding: 0;
+  min-height: 26px;
+  padding: 0 6px;
   border: 0;
+  border-radius: 7px;
   color: #2b6dff;
   background: transparent;
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
-  line-height: 26px;
+  line-height: 1;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.hotCityButton:hover {
+  background: #edf4ff;
 }
 
 .hotCityButtonActive {
+  color: #155bd4;
   font-weight: 900;
+  background: #e8f1ff;
 }
 
 .cityPanelToolbar {
@@ -236,20 +245,24 @@
 .letterRail {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 5px;
   margin-bottom: 14px;
+  padding: 8px;
+  border: 1px solid #e4ecf7;
+  border-radius: 11px;
+  background: #f8fbff;
 }
 
 .letterButton {
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 4px;
   color: #434c57;
-  background: #f4f5f7;
+  background: #ffffff;
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -261,7 +274,7 @@
 }
 
 .cityGroupList {
-  max-height: min(48vh, 328px);
+  max-height: min(50vh, 360px);
   overflow-y: auto;
   padding-right: 2px;
   scrollbar-width: none;
@@ -276,23 +289,34 @@
 
 .cityGroupSection {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: start;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 9px;
+  scroll-margin-top: 8px;
+}
+
+.cityGroupSection:nth-child(odd) {
+  background: #fbfcff;
 }
 
 .cityGroupTitle {
-  color: #434c57;
+  color: #233c5c;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.7;
 }
 
+.cityGroupTitle::after {
+  content: "：";
+  color: #9aabc0;
+}
+
 .cityGroupItems {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px 8px;
+  gap: 3px 12px;
   padding-top: 0;
 }
 
@@ -472,6 +496,8 @@
   }
 
   .cityGroupSection {
-    grid-template-columns: 46px minmax(0, 1fr);
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 6px;
+    padding-inline: 4px;
   }
 }

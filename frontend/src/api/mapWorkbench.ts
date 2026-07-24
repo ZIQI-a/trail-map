@@ -21,7 +21,7 @@ import type {
   UserTripSummaryDto,
 } from '../types/mapWorkbench';
 
-// 获取城市列表，当前阶段默认不传分页参数，直接拿完整列表。
+// 获取全部已启用城市，供地图工作台动态生成快捷选择和省市分组。
 export function fetchCities() {
   return request<PageResponse<TravelCityDto>>('/api/cities');
 }
