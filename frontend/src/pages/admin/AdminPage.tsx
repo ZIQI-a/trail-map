@@ -112,14 +112,6 @@ export function AdminPage() {
     [spotCityOptionsQuery.data?.list],
   );
   const spots = useMemo(() => spotsQuery.data?.list ?? [], [spotsQuery.data?.list]);
-  const activeSearchKeyword =
-    activeSection === "users"
-      ? searchKeyword
-      : activeSection === "cities"
-        ? cityKeyword
-        : activeSection === "spots"
-          ? spotKeyword
-          : "";
   // 屏幕较小时自动收起侧边栏，保证右侧主内容区域的可用宽度。
   useEffect(() => {
     if (lastLargeScreenRef.current === screens.lg) {
@@ -248,30 +240,6 @@ export function AdminPage() {
     navigate("/");
   }
 
-  // 顶部刷新只刷新当前模块相关数据，避免概览页触发无关列表请求。
-  function handleRefreshCurrentSection() {
-    if (activeSection === "overview") {
-      return void queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
-    }
-    if (activeSection === "users") {
-      return void Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
-      ]);
-    }
-    if (activeSection === "cities") {
-      return void Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
-      ]);
-    }
-    return void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities"] }),
-      queryClient.invalidateQueries({ queryKey: ["admin", "spots"] }),
-      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
-    ]);
-  }
-
   if (!authToken) {
     return <NotFoundPage />;
   }
@@ -312,26 +280,7 @@ export function AdminPage() {
         <AdminTopBar
           activeSection={activeSection}
           currentUser={currentAdmin}
-          isRefreshing={overviewQuery.isFetching || usersQuery.isFetching || citiesQuery.isFetching || spotsQuery.isFetching}
-          searchKeyword={activeSearchKeyword}
           onLogout={handleLogout}
-          onRefresh={handleRefreshCurrentSection}
-          onSearch={(value) => {
-            if (activeSection === "users") {
-              setSearchKeyword(value);
-              setUserPageNum(1);
-              return;
-            }
-            if (activeSection === "cities") {
-              setCityKeyword(value);
-              setCityPageNum(1);
-              return;
-            }
-            if (activeSection === "spots") {
-              setSpotKeyword(value);
-              setSpotPageNum(1);
-            }
-          }}
         />
 
         {activeSection === "overview" ? (

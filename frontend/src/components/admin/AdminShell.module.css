@@ -178,34 +178,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 12px;
   min-width: 0;
-}
-
-.searchInput {
-  width: clamp(220px, 28vw, 420px);
-  min-width: 0;
-  flex: 1 1 220px;
-}
-
-.searchInput :global(.ant-input-affix-wrapper) {
-  border-radius: 12px 0 0 12px;
-  min-height: 40px;
-}
-
-.searchInput :global(.ant-input-search-button) {
-  height: 40px;
-  border-radius: 0 12px 12px 0 !important;
-  font-weight: 700;
-}
-
-.iconButton {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 12px;
 }
 
 .topUser {
@@ -252,21 +225,6 @@
 .topUserArrow {
   color: #8a9ab0;
   font-size: 12px;
-}
-
-@media (max-width: 1280px) {
-  .topBar {
-    grid-template-columns: 1fr;
-    padding: 16px 20px;
-  }
-
-  .topBarActions {
-    justify-content: stretch;
-  }
-
-  .topUser {
-    width: 100%;
-  }
 }
 
 @media (max-width: 900px) {
@@ -333,20 +291,17 @@
   }
 
   .topBar {
+    grid-template-columns: 1fr;
     padding: 12px 16px;
   }
 
   .topBarActions {
     width: 100%;
-    grid-template-columns: 1fr auto auto;
-    display: grid;
+    justify-content: stretch;
   }
 
-  .searchInput {
-    width: 100%;
-  }
-
+  .topUserButton,
   .topUser {
-    grid-column: 1 / -1;
+    width: 100%;
   }
 }

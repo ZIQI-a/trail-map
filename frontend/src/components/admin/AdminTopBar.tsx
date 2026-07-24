@@ -1,12 +1,9 @@
 import {
-  BellOutlined,
   CaretDownOutlined,
   LockOutlined,
   LogoutOutlined,
-  ReloadOutlined,
-  SearchOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Dropdown, Input, Tag } from "antd";
+import { Avatar, Dropdown, Tag } from "antd";
 import type { MenuProps } from "antd";
 import { topBarIcon } from "../../admin/config";
 import type { AdminSection } from "../../admin/types";
@@ -16,22 +13,14 @@ import styles from "./AdminShell.module.css";
 type AdminTopBarProps = {
   activeSection: AdminSection;
   currentUser: AppUserDto;
-  isRefreshing: boolean;
-  searchKeyword: string;
   onLogout: () => void;
-  onRefresh: () => void;
-  onSearch: (value: string) => void;
 };
 
-// 顶部工具栏统一收口搜索、刷新和当前管理员信息。
+// 顶部工具栏展示当前模块路径和管理员账户入口。
 export function AdminTopBar({
   activeSection,
   currentUser,
-  isRefreshing,
-  searchKeyword,
   onLogout,
-  onRefresh,
-  onSearch,
 }: AdminTopBarProps) {
   const activeSectionLabel =
     activeSection === "overview"
@@ -41,15 +30,6 @@ export function AdminTopBar({
         : activeSection === "cities"
           ? "城市管理"
           : "景点管理";
-
-  const searchPlaceholder =
-    activeSection === "users"
-      ? "搜索用户、角色、状态等"
-      : activeSection === "cities"
-        ? "搜索城市名称、省份、编码等"
-        : activeSection === "spots"
-          ? "搜索景点名称、城市、类型等"
-        : "搜索后台数据";
 
   const userMenuItems: MenuProps["items"] = [
     {
@@ -71,23 +51,6 @@ export function AdminTopBar({
       </div>
 
       <div className={styles.topBarActions}>
-        <Input.Search
-          key={`${activeSection}-${searchKeyword}`}
-          className={styles.searchInput}
-          prefix={<SearchOutlined />}
-          enterButton="搜索"
-          allowClear
-          placeholder={searchPlaceholder}
-          defaultValue={searchKeyword}
-          onSearch={(value) => onSearch(value.trim())}
-        />
-        <Button className={styles.iconButton} icon={<BellOutlined />} />
-        <Button
-          className={styles.iconButton}
-          icon={<ReloadOutlined />}
-          loading={isRefreshing}
-          onClick={onRefresh}
-        />
         <Dropdown
           menu={{ items: userMenuItems }}
           trigger={["hover"]}
